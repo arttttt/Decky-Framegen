@@ -95,6 +95,17 @@ FSR 4.1.1 can fall back internally to FSR3 on unsupported hardware. Check the FS
 - **FakeNVAPI**: NVIDIA API emulation for AMD/Intel GPUs, to make DLSS options selectable in game
 - **Supporting Libraries**: All required DX12/Vulkan libraries (libxess.dll, amd_fidelityfx, etc.)
 
+## Development
+
+### Running the backend tests
+The Python backend is tested with pytest against a fake `~/fgmod`, fake game directories and a fake Steam library built in temporary directories; no Steam Deck or Decky Loader is needed. Python 3.10+ is required (Decky Loader currently ships 3.14).
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/python -m pytest
+```
+
 
 ## Credits
 
