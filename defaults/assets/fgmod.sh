@@ -127,7 +127,8 @@ cleanup_files=(
 
 is_bundled_proxy_copy() {
   local existing_file="$1"
-  local bundled_copy="$fgmod_path/renames/$(basename "$existing_file")"
+  local bundled_copy
+  bundled_copy="$fgmod_path/renames/$(basename "$existing_file")"
   [[ -f "$existing_file" && -f "$bundled_copy" ]] && cmp -s "$existing_file" "$bundled_copy"
 }
 
@@ -225,11 +226,9 @@ is_managed_support_file() {
     return 1
   fi
   if [[ "$filename" == "amdxc64.dll" ]]; then
-    for candidate in \
-      "$fgmod_path/fsr4-rdna2-valve-411-pre10/amdxc64.dll"; do
-      [[ -f "$candidate" && -f "$existing_file" ]] && cmp -s "$existing_file" "$candidate" && return 0
-    done
-    return 1
+    candidate="$fgmod_path/fsr4-rdna2-valve-411-pre10/amdxc64.dll"
+    [[ -f "$candidate" && -f "$existing_file" ]] && cmp -s "$existing_file" "$candidate"
+    return
   fi
   candidate="$fgmod_path/$filename"
   [[ -f "$candidate" && -f "$existing_file" ]] && cmp -s "$existing_file" "$candidate"
