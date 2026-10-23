@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 
 BUILD_INFO_FILENAME = "build-info.json"
 MAIN_CHANNEL = "dev"
@@ -27,6 +27,8 @@ class BuildInfo:
     """`owner/name` on GitHub; its releases hold the other development builds."""
     channel: str
     commit: str
+    title: str = field(default="", compare=False)
+    """How the build is named on the device (`main @ 1a2b3c4`, `PR #12: <title>`); not part of its identity."""
 
     @property
     def short_commit(self) -> str:
@@ -38,19 +40,21 @@ def channel(pull_request: int | None) -> str:
     return MAIN_CHANNEL if pull_request is None else f"pr-{pull_request}"
 
 
-def build_info(repository: str, channel: str, commit: str) -> BuildInfo:
-    """A validated identity; raises ValueError for anything CI never produces."""
+def build_info(repository: str, channel: str, commit: str, pull_request_title: str = "") -> BuildInfo:
+    """A validated identity, titled after main or its pull request; raises ValueError for anything CI never produces."""
     if not _REPOSITORY.match(repository):
         raise ValueError(f"Not a GitHub repository: {repository!r}")
     if not _CHANNEL.match(channel):
         raise ValueError(f"Not a development channel: {channel!r}")
     if not _COMMIT.match(commit):
         raise ValueError(f"Not a full commit sha: {commit!r}")
-    return BuildInfo(repository, channel, commit)
+    info = BuildInfo(repository, channel, commit)
+    return replace(info, title=release_title(info, pull_request_title))
 
 
 def to_json(info: BuildInfo) -> str:
-    return json.dumps({"repository": info.repository, "channel": info.channel, "commit": info.commit}, indent=2) + "\n"
+    fields = {"repository": info.repository, "channel": info.channel, "commit": info.commit, "title": info.title}
+    return json.dumps(fields, indent=2) + "\n"
 
 
 def parse(text: str) -> BuildInfo:
@@ -61,7 +65,9 @@ def parse(text: str) -> BuildInfo:
         raise ValueError(f"{BUILD_INFO_FILENAME} is not JSON: {exc}") from exc
     if not isinstance(data, dict):
         raise ValueError(f"{BUILD_INFO_FILENAME} is not an object")
-    return build_info(str(data.get("repository", "")), str(data.get("channel", "")), str(data.get("commit", "")))
+    info = build_info(str(data.get("repository", "")), str(data.get("channel", "")), str(data.get("commit", "")))
+    title = data.get("title")
+    return replace(info, title=" ".join(title.split())) if isinstance(title, str) and title.strip() else info
 
 
 def version(base: str, info: BuildInfo) -> str:
