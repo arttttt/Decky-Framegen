@@ -9,7 +9,7 @@ from pathlib import Path
 
 import decky
 
-from framegen.application.dev_updates import DevUpdates
+from framegen.application.dev_updates import DevUpdates, Report
 from framegen.application.installer import Installer
 from framegen.application.patcher import Patcher
 from framegen.domain import bundle
@@ -32,8 +32,14 @@ class Plugin:
     def _patcher(self) -> Patcher:
         return Patcher(self._home_path())
 
-    def _dev_updates(self) -> DevUpdates:
-        return DevUpdates(Path(decky.DECKY_PLUGIN_DIR), github_releases.list_releases)
+    def _dev_updates(self, report: Report = lambda channel, received, total: None) -> DevUpdates:
+        return DevUpdates(
+            Path(decky.DECKY_PLUGIN_DIR),
+            github_releases.list_releases,
+            github_releases.download,
+            Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "dev-builds",
+            report,
+        )
 
     # ── OptiScaler bundle ─────────────────────────────────────────────────────
 
@@ -88,6 +94,16 @@ class Plugin:
     async def list_dev_builds(self) -> dict:
         # The request to GitHub can take seconds; keep it off Decky's event loop.
         return await asyncio.to_thread(self._dev_updates().available_builds)
+
+    async def dev_install_request(self, channel: str) -> dict:
+        # Asks GitHub again and downloads the build off Decky's event loop; progress goes
+        # back to the frontend as "dev_build_download" events.
+        loop = asyncio.get_running_loop()
+
+        def report(build_channel: str, received: int, total: int | None) -> None:
+            asyncio.run_coroutine_threadsafe(decky.emit("dev_build_download", build_channel, received, total), loop)
+
+        return await asyncio.to_thread(self._dev_updates(report).install_request, channel)
 
     # ── Misc ──────────────────────────────────────────────────────────────────
 

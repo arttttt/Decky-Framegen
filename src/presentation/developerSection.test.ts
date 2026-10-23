@@ -11,7 +11,6 @@ const build = (channel: string, state: "installed" | "available", title: string)
   title,
   published_at: "2026-10-23T10:00:05Z",
   state,
-  install_request: [`https://github.com/o/r/releases/download/${channel}/P-1111111.zip`, "P", `${channel}-1111111`, "a".repeat(64), 2],
 });
 
 const listed = [build("dev", "installed", "main @ 9999999"), build("pr-12", "available", "PR #12: Developer section")];
@@ -21,7 +20,9 @@ const state = (overrides: Partial<DeveloperSectionState> = {}): DeveloperSection
   list: { status: "success", builds: listed },
   checking: false,
   selectedChannel: null,
-  installStarted: false,
+  install: "idle",
+  download: null,
+  installError: null,
   deckyInstallerAvailable: true,
   ...overrides,
 });
@@ -65,7 +66,7 @@ describe("developer section", () => {
     expect(view.details).toBe("Commit 1111111, published 2026-10-23 10:00 UTC");
     expect(view.installLabel).toBe("Install");
     expect(view.installEnabled).toBe(true);
-    expect(selectedBuild(state({ selectedChannel: "pr-12" }))?.install_request[2]).toBe("pr-12-1111111");
+    expect(selectedBuild(state({ selectedChannel: "pr-12" }))?.channel).toBe("pr-12");
   });
 
   it("starts on the running build's channel even when it is not listed first", () => {
@@ -81,12 +82,43 @@ describe("developer section", () => {
     expect(selectedBuild(state({ list: onlyPr, selectedChannel: "pr-99" }))?.channel).toBe("pr-12");
   });
 
-  it("installs once: after the start everything waits for Decky to reload the plugin", () => {
-    const view = visible(state({ selectedChannel: "pr-12", installStarted: true }));
+  it("installs once while Decky asks; checking stays available", () => {
+    const view = visible(state({ selectedChannel: "pr-12", install: "started" }));
 
     expect(view.installEnabled).toBe(false);
-    expect(view.checkEnabled).toBe(false);
-    expect(view.message).toBe("Decky asks to confirm, then reloads the plugin with the new build.");
+    expect(view.checkEnabled).toBe(true);
+    expect(view.message).toBe("Downloaded. Decky asks to confirm, then reloads the plugin with the new build.");
+  });
+
+  it("shows the download of the build being installed and blocks starting another", () => {
+    const waiting = visible(state({ selectedChannel: "pr-12", install: "downloading" }));
+    const halfway = visible(
+      state({ selectedChannel: "pr-12", install: "downloading", download: { received: 525_000, total: 1_050_000 } }),
+    );
+    const unknownSize = visible(
+      state({ selectedChannel: "pr-12", install: "downloading", download: { received: 300_000, total: null } }),
+    );
+
+    expect(waiting.message).toBe("Downloading PR #12: Developer section…");
+    expect(halfway.message).toBe("Downloading PR #12: Developer section: 50% (0.5 of 1.1 MB)");
+    expect(unknownSize.message).toBe("Downloading PR #12: Developer section: 0.3 MB");
+    expect(halfway.installEnabled).toBe(false);
+    expect(halfway.checkEnabled).toBe(false);
+  });
+
+  it("offers to install again when the plugin is still running after the install (cancelled in Decky)", () => {
+    const view = visible(state({ selectedChannel: "pr-12", install: "unconfirmed" }));
+
+    expect(view.installEnabled).toBe(true);
+    expect(view.checkEnabled).toBe(true);
+    expect(view.message).toBe("The plugin was not replaced. If you cancelled in Decky, install again.");
+  });
+
+  it("says why an install could not start and lets the user try again", () => {
+    const view = visible(state({ selectedChannel: "pr-12", installError: "The pr-12 build is no longer published. Check again." }));
+
+    expect(view.message).toBe("The pr-12 build is no longer published. Check again.");
+    expect(view.installEnabled).toBe(true);
   });
 
   it("blocks checking and installing while a check runs", () => {

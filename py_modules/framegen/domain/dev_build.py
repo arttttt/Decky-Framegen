@@ -163,8 +163,13 @@ def state(current: BuildInfo, release: DevRelease) -> str:
     return INSTALLED if same else AVAILABLE
 
 
-def install_request(plugin_name: str, release: DevRelease) -> list:
+def install_request(plugin_name: str, release: DevRelease, downloaded: str) -> list:
     """The arguments of decky-loader's `utilities/install_plugin(artifact, name, version, hash, install_type)`
-    (backend/decky_loader/utilities.py, v3.3.0) that install `release` over the running plugin."""
+    (backend/decky_loader/utilities.py, v3.3.0) that install `release` over the running plugin.
+
+    The plugin downloads the zip itself and hands Decky the file (`file://`, browser.py:194, v3.3.0):
+    Decky's own download from a URL never reached GitHub on a Bazzite device, while the plugin's does.
+    Decky still checks the file against the sha256.
+    """
     label = f"{release.info.channel}-{release.info.short_commit}"
-    return [release.url, plugin_name, label, release.sha256, DECKY_INSTALL_UPDATE]
+    return [f"file://{downloaded}", plugin_name, label, release.sha256, DECKY_INSTALL_UPDATE]
