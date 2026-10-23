@@ -13,7 +13,7 @@ from framegen.infrastructure import archive
 def test_extract_7z_unpacks_into_a_new_directory(release_assets, tmp_path):
     out = tmp_path / "out" / "nested"
 
-    archive.extract_7z(release_assets / "bin" / bundle.OPTISCALER_ARCHIVE_ASSET["name"], out)
+    archive.extract_7z(release_assets / archive.SEVEN_ZIP, release_assets / "bin" / bundle.OPTISCALER_ARCHIVE_ASSET["name"], out)
 
     assert (out / "OptiScaler.dll").exists()
     assert (out / "D3D12_Optiscaler" / "D3D12Core.dll").exists()
@@ -24,7 +24,7 @@ def test_extract_7z_reports_the_tools_error(release_assets, tmp_path):
     broken.write_bytes(b"not an archive")
 
     with pytest.raises(RuntimeError, match="BadZipFile|not a zip file"):
-        archive.extract_7z(broken, tmp_path / "out")
+        archive.extract_7z(release_assets / archive.SEVEN_ZIP, broken, tmp_path / "out")
 
 
 @pytest.mark.parametrize(
@@ -52,3 +52,18 @@ def test_an_archive_without_the_upscaler_fails_the_install(release_assets, home,
 
     assert result["status"] == "error"
     assert result["message"].startswith("OptiScaler extraction failed: Extract failed:")
+
+
+def test_extract_7z_restores_the_exec_bit_decky_drops(release_assets, tmp_path):
+    seven_zip = release_assets / archive.SEVEN_ZIP
+    seven_zip.chmod(0o644)
+
+    archive.extract_7z(seven_zip, release_assets / "bin" / bundle.OPTISCALER_ARCHIVE_ASSET["name"], tmp_path / "out")
+
+    assert (tmp_path / "out" / "OptiScaler.dll").exists()
+    assert seven_zip.stat().st_mode & 0o100
+
+
+def test_extract_7z_says_when_the_build_carries_no_7zip(tmp_path):
+    with pytest.raises(RuntimeError, match="7-Zip is missing from this plugin build"):
+        archive.extract_7z(tmp_path / "tools" / "7zzs", tmp_path / "a.7z", tmp_path / "out")

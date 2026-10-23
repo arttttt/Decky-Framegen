@@ -60,3 +60,4 @@ cli/decky
 .venv/
 .pytest_cache/
 defaults/build-info.json
+defaults/tools/

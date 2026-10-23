@@ -105,6 +105,7 @@ How to build, test, and try a work-in-progress build on a device: see [CONTRIBUT
 - **[Nukem9](https://github.com/Nukem9/dlssg-to-fsr3)** - Creator of the DLSS to FSR3 mod that makes frame generation possible
 - **[Cdozdil/OptiScaler Team](https://github.com/optiscaler/OptiScaler)** - OptiScaler mod that provides the core functionality and bleeding-edge improvements
 - **[Artur Graniszewski](https://github.com/artur-graniszewski/DLSS-Enabler)** - DLSS Enabler that allows DLSS features on non-RTX hardware
+- **[7-Zip](https://www.7-zip.org/)** by Igor Pavlov - the plugin ships its static Linux build (`tools/7zzs`, GNU LGPL; license in `tools/7zzs-License.txt`) to unpack OptiScaler archives
 - **[FakeMichau](https://github.com/FakeMichau)** - Various essential tools including fgmod scripts, innoextract, and fakenvapi for AMD/Intel GPU support
 
 ### Community & Documentation

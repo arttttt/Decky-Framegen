@@ -37,6 +37,7 @@ class Installer:
         self.fgmod_path = home / "fgmod"
         self.bin_path = plugin_dir / "bin"
         self.assets_path = plugin_dir / "assets"
+        self.seven_zip = plugin_dir / archive.SEVEN_ZIP
 
     # ── install ──────────────────────────────────────────────────────────────
 
@@ -79,7 +80,7 @@ class Installer:
             if fgmod.exists():
                 shutil.rmtree(fgmod)
             fgmod.mkdir(parents=True, exist_ok=True)
-            archive.extract_7z(self.bin_path / bundle.OPTISCALER_ARCHIVE_ASSET["name"], fgmod)
+            archive.extract_7z(self.seven_zip, self.bin_path / bundle.OPTISCALER_ARCHIVE_ASSET["name"], fgmod)
 
             self._create_renamed_copies(fgmod / "OptiScaler.dll", fgmod / "renames")
             self._install_launcher_scripts()

@@ -68,6 +68,13 @@ def test_defaults_are_installed_at_the_plugin_root(plugin_root):
     assert not missing, f"defaults not at the plugin root: {sorted(missing)}"
 
 
+def test_the_package_carries_the_static_7zip_and_its_license(plugin_root):
+    from framegen.infrastructure import archive
+
+    assert (plugin_root / archive.SEVEN_ZIP).is_file()
+    assert "GNU LGPL" in (plugin_root / "tools" / "7zzs-License.txt").read_text(errors="replace")
+
+
 def test_the_package_carries_no_optiscaler(plugin_root):
     # Decky downloads every remote_binary again on each install or update, after it has
     # already removed the old plugin, so a single dead link would leave no plugin at all.
