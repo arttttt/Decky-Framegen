@@ -79,6 +79,8 @@ jobs:
     env:
       DECKY_CLI_VERSION: "0.0.8"
       DECKY_CLI_SHA256: "6777e356508c1ce887f8e61b0fa4954bb48b32e6d97341eef68ea4e0d6ead9a0"
+      SEVEN_ZIP_VERSION: "26.05"
+      SEVEN_ZIP_SHA256: "22cf82fcc6eb7474f1d5bb4f02c0f8ebd573a718089d6833dc30f8350a3b232e"
       # Pushes to main and pull requests from this repository are development builds;
       # pull requests from forks are built and checked as release builds.
       DEV_BUILD: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
@@ -113,6 +115,17 @@ jobs:
             "https://github.com/SteamDeckHomebrew/cli/releases/download/${DECKY_CLI_VERSION}/decky-linux-x86_64"
           echo "${DECKY_CLI_SHA256}  $RUNNER_TEMP/decky" | sha256sum -c -
           chmod +x "$RUNNER_TEMP/decky"
+
+      # OptiScaler ships .7z archives (the stable ones with BCJ2), so the plugin carries the official
+      # statically linked 7-Zip (7zzs, LGPL) with its license; Decky CLI puts defaults/* at the plugin root.
+      - name: Bundle 7-Zip
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/7z.tar.xz" \
+            "https://github.com/ip7z/7zip/releases/download/${SEVEN_ZIP_VERSION}/7z${SEVEN_ZIP_VERSION//./}-linux-x64.tar.xz"
+          echo "${SEVEN_ZIP_SHA256}  $RUNNER_TEMP/7z.tar.xz" | sha256sum -c -
+          mkdir -p defaults/tools
+          tar -xf "$RUNNER_TEMP/7z.tar.xz" -C defaults/tools --no-same-owner 7zzs License.txt
+          mv defaults/tools/License.txt defaults/tools/7zzs-License.txt
 
       # The same build a release uses: frontend in Decky's builder image, py_modules bundled.
       - name: Build plugin

@@ -259,8 +259,8 @@ def release_assets(home, fake_variants, tmp_path, monkeypatch) -> Path:
     """The plugin directory as Decky installs it: bin/ with every bundled asset, assets/ with scripts.
 
     The installer verifies assets by sha256 and unpacks the OptiScaler archive
-    with the `7z` CLI, so the asset table is pointed at the placeholders' hashes
-    and a stand-in `7z` that unpacks a zip with the same CLI goes on PATH.
+    with the bundled 7-Zip, so the asset table is pointed at the placeholders' hashes
+    and a stand-in tools/7zzs unpacks a zip with the same command line.
     """
     plugin_dir = tmp_path / "plugin"
     bin_dir = plugin_dir / "bin"
@@ -287,5 +287,5 @@ def release_assets(home, fake_variants, tmp_path, monkeypatch) -> Path:
 
     shutil.copytree(REPO_ROOT / "defaults" / "assets", plugin_dir / "assets")
 
-    put_tools_on_path(monkeypatch, tmp_path / "tools", {"7z": FAKE_7Z})
+    install_tools(plugin_dir / "tools", {"7zzs": FAKE_7Z})
     return plugin_dir
