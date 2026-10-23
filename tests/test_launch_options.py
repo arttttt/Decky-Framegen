@@ -23,6 +23,12 @@ def test_options_written_for_a_dll_proxy_are_recognised_as_managed(dll_name):
 def test_is_managed_tolerates_extra_whitespace_and_recognises_the_wrapper():
     assert launch_options.is_managed("  WINEDLLOVERRIDES=dxgi=n,b    SteamDeck=0 %command%  ")
     assert launch_options.is_managed("~/fgmod/fgmod %command%")
+    assert launch_options.is_managed("~/fgmod/fgmod-uninstaller.sh %command%")
+
+
+@pytest.mark.parametrize("quote", ['"', "'"])
+def test_is_managed_recognises_the_quoted_override_earlier_versions_wrote(quote):
+    assert launch_options.is_managed(f"WINEDLLOVERRIDES={quote}dxgi=n,b{quote} SteamDeck=0 %command%")
 
 
 @pytest.mark.parametrize("options", ["", "   ", "mangohud %command%", "WINEDLLOVERRIDES=d3d11=n,b %command%"])
