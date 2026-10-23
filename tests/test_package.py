@@ -82,7 +82,7 @@ def test_a_development_build_carries_its_identity_and_version(plugin_root):
     info = dev_build.parse((plugin_root / dev_build.BUILD_INFO_FILENAME).read_text())
     package_json = json.loads((plugin_root / "package.json").read_text())
 
-    assert info == dev_build.build_info(BUILD_CHANNEL, os.environ["BUILD_COMMIT"])
+    assert info == dev_build.build_info(os.environ["GITHUB_REPOSITORY"], BUILD_CHANNEL, os.environ["BUILD_COMMIT"])
     assert package_json["version"] == os.environ["BUILD_VERSION"]
 
 

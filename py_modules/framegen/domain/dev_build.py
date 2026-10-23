@@ -1,4 +1,4 @@
-"""Development builds: which channel and commit a package was built from.
+"""Development builds: which repository, channel and commit a package was built from.
 
 CI writes this identity into every development package (`build-info.json` at the
 plugin root); release packages carry none. The same identity names the package's
@@ -17,11 +17,14 @@ MAIN_CHANNEL = "dev"
 
 _CHANNEL = re.compile(r"^(dev|pr-[1-9][0-9]*)$")
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
+_REPOSITORY = re.compile(r"^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$")
 _SHORT_COMMIT = 7
 
 
 @dataclass(frozen=True)
 class BuildInfo:
+    repository: str
+    """`owner/name` on GitHub; its releases hold the other development builds."""
     channel: str
     commit: str
 
@@ -35,17 +38,19 @@ def channel(pull_request: int | None) -> str:
     return MAIN_CHANNEL if pull_request is None else f"pr-{pull_request}"
 
 
-def build_info(channel: str, commit: str) -> BuildInfo:
-    """A validated identity; raises ValueError for a channel or commit CI never produces."""
+def build_info(repository: str, channel: str, commit: str) -> BuildInfo:
+    """A validated identity; raises ValueError for anything CI never produces."""
+    if not _REPOSITORY.match(repository):
+        raise ValueError(f"Not a GitHub repository: {repository!r}")
     if not _CHANNEL.match(channel):
         raise ValueError(f"Not a development channel: {channel!r}")
     if not _COMMIT.match(commit):
         raise ValueError(f"Not a full commit sha: {commit!r}")
-    return BuildInfo(channel, commit)
+    return BuildInfo(repository, channel, commit)
 
 
 def to_json(info: BuildInfo) -> str:
-    return json.dumps({"channel": info.channel, "commit": info.commit}, indent=2) + "\n"
+    return json.dumps({"repository": info.repository, "channel": info.channel, "commit": info.commit}, indent=2) + "\n"
 
 
 def parse(text: str) -> BuildInfo:
@@ -56,7 +61,7 @@ def parse(text: str) -> BuildInfo:
         raise ValueError(f"{BUILD_INFO_FILENAME} is not JSON: {exc}") from exc
     if not isinstance(data, dict):
         raise ValueError(f"{BUILD_INFO_FILENAME} is not an object")
-    return build_info(str(data.get("channel", "")), str(data.get("commit", "")))
+    return build_info(str(data.get("repository", "")), str(data.get("channel", "")), str(data.get("commit", "")))
 
 
 def version(base: str, info: BuildInfo) -> str:

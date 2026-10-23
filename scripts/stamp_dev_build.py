@@ -6,7 +6,7 @@ and the matching version into package.json, then prints `channel=`, `version=`
 and `asset=` lines for $GITHUB_OUTPUT. Release builds skip this script and carry
 no identity.
 
-    python3 scripts/stamp_dev_build.py --commit <sha> [--pull-request <N>]
+    python3 scripts/stamp_dev_build.py --repository <owner/name> --commit <sha> [--pull-request <N>]
 """
 
 from __future__ import annotations
@@ -24,13 +24,14 @@ from framegen.domain import dev_build  # noqa: E402
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--repository", required=True, help="owner/name of the repository being built")
     parser.add_argument("--commit", required=True, help="full sha of the commit being built")
     parser.add_argument("--pull-request", type=int, help="number of the pull request being built; none for main")
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="plugin checkout to stamp")
     args = parser.parse_args(argv)
 
     try:
-        info = dev_build.build_info(dev_build.channel(args.pull_request), args.commit)
+        info = dev_build.build_info(args.repository, dev_build.channel(args.pull_request), args.commit)
     except ValueError as exc:
         parser.error(str(exc))
 

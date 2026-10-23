@@ -13,6 +13,7 @@ from conftest import REPO_ROOT
 from framegen.domain import dev_build
 
 COMMIT = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
+REPOSITORY = "arttttt/Decky-Framegen"
 
 # ── unit: rules ──────────────────────────────────────────────────────────────
 
@@ -20,35 +21,50 @@ COMMIT = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 def test_main_and_every_pull_request_have_a_channel_of_their_own():
     assert dev_build.channel(None) == "dev"
     assert dev_build.channel(12) == "pr-12"
-    assert dev_build.build_info(dev_build.channel(12), COMMIT).channel == "pr-12"
+    assert dev_build.build_info(REPOSITORY, dev_build.channel(12), COMMIT).channel == "pr-12"
 
 
 @pytest.mark.parametrize("channel", ["", "main", "pr-", "pr-0", "pr-12x", "release", "DEV"])
 def test_anything_else_is_not_a_channel(channel):
     with pytest.raises(ValueError, match="Not a development channel"):
-        dev_build.build_info(channel, COMMIT)
+        dev_build.build_info(REPOSITORY, channel, COMMIT)
 
 
 @pytest.mark.parametrize("commit", ["", COMMIT[:7], COMMIT + "0", COMMIT.upper(), "g" * 40])
 def test_only_a_full_lowercase_sha_is_a_commit(commit):
     with pytest.raises(ValueError, match="Not a full commit sha"):
-        dev_build.build_info("dev", commit)
+        dev_build.build_info(REPOSITORY, "dev", commit)
+
+
+@pytest.mark.parametrize("repository", ["", "Decky-Framegen", "a/b/c", "owner/", "/name", "owner/na me"])
+def test_only_owner_slash_name_is_a_repository(repository):
+    with pytest.raises(ValueError, match="Not a GitHub repository"):
+        dev_build.build_info(repository, "dev", COMMIT)
 
 
 def test_build_info_round_trips_through_its_file():
-    info = dev_build.build_info("pr-7", COMMIT)
+    info = dev_build.build_info(REPOSITORY, "pr-7", COMMIT)
 
     assert dev_build.parse(dev_build.to_json(info)) == info
 
 
-@pytest.mark.parametrize("text", ["not json", "[]", '{"channel": "dev"}', '{"channel": "main", "commit": "%s"}' % COMMIT])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "not json",
+        "[]",
+        '{"repository": "%s", "channel": "dev"}' % REPOSITORY,
+        '{"channel": "dev", "commit": "%s"}' % COMMIT,
+        '{"repository": "%s", "channel": "main", "commit": "%s"}' % (REPOSITORY, COMMIT),
+    ],
+)
 def test_a_file_that_is_not_a_build_identity_is_rejected(text):
     with pytest.raises(ValueError):
         dev_build.parse(text)
 
 
 def test_version_and_asset_name_carry_channel_and_short_commit():
-    info = dev_build.build_info("pr-12", COMMIT)
+    info = dev_build.build_info(REPOSITORY, "pr-12", COMMIT)
 
     assert dev_build.version("0.17", info) == "0.17-pr-12.1a2b3c4"
     assert dev_build.asset_name("Decky-Framegen", info) == "Decky-Framegen-1a2b3c4.zip"
@@ -69,7 +85,7 @@ def checkout(tmp_path):
 
 def stamp(root, *args):
     return subprocess.run(
-        [sys.executable, str(REPO_ROOT / "scripts" / "stamp_dev_build.py"), "--root", str(root), *args],
+        [sys.executable, str(REPO_ROOT / "scripts" / "stamp_dev_build.py"), "--root", str(root), "--repository", REPOSITORY, *args],
         capture_output=True,
         text=True,
     )
@@ -82,7 +98,7 @@ def test_stamping_writes_the_identity_and_the_version_and_reports_both(checkout)
 
     assert result.returncode == 0, result.stderr
     info = dev_build.parse((checkout / "defaults" / dev_build.BUILD_INFO_FILENAME).read_text())
-    assert info == dev_build.build_info("pr-12", COMMIT)
+    assert info == dev_build.build_info(REPOSITORY, "pr-12", COMMIT)
     package = json.loads((checkout / "package.json").read_text())
     assert package["version"] == f"{base}-pr-12.1a2b3c4"
     assert result.stdout.splitlines() == [

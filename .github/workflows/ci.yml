@@ -86,7 +86,7 @@ jobs:
         env:
           PULL_REQUEST: ${{ github.event.pull_request.number }}
         run: |
-          python scripts/stamp_dev_build.py --commit "$COMMIT" \
+          python scripts/stamp_dev_build.py --repository "$GITHUB_REPOSITORY" --commit "$COMMIT" \
             ${PULL_REQUEST:+--pull-request "$PULL_REQUEST"} | tee -a "$GITHUB_OUTPUT"
 
       - name: Install Decky CLI
