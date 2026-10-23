@@ -100,6 +100,9 @@ class Plugin:
     async def library_installed(self) -> dict:
         return self._library().installed()
 
+    async def library_games_using(self, version_id: str) -> dict:
+        return await asyncio.to_thread(self._patcher().games_using, version_id)
+
     async def library_versions(self, channel: str) -> dict:
         return await asyncio.to_thread(self._library().versions, channel)
 
