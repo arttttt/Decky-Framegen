@@ -40,6 +40,14 @@ def read(directory: Path, fgmod_path: Path, previous_variant: str = "") -> plan.
     return plan.GameDirectory(entries, proxies, managed, previous_variant)
 
 
+def listing(directory: Path) -> tuple[frozenset[str], frozenset[str]]:
+    """The names in a game directory and in its plugins/ subdirectory (empty when there is none)."""
+    entries = frozenset(entry.name for entry in directory.iterdir())
+    plugins = directory / plan.PLUGINS_DIR
+    plugin_entries = frozenset(entry.name for entry in plugins.iterdir()) if plugins.is_dir() else frozenset()
+    return entries, plugin_entries
+
+
 def execute(operations: tuple[plan.Operation, ...], directory: Path, fgmod_path: Path) -> None:
     """Carry out a plan in order. Filesystem errors propagate; INI edit failures are only logged."""
     for operation in operations:

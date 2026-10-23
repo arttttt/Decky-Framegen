@@ -2,42 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ButtonItem, DropdownItem, Field, PanelSectionRow } from "@decky/ui";
 import { toaster } from "@decky/api";
 import { listInstalledGames, getGameStatus, patchGame, unpatchGame } from "../api";
+import { getAppLaunchOptions, setAppLaunchOptions } from "../api/steamClient";
+import { ResetToStock } from "./ResetToStock";
+import { patchButton } from "../presentation/patching";
 import { FSR4_VARIANT_OPTIONS } from "../utils/constants";
-
-// ─── SteamClient helpers ─────────────────────────────────────────────────────
-
-const getAppLaunchOptions = (appId: number): Promise<string> =>
-  new Promise((resolve, reject) => {
-    if (typeof SteamClient === "undefined" || !SteamClient?.Apps?.RegisterForAppDetails) {
-      resolve("");
-      return;
-    }
-    let settled = false;
-    let unregister = () => {};
-    const timeout = window.setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      unregister();
-      reject(new Error("Timed out reading launch options."));
-    }, 5000);
-    const registration = SteamClient.Apps.RegisterForAppDetails(
-      appId,
-      (details: { strLaunchOptions?: string }) => {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(timeout);
-        unregister();
-        resolve(details?.strLaunchOptions ?? "");
-      }
-    );
-    unregister = registration.unregister;
-  });
-
-const setAppLaunchOptions = (appId: number, options: string): void => {
-  if (typeof SteamClient !== "undefined" && SteamClient?.Apps?.SetAppLaunchOptions) {
-    SteamClient.Apps.SetAppLaunchOptions(appId, options);
-  }
-};
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -66,9 +34,10 @@ let lastSelectedAppId = "";
 interface SteamGamePatcherProps {
   dllName: string;
   fsr4Variant: string;
+  bundleInstalled: boolean;
 }
 
-export function SteamGamePatcher({ dllName, fsr4Variant }: SteamGamePatcherProps) {
+export function SteamGamePatcher({ dllName, fsr4Variant, bundleInstalled }: SteamGamePatcherProps) {
   const [games, setGames] = useState<GameEntry[]>([]);
   const [gamesLoading, setGamesLoading] = useState(true);
   const [selectedAppId, setSelectedAppId] = useState<string>(() => lastSelectedAppId);
@@ -162,6 +131,7 @@ export function SteamGamePatcher({ dllName, fsr4Variant }: SteamGamePatcherProps
     if (gameStatus?.patched) return `Reinstall (${dllName})`;
     return `Patch with ${dllName}`;
   }, [busyAction, dllName, gameStatus, isPatchedWithDifferentDll, selectedGame]);
+  const patchAction = patchButton(bundleInstalled, patchButtonLabel);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -278,8 +248,8 @@ export function SteamGamePatcher({ dllName, fsr4Variant }: SteamGamePatcherProps
           </PanelSectionRow>
 
           <PanelSectionRow>
-            <ButtonItem layout="below" disabled={!canPatch} onClick={handlePatch}>
-              {patchButtonLabel}
+            <ButtonItem layout="below" disabled={!canPatch || !patchAction.enabled} onClick={handlePatch}>
+              {patchAction.label}
             </ButtonItem>
           </PanelSectionRow>
 
@@ -294,6 +264,11 @@ export function SteamGamePatcher({ dllName, fsr4Variant }: SteamGamePatcherProps
               </ButtonItem>
             </PanelSectionRow>
           )}
+
+          <ResetToStock
+            target={{ kind: "game", appid: selectedGame.appid, name: selectedGame.name }}
+            onDone={() => void loadStatus(selectedGame.appid)}
+          />
 
           <PanelSectionRow>
             <ButtonItem

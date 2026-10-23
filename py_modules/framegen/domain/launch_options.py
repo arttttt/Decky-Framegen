@@ -36,7 +36,8 @@ def is_managed(options: str) -> bool:
     """Whether launch options were written by the plugin (or are the fgmod wrapper)."""
     if not options or not options.strip():
         return False
-    normalized = " ".join(options.split())
+    # Earlier versions also wrote the override quoted: WINEDLLOVERRIDES="dxgi=n,b".
+    normalized = " ".join(options.replace('"', "").replace("'", "").split())
     tokens = (f"WINEDLLOVERRIDES={override_entry(dll)}" for dll in VALID_DLL_NAMES if override_entry(dll))
     if any(token in normalized for token in tokens):
         return True

@@ -86,6 +86,20 @@ class Plugin:
     async def unpatch_game(self, appid: str) -> dict:
         return self._patcher().unpatch_game(appid)
 
+    # ── Reset to stock (one game, on the user's request) ─────────────────────
+
+    async def preview_reset_game(self, appid: str, current_launch_options: str = "") -> dict:
+        return self._patcher().preview_reset_game(appid, current_launch_options)
+
+    async def reset_game(self, appid: str, current_launch_options: str = "") -> dict:
+        return self._patcher().reset_game(appid, current_launch_options)
+
+    async def preview_reset_directory(self, directory: str) -> dict:
+        return self._patcher().preview_reset_directory(directory)
+
+    async def reset_directory(self, directory: str) -> dict:
+        return self._patcher().reset_directory(directory)
+
     # ── Development builds ────────────────────────────────────────────────────
 
     async def get_dev_build(self) -> dict:

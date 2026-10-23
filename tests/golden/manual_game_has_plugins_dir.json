@@ -66,7 +66,9 @@
     },
     "step": "unpatch",
     "tree": {
-      "Game.exe": "game:Game.exe"
+      "Game.exe": "game:Game.exe",
+      "plugins": "<dir>",
+      "plugins/OtherMod.asi": "game:OtherMod.asi"
     }
   }
 ]

@@ -147,23 +147,19 @@ export function OptiScalerControls({ pathExists, setPathExists, fgmodInfo }: Opt
         </PanelSectionRow>
       )}
 
-      {pathExists === true && (
-        <PanelSectionRow>
-          <DropdownItem
-            layout="below"
-            label="Proxy DLL name"
-            description={PROXY_DLL_OPTIONS.find((o) => o.value === dllName)?.hint}
-            menuLabel="Proxy DLL name"
-            selectedOption={dllName}
-            rgOptions={PROXY_DLL_OPTIONS.map((o) => ({ data: o.value, label: o.label }))}
-            onChange={(option) => setDllName(String(option.data))}
-          />
-        </PanelSectionRow>
-      )}
+      <PanelSectionRow>
+        <DropdownItem
+          layout="below"
+          label="Proxy DLL name"
+          description={PROXY_DLL_OPTIONS.find((o) => o.value === dllName)?.hint}
+          menuLabel="Proxy DLL name"
+          selectedOption={dllName}
+          rgOptions={PROXY_DLL_OPTIONS.map((o) => ({ data: o.value, label: o.label }))}
+          onChange={(option) => setDllName(String(option.data))}
+        />
+      </PanelSectionRow>
 
-      {pathExists === true && (
-        <SteamGamePatcher dllName={dllName} fsr4Variant={fsr4Variant} />
-      )}
+      <SteamGamePatcher dllName={dllName} fsr4Variant={fsr4Variant} bundleInstalled={pathExists === true} />
 
       <ClipboardCommands pathExists={pathExists} dllName={dllName} />
 
@@ -188,7 +184,8 @@ export function OptiScalerControls({ pathExists, setPathExists, fgmodInfo }: Opt
       ) : null}
 
       <ManualPatchControls
-        isAvailable={pathExists === true}
+        isAvailable={true}
+        bundleInstalled={pathExists === true}
         onManualModeChange={setAdvancedModeEnabled}
         dllName={dllName}
         fsr4Variant={fsr4Variant}
