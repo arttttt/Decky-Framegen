@@ -36,9 +36,13 @@ RECORDER = """#!/usr/bin/env bash
 
 @pytest.fixture
 def tools(tmp_path) -> Path:
-    """Stand-ins for zenity and logger, and one python for both `python` and `python3`."""
+    """Stand-ins for zenity, logger and tee, and one python for both `python` and `python3`.
+
+    The tee stand-in sends the scripts' log (meant for /tmp) into the test's own directory.
+    """
     bin_dir = tmp_path / "tools"
     stubs = {
+        "tee": f'#!/usr/bin/env bash\nexec "{shutil.which("tee")}" -a "{tmp_path / "wrapper.log"}"\n',
         "zenity": "#!/usr/bin/env bash\nexit 0\n",
         "logger": "#!/usr/bin/env bash\nexit 0\n",
         "python": f'#!/usr/bin/env bash\nexec "{sys.executable}" "$@"\n',
@@ -126,7 +130,7 @@ def test_launch_mode_patches_then_starts_the_game_with_overrides(wrapper, tmp_pa
     scenario("wrapper_launch_mode", game, [("launch", launched)])
 
 
-def test_game_shipped_files_are_backed_up_and_restored(wrapper, tmp_path):
+def test_game_shipped_files_across_patch_and_uninstall(wrapper, tmp_path):
     shipped = {
         name: game_file(name)
         for name in ("version.dll", "libxess.dll", "amd_fidelityfx_dx12.dll", "amdxcffx64.dll", "d3dcompiler_47.dll")
@@ -177,7 +181,7 @@ def test_unreal_engine_layout_patches_the_binaries_directory(wrapper, tmp_path):
     scenario("wrapper_unreal_layout", game, [("patch", patched)])
 
 
-def test_launcher_executables_are_remapped_to_the_game_binary(wrapper, tmp_path):
+def test_a_launcher_command_patches_the_game_binarys_directory(wrapper, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Cyberpunk 2077")
     write(game / "REDprelauncher.exe", game_file("REDprelauncher.exe"))
     write(game / "bin" / "x64" / "Cyberpunk2077.exe", game_file("Cyberpunk2077.exe"))
@@ -187,6 +191,45 @@ def test_launcher_executables_are_remapped_to_the_game_binary(wrapper, tmp_path)
     scenario("wrapper_launcher_remap", game, [("launch", launched)])
 
 
+def test_a_directory_argument_and_a_reset_ini(wrapper, tmp_path):
+    game = make_game_dir(tmp_path / "games" / "Dir Game", {"OptiScaler.ini": b"[Menu]\nUseHQFont=auto\nMine=1\n"})
+
+    kept = wrapper.run("fgmod", str(game))
+    kept_ini = (game / "OptiScaler.ini").read_text()
+    reset = wrapper.run("fgmod", str(game), env={"PRESERVE_INI": "false"})
+
+    scenario("wrapper_directory_argument_and_reset_ini", game, [("patch", {**kept, "ini": kept_ini}), ("reset ini", reset)])
+
+
+def test_steams_install_path_is_the_fallback_and_separators_are_dropped(wrapper, tmp_path):
+    game = make_game_dir(tmp_path / "games" / "Fallback Game")
+
+    launched = wrapper.run(
+        "fgmod", "--", str(wrapper.tools / "launch-recorder"), "run", env={"STEAM_COMPAT_INSTALL_PATH": str(game)}
+    )
+
+    scenario("wrapper_steam_install_path_fallback", game, [("launch", launched)])
+
+
+def test_a_game_proxy_identical_to_ours_and_other_variants(wrapper, fgmod, tmp_path):
+    game = make_game_dir(tmp_path / "games" / "Proxy Game", {"dxgi.dll": (fgmod / "renames" / "dxgi.dll").read_bytes()})
+
+    native = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_FSR4_VARIANT": "rdna4-native"})
+    after_native = describe_tree(game)
+    override = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_FSR4_VARIANT": "rdna34-official-411"})
+
+    scenario(
+        "wrapper_identical_proxy_and_variants",
+        game,
+        [("patch rdna4-native", {**native, "tree": after_native}), ("patch rdna34-official-411", override)],
+    )
+
+
+def test_usage_errors(wrapper):
+    assert wrapper.run("fgmod")["exit_code"] == 1
+    assert wrapper.run("fgmod-uninstaller.sh")["exit_code"] == 1
+
+
 def test_missing_game_directory_is_an_error(wrapper, tmp_path):
     result = wrapper.run("fgmod", str(tmp_path / "nowhere" / "Game.exe"))
 
@@ -194,6 +237,24 @@ def test_missing_game_directory_is_an_error(wrapper, tmp_path):
 
 
 # ── fgmod-uninstaller.sh ─────────────────────────────────────────────────────
+
+
+def test_uninstaller_follows_unreal_layouts(wrapper, tmp_path):
+    game = make_game_dir(tmp_path / "games" / "Unreal Uninstall")
+    write(game / "Engine" / "Binaries" / "ThirdParty" / "x.dll", game_file("x.dll"))
+    write(game / "UnrealGame" / "Binaries" / "Win64" / "UnrealGame-Win64-Shipping.exe", game_file("shipping.exe"))
+    wrapper.run("fgmod", str(game / "Game.exe"))
+
+    unpatched = wrapper.run("fgmod-uninstaller.sh", str(game / "Game.exe"))
+
+    scenario("wrapper_uninstaller_unreal_layout", game, [("uninstall", unpatched)])
+
+
+def test_uninstaller_refuses_to_run_on_the_bundle_itself(wrapper):
+    result = wrapper.run("fgmod-uninstaller.sh", str(wrapper.fgmod / "Game.exe"))
+
+    assert result["exit_code"] == 1
+    assert (wrapper.fgmod / "OptiScaler.dll").exists()
 
 
 def test_uninstaller_launch_mode_starts_the_game(wrapper, tmp_path):
