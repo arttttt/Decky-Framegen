@@ -2,11 +2,12 @@
 """Turn a checkout into a development build before `decky plugin build`.
 
 Writes `defaults/build-info.json` (Decky CLI ships defaults/ at the plugin root)
-and the matching version into package.json, then prints `channel=`, `version=`
-and `asset=` lines for $GITHUB_OUTPUT. Release builds skip this script and carry
-no identity.
+and the matching version into package.json, then prints `channel=`, `version=`,
+`asset=` and `title=` lines for $GITHUB_OUTPUT, which the release that publishes
+the build uses. Release builds skip this script and carry no identity.
 
-    python3 scripts/stamp_dev_build.py --repository <owner/name> --commit <sha> [--pull-request <N>]
+    python3 scripts/stamp_dev_build.py --repository <owner/name> --commit <sha> \
+        [--pull-request <N> --pull-request-title <title>]
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repository", required=True, help="owner/name of the repository being built")
     parser.add_argument("--commit", required=True, help="full sha of the commit being built")
     parser.add_argument("--pull-request", type=int, help="number of the pull request being built; none for main")
+    parser.add_argument("--pull-request-title", default="", help="title of that pull request")
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="plugin checkout to stamp")
     args = parser.parse_args(argv)
 
@@ -45,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"channel={info.channel}")
     print(f"version={package['version']}")
     print(f"asset={dev_build.asset_name(plugin_name, info)}")
+    print(f"title={dev_build.release_title(info, args.pull_request_title)}")
     return 0
 
 
