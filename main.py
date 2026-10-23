@@ -11,9 +11,24 @@ import decky
 
 from framegen.application.dev_updates import DevUpdates, Report
 from framegen.application.installer import Installer
+from framegen.application.library import Library
 from framegen.application.patcher import Patcher
 from framegen.domain import bundle
-from framegen.infrastructure import github_releases
+from framegen.infrastructure import archive, github_releases
+
+
+def _decky_events(event: str):
+    """A report function for work running in a thread: each call becomes a Decky event to the frontend."""
+    loop = asyncio.get_running_loop()
+
+    def report(*args) -> None:
+        asyncio.run_coroutine_threadsafe(decky.emit(event, *args), loop)
+
+    return report
+
+
+def _ignore(*_args) -> None:
+    pass
 
 
 class Plugin:
@@ -32,7 +47,7 @@ class Plugin:
     def _patcher(self) -> Patcher:
         return Patcher(self._home_path())
 
-    def _dev_updates(self, report: Report = lambda channel, received, total: None) -> DevUpdates:
+    def _dev_updates(self, report: Report = _ignore) -> DevUpdates:
         return DevUpdates(
             Path(decky.DECKY_PLUGIN_DIR),
             github_releases.list_releases,
@@ -86,6 +101,31 @@ class Plugin:
     async def unpatch_game(self, appid: str) -> dict:
         return self._patcher().unpatch_game(appid)
 
+    # ── OptiScaler library ────────────────────────────────────────────────────
+
+    def _library(self, report=_ignore) -> Library:
+        return Library(
+            self._home_path() / "fgmod",
+            Path(decky.DECKY_PLUGIN_DIR) / archive.SEVEN_ZIP,
+            github_releases.list_releases,
+            github_releases.download,
+            report,
+        )
+
+    async def library_versions(self, channel: str) -> dict:
+        return await asyncio.to_thread(self._library().versions, channel)
+
+    async def library_install(self, channel: str, version_id: str) -> dict:
+        # Download progress goes to the frontend as "library_download" events.
+        library = self._library(_decky_events("library_download"))
+        return await asyncio.to_thread(library.install, channel, version_id)
+
+    async def library_remove(self, version_id: str) -> dict:
+        return self._library().remove(version_id)
+
+    async def library_set_default(self, version_id: str) -> dict:
+        return self._library().set_default(version_id)
+
     # ── Reset to stock (one game, on the user's request) ─────────────────────
 
     async def preview_reset_game(self, appid: str, current_launch_options: str = "") -> dict:
@@ -112,12 +152,8 @@ class Plugin:
     async def dev_install_request(self, channel: str) -> dict:
         # Asks GitHub again and downloads the build off Decky's event loop; progress goes
         # back to the frontend as "dev_build_download" events.
-        loop = asyncio.get_running_loop()
-
-        def report(build_channel: str, received: int, total: int | None) -> None:
-            asyncio.run_coroutine_threadsafe(decky.emit("dev_build_download", build_channel, received, total), loop)
-
-        return await asyncio.to_thread(self._dev_updates(report).install_request, channel)
+        updates = self._dev_updates(_decky_events("dev_build_download"))
+        return await asyncio.to_thread(updates.install_request, channel)
 
     # ── Misc ──────────────────────────────────────────────────────────────────
 
