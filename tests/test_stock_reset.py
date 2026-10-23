@@ -64,7 +64,8 @@ def test_a_reset_lists_what_it_removes_restores_and_what_may_be_the_games_own():
     assert set(reset.removed) == {
         "FRAMEGEN_PATCH", "dxgi.dll", "OptiScaler.ini", "amd_fidelityfx_dx12.dll", "nvapi64.dll", "plugins"
     }
-    assert set(reset.unrecoverable) == {"amd_fidelityfx_dx12.dll", "nvapi64.dll"}
+    # dxgi.dll too: games ship it themselves (mod loaders), and nothing backed it up here.
+    assert set(reset.unrecoverable) == {"amd_fidelityfx_dx12.dll", "nvapi64.dll", "dxgi.dll"}
     assert RemoveTree("plugins") in reset.operations
     assert reset.operations[-2:] == (Move("libxess.dll.b", "libxess.dll"), DeleteFile("FRAMEGEN_PATCH"))
 

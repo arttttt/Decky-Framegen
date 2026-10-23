@@ -31,7 +31,7 @@ LEFTOVER_SIGNATURES = frozenset(
 )
 """Files only the plugin's oldest versions put in a game directory (OptiScaler itself never ships them)."""
 
-MAYBE_THE_GAMES = frozenset({*bundle.ORIGINAL_DLL_BACKUPS, "nvapi64.dll"})
+MAYBE_THE_GAMES = frozenset({*bundle.ORIGINAL_DLL_BACKUPS, *bundle.PROXY_DLL_BACKUPS, "nvapi64.dll"})
 """Files a game may ship itself: removed without a backup, only Steam's integrity check brings them back."""
 
 
