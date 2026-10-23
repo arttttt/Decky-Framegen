@@ -10,6 +10,7 @@ and the diff shows exactly what changed.
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path
 
 import pytest
@@ -179,6 +180,16 @@ def test_steam_target_directory_moves_between_patches(plugin, fgmod, steam_libra
     recorder.record("unpatch", run(plugin.unpatch_game("300")))
 
     assert_golden("steam_target_directory_moves_between_patches", recorder.steps)
+
+
+def test_steam_marker_records_the_backed_up_game_files(plugin, fgmod, steam_library):
+    root = steam_library.add_game("600", "Xess Game", {"libxess.dll": game_file("libxess.dll")})
+
+    asyncio.run(plugin.patch_game("600", "dxgi.dll", "", "rdna23-int8"))
+
+    marker = json.loads((root / "FRAMEGEN_PATCH").read_text())
+    assert marker["backed_up_files"] == ["libxess.dll"]
+    assert (root / "libxess.dll.b").read_bytes() == game_file("libxess.dll")
 
 
 def test_steam_unknown_and_unpatched_games(plugin, fgmod, steam_library, tmp_path):
