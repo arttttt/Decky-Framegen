@@ -86,7 +86,6 @@ class PatchRequest:
     dll_name: str
     variant: str
     """A known variant id (already selected)."""
-    allow_managed_support_cleanup: bool
 
 
 class PlanError(Exception):
@@ -171,9 +170,12 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
         operations.append(DeleteFile(name))
         present.discard(name)
 
+    # A directory that already carries a patch holds our files, not the game's:
+    # they are replaced, never backed up as originals.
+    already_patched = has_patch_fingerprint(game.entries)
+
     # 1. Proxy-named DLLs the game shipped are kept as backups — unless the
     #    directory already carries a patch, or the file is our own copy.
-    already_patched = has_patch_fingerprint(game.entries)
     for name in bundle.PROXY_DLL_BACKUPS:
         if name not in present or name + BACKUP_SUFFIX in present:
             continue
@@ -190,7 +192,7 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
     for name in bundle.ORIGINAL_DLL_BACKUPS:
         if name not in present or name + BACKUP_SUFFIX in present:
             continue
-        if request.allow_managed_support_cleanup and name in game.managed_support_files:
+        if already_patched and name in game.managed_support_files:
             delete(name)
         else:
             move(name, name + BACKUP_SUFFIX)

@@ -20,9 +20,9 @@ BASE_BUNDLE = frozenset(
 )
 
 
-def patch(entries=(), *, bundle_files=BASE_BUNDLE, dll="dxgi.dll", variant="rdna23-int8", allow_cleanup=False, **facts):
+def patch(entries=(), *, bundle_files=BASE_BUNDLE, dll="dxgi.dll", variant="rdna23-int8", **facts):
     game = plan.GameDirectory(frozenset(entries), **facts)
-    return plan.plan_patch(game, bundle_files, plan.PatchRequest(dll, variant, allow_cleanup))
+    return plan.plan_patch(game, bundle_files, plan.PatchRequest(dll, variant))
 
 
 def ops_of(result, kind):
@@ -63,14 +63,21 @@ def test_game_dlls_the_bundle_replaces_are_backed_up():
     assert Move("d3dcompiler_47.dll", "d3dcompiler_47.dll.b") in result.operations
 
 
-def test_on_a_repatch_our_own_support_dlls_are_deleted_not_backed_up():
+@pytest.mark.parametrize("trace", ["OptiScaler.ini", "fakenvapi.dll", "FRAMEGEN_PATCH", "D3D12_Optiscaler"])
+def test_in_an_already_patched_directory_our_own_support_dlls_are_replaced_not_backed_up(trace):
     facts = {"managed_support_files": frozenset({"amd_fidelityfx_dx12.dll"})}
 
-    allowed = patch({"amd_fidelityfx_dx12.dll"}, allow_cleanup=True, **facts)
-    not_allowed = patch({"amd_fidelityfx_dx12.dll"}, allow_cleanup=False, **facts)
+    result = patch({"amd_fidelityfx_dx12.dll", trace}, **facts)
 
-    assert DeleteFile("amd_fidelityfx_dx12.dll") in allowed.operations
-    assert Move("amd_fidelityfx_dx12.dll", "amd_fidelityfx_dx12.dll.b") in not_allowed.operations
+    assert DeleteFile("amd_fidelityfx_dx12.dll") in result.operations
+    assert not ops_of(result, Move)
+
+
+def test_in_a_fresh_directory_a_dll_matching_ours_is_still_treated_as_the_games():
+    # Without a trace of an earlier patch, an identical file can only have come with the game.
+    result = patch({"amd_fidelityfx_dx12.dll"}, managed_support_files=frozenset({"amd_fidelityfx_dx12.dll"}))
+
+    assert Move("amd_fidelityfx_dx12.dll", "amd_fidelityfx_dx12.dll.b") in result.operations
 
 
 # ── laying down the bundle ───────────────────────────────────────────────────

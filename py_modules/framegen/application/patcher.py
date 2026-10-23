@@ -43,15 +43,13 @@ class Patcher:
             raise PermissionError(f"Insufficient permissions for {directory}")
         return target
 
-    def patch_directory(
-        self, directory: Path, dll_name: str, fsr4_variant: str | None, allow_managed_support_cleanup: bool
-    ) -> dict:
+    def patch_directory(self, directory: Path, dll_name: str, fsr4_variant: str | None) -> dict:
         if not self.fgmod_path.exists():
             return _error(NOT_INSTALLED)
         previous_variant = str(files.read_json(directory / bundle.MARKER_FILENAME).get("fsr4_variant") or "").strip()
         variant = bundle_store.selected_variant(self.fgmod_path, fsr4_variant)
         label = bundle.FSR4_VARIANTS[variant]["label"]
-        request = plan.PatchRequest(dll_name, variant, allow_managed_support_cleanup)
+        request = plan.PatchRequest(dll_name, variant)
         try:
             game = game_directory.read(directory, self.fgmod_path, previous_variant)
             patch = plan.plan_patch(game, game_directory.bundle_files(self.fgmod_path), request)
@@ -95,8 +93,7 @@ class Patcher:
         except (FileNotFoundError, NotADirectoryError, PermissionError) as exc:
             log.error(f"Manual patch validation failed: {exc}")
             return _error(str(exc))
-        allow_cleanup = (target / bundle.MARKER_FILENAME).exists()
-        return self.patch_directory(target, dll_name, fsr4_variant, allow_cleanup)
+        return self.patch_directory(target, dll_name, fsr4_variant)
 
     def unpatch_user_directory(self, directory: str) -> dict:
         try:
@@ -230,17 +227,13 @@ class Patcher:
 
         existing_marker = self._find_marker(game.install_path)
         existing = files.read_json(existing_marker) if existing_marker else {}
-        existing_target = Path(existing.get("target_dir", str(existing_marker.parent))) if existing_marker else None
         original_options = marker.original_launch_options(
             current_launch_options, str(existing.get("original_launch_options") or "")
         )
 
         target_dir, target_exe = self._patch_target(game)
         log.info(f"[Framegen] patch_game: appid={appid} dll={dll_name} target={target_dir} exe={target_exe}")
-        allow_cleanup = (existing_marker is not None and existing_target == target_dir) or (
-            target_dir / bundle.MARKER_FILENAME
-        ).exists()
-        result = self.patch_directory(target_dir, dll_name, fsr4_variant, allow_cleanup)
+        result = self.patch_directory(target_dir, dll_name, fsr4_variant)
         if result["status"] != "success":
             return result
 
