@@ -6,7 +6,6 @@ variable these tests are skipped.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import subprocess
@@ -65,12 +64,13 @@ def test_defaults_are_installed_at_the_plugin_root(plugin_root):
     assert not missing, f"defaults not at the plugin root: {sorted(missing)}"
 
 
-def test_bundled_binaries_match_their_pinned_hashes(plugin_root):
-    package_json = json.loads((REPO_ROOT / "package.json").read_text())
-    for binary in package_json.get("remote_binary", []):
-        path = plugin_root / "bin" / binary["name"]
-        assert path.is_file(), f"bin/{binary['name']} missing"
-        assert hashlib.sha256(path.read_bytes()).hexdigest() == binary["sha256hash"], f"bin/{binary['name']} hash"
+def test_the_package_carries_no_optiscaler(plugin_root):
+    # Decky downloads every remote_binary again on each install or update, after it has
+    # already removed the old plugin, so a single dead link would leave no plugin at all.
+    package_json = json.loads((plugin_root / "package.json").read_text())
+
+    assert "remote_binary" not in package_json
+    assert not (plugin_root / "bin").exists()
 
 
 # Runs in an isolated interpreter (-I) so nothing from the repository can be imported:
