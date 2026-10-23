@@ -9,7 +9,7 @@ import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
-from framegen.domain import bundle
+from framegen.domain import bundle, ini
 from framegen.infrastructure import files
 
 
@@ -176,83 +176,7 @@ class Plugin:
 
 
 
-    def _split_ini_override_key(self, raw_key: str) -> tuple[str | None, str]:
-        key = str(raw_key).strip()
-        if "." in key:
-            section, section_key = key.split(".", 1)
-            section = section.strip()
-            section_key = section_key.strip()
-            if section and section_key:
-                return section, section_key
-        return None, key
 
-    def _apply_optiscaler_ini_overrides(self, ini_file: Path, overrides: dict) -> bool:
-        if not overrides:
-            return True
-        try:
-            content = ini_file.read_text(encoding="utf-8", errors="replace")
-            newline = "\r\n" if "\r\n" in content else "\n"
-            lines = content.splitlines(keepends=True)
-            section_pattern = re.compile(r"^\s*\[(?P<section>[^\]]+)\]\s*$")
-
-            def ensure_trailing_newline() -> None:
-                if lines and not lines[-1].endswith(("\n", "\r")):
-                    lines[-1] += newline
-
-            def upsert(section: str | None, key: str, value: str) -> None:
-                replacement = f"{key}={value}"
-                key_pattern = re.compile(rf"^(\s*{re.escape(key)}\s*)=.*$")
-
-                if section is None:
-                    for idx, line in enumerate(lines):
-                        if key_pattern.match(line):
-                            line_ending = "\r\n" if line.endswith("\r\n") else ("\n" if line.endswith("\n") else newline)
-                            lines[idx] = f"{replacement}{line_ending}"
-                            return
-                    ensure_trailing_newline()
-                    lines.append(f"{replacement}{newline}")
-                    return
-
-                in_section = False
-                insert_at = None
-                for idx, line in enumerate(lines):
-                    match = section_pattern.match(line.strip())
-                    if match:
-                        if in_section:
-                            insert_at = idx
-                            break
-                        if match.group("section") == section:
-                            in_section = True
-                            continue
-                    if in_section and key_pattern.match(line):
-                        line_ending = "\r\n" if line.endswith("\r\n") else ("\n" if line.endswith("\n") else newline)
-                        lines[idx] = f"{replacement}{line_ending}"
-                        return
-
-                if in_section:
-                    if insert_at is None:
-                        ensure_trailing_newline()
-                        insert_at = len(lines)
-                    lines.insert(insert_at, f"{replacement}{newline}")
-                    return
-
-                ensure_trailing_newline()
-                if lines and lines[-1].strip():
-                    lines.append(newline)
-                lines.append(f"[{section}]{newline}")
-                lines.append(f"{replacement}{newline}")
-
-            for raw_key, raw_value in overrides.items():
-                section, key = self._split_ini_override_key(str(raw_key))
-                value = str(raw_value).strip()
-                if key:
-                    upsert(section, key, value)
-
-            ini_file.write_text("".join(lines), encoding="utf-8")
-            return True
-        except Exception as exc:
-            decky.logger.error(f"Failed to apply OptiScaler.ini overrides to {ini_file}: {exc}")
-            return False
 
     def _sync_variant_root_extra_files(self, fgmod_path: Path, fsr4_variant: str | None) -> None:
         selected_extra_files = {extra_file["name"]: extra_file for extra_file in bundle.variant_extra_files(fsr4_variant)}
@@ -344,104 +268,21 @@ class Plugin:
                 return True
         return False
 
-    def _migrate_optiscaler_ini(self, ini_file):
-        """Migrate pre-v0.9-final OptiScaler.ini: replace FGType with FGInput + FGOutput.
 
-        v0.9-final split the single FGType key into separate FGInput and FGOutput keys.
-        Games already patched with an older build will have FGType=<value> in their
-        per-game INI but no FGInput/FGOutput entries, causing the new DLL to silently
-        fall back to nofg.  This migration runs at patch-time and at every fgmod.sh
-        launch so users never have to manually touch their INI.
-        """
+
+    def _edit_ini(self, ini_file: Path, transform, action: str) -> bool:
+        """Apply a pure INI transform to a file; failures are logged, never raised."""
+        if not ini_file.exists():
+            decky.logger.warning(f"OptiScaler.ini not found at {ini_file}")
+            return False
         try:
-            if not ini_file.exists():
-                return False
-
-            with open(ini_file, 'r') as f:
-                content = f.read()
-
-            fg_type_match = re.search(r'^FGType\s*=\s*(\S+)', content, re.MULTILINE)
-            if not fg_type_match:
-                return True  # Nothing to migrate
-
-            fg_value = fg_type_match.group(1)
-
-            if re.search(r'^FGInput\s*=', content, re.MULTILINE):
-                # FGInput already present (INI already in v0.9-final format);
-                # just remove the now-unknown FGType line.
-                content = re.sub(r'^FGType\s*=\s*\S+\n?', '', content, flags=re.MULTILINE)
-                decky.logger.info(f"Removed stale FGType from {ini_file} (FGInput already present)")
-            else:
-                # Replace the single FGType=X line with FGInput=X then FGOutput=X
-                content = re.sub(
-                    r'^FGType\s*=\s*\S+',
-                    f'FGInput={fg_value}\nFGOutput={fg_value}',
-                    content,
-                    flags=re.MULTILINE
-                )
-                decky.logger.info(f"Migrated FGType={fg_value} → FGInput={fg_value}, FGOutput={fg_value} in {ini_file}")
-
-            with open(ini_file, 'w') as f:
-                f.write(content)
+            if files.rewrite_text(ini_file, transform):
+                decky.logger.info(f"OptiScaler.ini: {action} ({ini_file})")
             return True
         except Exception as e:
-            decky.logger.error(f"Failed to migrate OptiScaler.ini: {e}")
+            decky.logger.error(f"Failed to {action} in {ini_file}: {e}")
             return False
 
-    def _disable_hq_font_auto(self, ini_file):
-        """Disable the new HQ font auto mode to avoid missing font assertions on Wine/Proton."""
-        try:
-            if not ini_file.exists():
-                decky.logger.warning(f"OptiScaler.ini not found at {ini_file}")
-                return False
-
-            with open(ini_file, 'r') as f:
-                content = f.read()
-
-            updated_content = re.sub(r'UseHQFont\s*=\s*auto', 'UseHQFont=false', content)
-            if updated_content != content:
-                with open(ini_file, 'w') as f:
-                    f.write(updated_content)
-                decky.logger.info("Set UseHQFont=false to avoid missing font assertions")
-
-            return True
-        except Exception as e:
-            decky.logger.error(f"Failed to update HQ font setting in OptiScaler.ini: {e}")
-            return False
-
-    def _modify_optiscaler_ini(self, ini_file):
-        """Modify OptiScaler.ini to set FG defaults, ASI plugin settings, and safe font defaults."""
-        try:
-            if ini_file.exists():
-                with open(ini_file, 'r') as f:
-                    content = f.read()
-                
-                # Replace FGInput=auto with FGInput=nukems (final v0.9+ split FGType into FGInput/FGOutput)
-                updated_content = re.sub(r'FGInput\s*=\s*auto', 'FGInput=nukems', content)
-
-                # Replace FGOutput=auto with FGOutput=nukems
-                updated_content = re.sub(r'FGOutput\s*=\s*auto', 'FGOutput=nukems', updated_content)
-                
-                # Replace Fsr4Update=auto with Fsr4Update=true
-                updated_content = re.sub(r'Fsr4Update\s*=\s*auto', 'Fsr4Update=true', updated_content)
-                
-                # Replace LoadAsiPlugins=auto with LoadAsiPlugins=true
-                updated_content = re.sub(r'LoadAsiPlugins\s*=\s*auto', 'LoadAsiPlugins=true', updated_content)
-
-                # Disable new HQ font auto mode to avoid missing font assertions on Proton
-                updated_content = re.sub(r'UseHQFont\s*=\s*auto', 'UseHQFont=false', updated_content)
-                
-                with open(ini_file, 'w') as f:
-                    f.write(updated_content)
-                
-                decky.logger.info("Modified OptiScaler.ini to set FGInput=nukems, FGOutput=nukems, Fsr4Update=true, LoadAsiPlugins=true, UseHQFont=false")
-                return True
-            else:
-                decky.logger.warning(f"OptiScaler.ini not found at {ini_file}")
-                return False
-        except Exception as e:
-            decky.logger.error(f"Failed to modify OptiScaler.ini: {e}")
-            return False
 
     async def extract_static_optiscaler(self, selected_default_variant: str = bundle.DEFAULT_FSR4_VARIANT) -> dict:
         """Prepare the shared ~/fgmod bundle with all bundled FSR4 runtime variants."""
@@ -504,7 +345,7 @@ class Plugin:
             )
 
             ini_file = extract_path / "OptiScaler.ini"
-            self._modify_optiscaler_ini(ini_file)
+            self._edit_ini(ini_file, ini.apply_bundle_defaults, "apply plugin defaults")
 
             native_upscaler_root = extract_path / bundle.FSR4_UPSCALER_FILENAME
             native_upscaler_sha256 = self._verify_bundled_asset(
@@ -959,9 +800,13 @@ class Plugin:
                 decky.logger.warning("No OptiScaler.ini found to copy")
 
             if target_ini.exists():
-                self._migrate_optiscaler_ini(target_ini)
-                self._disable_hq_font_auto(target_ini)
-                self._apply_optiscaler_ini_overrides(target_ini, selected_config_overrides)
+                self._edit_ini(target_ini, ini.migrate_fgtype, "migrate FGType to FGInput/FGOutput")
+                self._edit_ini(target_ini, ini.disable_hq_font_auto, "disable HQ font auto mode")
+                self._edit_ini(
+                    target_ini,
+                    lambda content: ini.apply_overrides(content, selected_config_overrides),
+                    "apply FSR4 variant overrides",
+                )
 
             plugins_src = fgmod_path / "plugins"
             plugins_dest = directory / "plugins"
