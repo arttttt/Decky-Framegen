@@ -10,44 +10,19 @@ import re
 
 _SECTION = re.compile(r"^\s*\[(?P<section>[^\]]+)\]\s*$")
 
-# Values the plugin sets in the bundle's OptiScaler.ini at install time, where
-# the archive ships them as `auto`.
-_BUNDLE_DEFAULTS = (
-    # v0.9 split FGType into FGInput/FGOutput; Nukem's mod drives both.
-    ("FGInput", "nukems"),
-    ("FGOutput", "nukems"),
-    ("Fsr4Update", "true"),
-    # OptiPatcher ships as an ASI plugin.
-    ("LoadAsiPlugins", "true"),
-)
-
-
-def apply_bundle_defaults(content: str) -> str:
-    """Replace the archive's `auto` values with the plugin's defaults."""
-    for key, value in _BUNDLE_DEFAULTS:
-        content = re.sub(rf"{key}\s*=\s*auto", f"{key}={value}", content)
-    return disable_hq_font_auto(content)
-
-
-def disable_hq_font_auto(content: str) -> str:
-    """Turn the HQ font auto mode off, which asserts on Proton when its font file is missing."""
-    return re.sub(r"UseHQFont\s*=\s*auto", "UseHQFont=false", content)
-
-
-def migrate_fgtype(content: str) -> str:
-    """Rewrite a pre-v0.9-final FGType=X into FGInput=X / FGOutput=X.
-
-    v0.9-final replaced FGType with separate FGInput and FGOutput keys; an INI
-    that only has FGType makes the new DLL silently fall back to no frame
-    generation. If FGInput is already present, the stale FGType is dropped.
-    """
-    fg_type = re.search(r"^FGType\s*=\s*(\S+)", content, re.MULTILINE)
-    if not fg_type:
-        return content
-    if re.search(r"^FGInput\s*=", content, re.MULTILINE):
-        return re.sub(r"^FGType\s*=\s*\S+\n?", "", content, flags=re.MULTILINE)
-    value = fg_type.group(1)
-    return re.sub(r"^FGType\s*=\s*\S+", f"FGInput={value}\nFGOutput={value}", content, flags=re.MULTILINE)
+def reset_to_auto(content: str, keys: set[str]) -> str:
+    """Set each `Section.Key` that is present back to auto; keys that are absent are not added."""
+    lines = content.splitlines(keepends=True)
+    section = None
+    for index, line in enumerate(lines):
+        header = _SECTION.match(line.strip())
+        if header:
+            section = header.group("section")
+            continue
+        match = re.match(r"^(\s*)([^=;#\s][^=]*?)(\s*)=.*?(\r?\n)?$", line)
+        if match and f"{section}.{match.group(2)}" in keys:
+            lines[index] = f"{match.group(1)}{match.group(2)}{match.group(3)}=auto{match.group(4) or ''}"
+    return "".join(lines)
 
 
 def split_override_key(raw_key: str) -> tuple[str | None, str]:

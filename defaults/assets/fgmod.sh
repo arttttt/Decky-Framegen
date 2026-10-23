@@ -32,7 +32,8 @@ core() {
 
 dll_args=()
 [[ -n "${DLL:-}" ]] && dll_args=(--dll "$DLL")
-patch_args=(patch "${dll_args[@]}" --variant "${FGMOD_FSR4_VARIANT:-}")
+# FGMOD_VERSION picks a library version (e.g. nightly-20261023); unset means the default one.
+patch_args=(patch "${dll_args[@]}" --version "${FGMOD_VERSION:-}" --variant "${FGMOD_FSR4_VARIANT:-}")
 [[ "${PRESERVE_INI:-true}" == "true" ]] || patch_args+=(--reset-ini)
 if ! exe_folder_path="$(core "${patch_args[@]}" -- "$@")"; then
   error_exit "${exe_folder_path:-Patching failed. See /tmp/fgmod-install.log.}"

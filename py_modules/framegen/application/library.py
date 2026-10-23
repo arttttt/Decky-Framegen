@@ -46,6 +46,12 @@ class Library:
     def _published(self, channel: str) -> list[library.Available]:
         return library.available(channel, self.list_releases(library.CHANNELS[channel].repository))
 
+    def status(self) -> dict:
+        """The default version, which new patches use; `exists` is false while there is none."""
+        default = self.store.default_version()
+        installed = {entry.id for entry in self.store.installed()}
+        return {"exists": default in installed, "version": default if default in installed else None}
+
     def versions(self, channel: str) -> dict:
         """A channel's versions: installed ones (also those upstream no longer lists), then the rest."""
         if channel not in library.CHANNELS:

@@ -103,8 +103,8 @@ def test_launch_options_go_back_to_the_users_own_only_when_the_plugin_wrote_them
 def test_previewing_a_reset_changes_nothing_and_resetting_restores_the_game(plugin, fgmod, steam_library):
     root = steam_library.add_game("700", "Old Game", {"libxess.dll": game_file("libxess.dll")})
     other = steam_library.add_game("701", "Other Game", {"libxess.dll": game_file("libxess.dll")})
-    assert run(plugin.patch_game("700", "dxgi.dll", "mangohud %command%", "rdna23-int8"))["status"] == "success"
-    assert run(plugin.patch_game("701", "dxgi.dll", "", "rdna23-int8"))["status"] == "success"
+    assert run(plugin.patch_game("700", "dxgi.dll", "mangohud %command%", ""))["status"] == "success"
+    assert run(plugin.patch_game("701", "dxgi.dll", "", ""))["status"] == "success"
     patched, other_before = snapshot(root), snapshot(other)
 
     preview = run(plugin.preview_reset_game("700", "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%"))
@@ -156,7 +156,7 @@ def test_a_directory_with_an_old_versions_backups_is_reset(plugin, tmp_path):
     assert (game / "libxess.dll").read_bytes() == game_file("libxess.dll")
 
 
-@pytest.mark.parametrize("inside", ["", "renames"])
+@pytest.mark.parametrize("inside", ["", "library"])
 def test_the_bundle_itself_is_never_reset(plugin, fgmod, inside):
     before = snapshot(fgmod)
 

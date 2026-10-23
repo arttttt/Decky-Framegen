@@ -8,7 +8,7 @@ import pytest
 
 from conftest import game_file, make_game_dir, run, snapshot, write
 from framegen.domain import patch_record
-from framegen.domain.patch_plan import CopyFromBundle, DeleteFile, EditIni, MergeTreeFromBundle, Move
+from framegen.domain.patch_plan import Copy, DeleteFile, EditIni, Move
 from framegen.domain.patch_record import Backup, PatchRecord, Placed, RemoveDirIfEmpty
 from framegen.infrastructure import game_directory
 
@@ -27,12 +27,12 @@ def test_a_plan_is_recorded_as_placed_files_backups_and_created_directories():
     operations = (
         Move("libxess.dll", "libxess.dll.b"),
         DeleteFile("nvngx.ini"),
-        CopyFromBundle("OptiScaler.dll", "dxgi.dll"),
-        CopyFromBundle("OptiScaler.ini", "OptiScaler.ini"),
+        Copy("OptiScaler.dll", "dxgi.dll"),
+        Copy("OptiScaler.ini", "OptiScaler.ini"),
         EditIni("x", lambda text: text),
-        MergeTreeFromBundle("plugins"),
-        MergeTreeFromBundle("D3D12_Optiscaler"),
-        CopyFromBundle("libxess.dll", "libxess.dll"),
+        Copy("plugins/OptiPatcher.asi", "plugins/OptiPatcher.asi"),
+        Copy("D3D12_Optiscaler/D3D12Core.dll", "D3D12_Optiscaler/D3D12Core.dll"),
+        Copy("libxess.dll", "libxess.dll"),
     )
 
     recorded = patch_record.record(operations, frozenset({"Game.exe", "libxess.dll", "plugins"}), HASHES)
@@ -110,7 +110,7 @@ def test_patching_writes_the_record_and_unpatching_restores_the_game_exactly(plu
     game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
     before = snapshot(game)
 
-    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", "rdna23-int8"))["status"] == "success"
+    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))["status"] == "success"
     marker = json.loads((game / "FRAMEGEN_PATCH").read_text())
     assert marker["format"] == 2 and marker["complete"] is True
     assert {"path": "dxgi.dll", "sha256": marker["placed"][0]["sha256"]} in marker["placed"]
@@ -130,7 +130,7 @@ def test_an_interrupted_patch_can_still_be_undone(plugin, fgmod, tmp_path, monke
         raise OSError("device went to sleep")
 
     monkeypatch.setattr(game_directory, "execute", crash_halfway)
-    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", "rdna23-int8"))["status"] == "error"
+    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))["status"] == "error"
     assert json.loads((game / "FRAMEGEN_PATCH").read_text())["complete"] is False
     monkeypatch.setattr(game_directory, "execute", real_execute)
 
@@ -140,7 +140,7 @@ def test_an_interrupted_patch_can_still_be_undone(plugin, fgmod, tmp_path, monke
 
 def test_a_game_updated_while_patched_keeps_its_new_file(plugin, fgmod, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
-    run(plugin.manual_patch_directory(str(game), "dxgi.dll", "rdna23-int8"))
+    run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))
     write(game / "libxess.dll", b"the game's updated libxess")
 
     assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"
@@ -151,7 +151,7 @@ def test_a_game_updated_while_patched_keeps_its_new_file(plugin, fgmod, tmp_path
 
 def test_a_failed_unpatch_keeps_the_marker_and_says_so(plugin, fgmod, tmp_path, monkeypatch):
     game = make_game_dir(tmp_path / "games" / "Game")
-    run(plugin.manual_patch_directory(str(game), "dxgi.dll", "rdna23-int8"))
+    run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))
     real_execute = game_directory.execute
 
     def fail_before_the_end(operations, directory, fgmod_path):
@@ -177,7 +177,7 @@ def test_a_game_patched_by_an_older_version_is_left_alone(plugin, fgmod, tmp_pat
     if action == "unpatch":
         result = run(plugin.manual_unpatch_directory(str(game)))
     else:
-        result = run(plugin.manual_patch_directory(str(game), "dxgi.dll", "rdna23-int8"))
+        result = run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))
 
     assert result == {"status": "error", "message": "This game was patched by an older version of the plugin. "
                                                      "Use Reset to stock to remove that patch first."}
@@ -203,10 +203,10 @@ def test_a_repatch_keeps_the_users_ini_settings_unless_asked_to_reset_them(plugi
 
     game = make_game_dir(tmp_path / "games" / "Game")
     patcher = Patcher(tmp_path / "home")
-    patcher.patch_directory(game, "dxgi.dll", "rdna23-int8")
+    patcher.patch_directory(game, "dxgi.dll", "")
     write(game / "OptiScaler.ini", (game / "OptiScaler.ini").read_bytes() + b"\n[Mine]\nKeep=1\n")
 
-    assert patcher.patch_directory(game, "dxgi.dll", "rdna23-int8", reset_ini=reset_ini)["status"] == "success"
+    assert patcher.patch_directory(game, "dxgi.dll", "", reset_ini=reset_ini)["status"] == "success"
 
     assert (b"Keep=1" in (game / "OptiScaler.ini").read_bytes()) is not reset_ini
     # Either way the ini is the patch's, and unpatching removes it.

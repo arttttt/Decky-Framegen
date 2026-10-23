@@ -11,30 +11,24 @@
   },
   {
     "result": {
-      "fsr4_upscaler_sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
-      "fsr4_variant": "rdna23-int8",
-      "fsr4_variant_label": "4.0.2c / RDNA2-3 compatibility",
-      "message": "OptiScaler files copied to <root>/games/Game using 4.0.2c / RDNA2-3 compatibility",
-      "optiscaler_version": "test-0.9.4",
+      "fsr4_variant": "sdk",
+      "fsr4_variant_label": "FSR 4.1.1 SDK",
+      "message": "OptiScaler 0.9.4 (FSR 4.1.1 SDK) is in <root>/games/Game.",
+      "optiscaler_version": "stable-0.9.4",
       "status": "success"
     },
-    "step": "patch dxgi.dll rdna23-int8",
+    "step": "patch dxgi.dll default default",
     "tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
       "FRAMEGEN_PATCH": {
         "appid": "",
         "backed_up_files": [
-          "d3dcompiler_47.dll",
           "amd_fidelityfx_dx12.dll",
           "amd_fidelityfx_upscaler_dx12.dll",
           "libxess.dll"
         ],
         "backups": [
-          {
-            "backup": "d3dcompiler_47.dll.b",
-            "original": "d3dcompiler_47.dll"
-          },
           {
             "backup": "amd_fidelityfx_dx12.dll.b",
             "original": "amd_fidelityfx_dx12.dll"
@@ -50,24 +44,15 @@
         ],
         "complete": true,
         "created_dirs": [
-          "D3D12_Optiscaler",
-          "plugins"
+          "D3D12_Optiscaler"
         ],
         "dll_name": "dxgi.dll",
+        "family": "0.9",
         "format": 2,
-        "fsr4_upscaler_sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
-        "fsr4_variant": "rdna23-int8",
-        "fsr4_variant_label": "4.0.2c / RDNA2-3 compatibility",
+        "fsr4_variant": "sdk",
+        "fsr4_variant_label": "FSR 4.1.1 SDK",
         "game_name": "",
-        "managed_files": [
-          {
-            "kind": "fsr4-upscaler",
-            "path": "<root>/amd_fidelityfx_upscaler_dx12.dll",
-            "sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
-            "variant": "rdna23-int8"
-          }
-        ],
-        "optiscaler_version": "test-0.9.4",
+        "optiscaler_version": "stable-0.9.4",
         "original_launch_options": "",
         "placed": [
           {
@@ -79,40 +64,16 @@
             "sha256": null
           },
           {
-            "path": "plugins/OptiPatcher.asi",
-            "sha256": "92d38ddaecfff291a74139c1b389dff80888784bc734bbd29b013e2ac2d89fc7"
-          },
-          {
             "path": "D3D12_Optiscaler/D3D12Core.dll",
             "sha256": "71e0ba0524f174e556bb0b51641163232c89a58cb9ee1aedd626ef942e4faf8f"
-          },
-          {
-            "path": "libxess.dll",
-            "sha256": "57a05b6c87707a719ab55e4c334c4790ac1d44a3d55635125eed36dd4fd6ef30"
-          },
-          {
-            "path": "libxess_dx11.dll",
-            "sha256": "ba4bfc4b22623846be2bbcdd534cc5edf810e79915ad74fd0cd4be8457bdc149"
-          },
-          {
-            "path": "libxess_fg.dll",
-            "sha256": "6df0d7eb64ee5ba9ee70983f41e296a12bd331acf607ebca76c2d9015994d8bd"
-          },
-          {
-            "path": "libxell.dll",
-            "sha256": "fb1f9f3039b05d7a3c0a3fa1eff2ec3871fb4cac8c29b154b45719c463649c56"
           },
           {
             "path": "amd_fidelityfx_dx12.dll",
             "sha256": "2cd31498fb6d5c444bbea225b88efcd008a358281e1c38be5f912bfbed954d6f"
           },
           {
-            "path": "amd_fidelityfx_framegeneration_dx12.dll",
-            "sha256": "cee07c4cd096bb25ce8389e3079caaafa7f08464a91b8fca75b767cb7946a8a1"
-          },
-          {
-            "path": "amd_fidelityfx_vk.dll",
-            "sha256": "d87f283e35e4897ca10bc59b435506cdb427d1cb49e45d1d6de0df58a050c07c"
+            "path": "amd_fidelityfx_upscaler_dx12.dll",
+            "sha256": "0a689f0006b030f3ac4409eeb57bcc90fff01019b7c4b8006772f0ccaad76dd5"
           },
           {
             "path": "dlssg_to_fsr3_amd_is_better.dll",
@@ -127,32 +88,30 @@
             "sha256": "daa5f9fadd5c7bb506b8cf307c885dafa89152ec303b517dca632cdf0bb51a7e"
           },
           {
-            "path": "amd_fidelityfx_upscaler_dx12.dll",
-            "sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982"
+            "path": "libxess.dll",
+            "sha256": "57a05b6c87707a719ab55e4c334c4790ac1d44a3d55635125eed36dd4fd6ef30"
+          },
+          {
+            "path": "libxess_dx11.dll",
+            "sha256": "ba4bfc4b22623846be2bbcdd534cc5edf810e79915ad74fd0cd4be8457bdc149"
           }
         ],
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
-      "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n",
+      "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n\n[FSR]\nFsr4Update=true\nFsr4ForceEnableInt8=auto\n\n[Menu]\nUseHQFont=false\n",
       "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",
       "amd_fidelityfx_dx12.dll.b": "game:amd_fidelityfx_dx12.dll",
-      "amd_fidelityfx_framegeneration_dx12.dll": "bundle:amd_fidelityfx_framegeneration_dx12.dll",
-      "amd_fidelityfx_upscaler_dx12.dll": "bundle:int8 amd_fidelityfx_upscaler_dx12.dll",
+      "amd_fidelityfx_upscaler_dx12.dll": "bundle:amd_fidelityfx_upscaler_dx12.dll",
       "amd_fidelityfx_upscaler_dx12.dll.b": "game:amd_fidelityfx_upscaler_dx12.dll",
-      "amd_fidelityfx_vk.dll": "bundle:amd_fidelityfx_vk.dll",
-      "d3dcompiler_47.dll.b": "game:d3dcompiler_47.dll",
+      "d3dcompiler_47.dll": "game:d3dcompiler_47.dll",
       "dlssg_to_fsr3_amd_is_better.dll": "bundle:dlssg_to_fsr3_amd_is_better.dll",
       "dxgi.dll": "bundle:OptiScaler.dll",
       "fakenvapi.dll": "bundle:fakenvapi.dll",
       "fakenvapi.ini": "bundle:fakenvapi.ini",
-      "libxell.dll": "bundle:libxell.dll",
       "libxess.dll": "bundle:libxess.dll",
       "libxess.dll.b": "game:libxess.dll",
-      "libxess_dx11.dll": "bundle:libxess_dx11.dll",
-      "libxess_fg.dll": "bundle:libxess_fg.dll",
-      "plugins": "<dir>",
-      "plugins/OptiPatcher.asi": "bundle:OptiPatcher.asi"
+      "libxess_dx11.dll": "bundle:libxess_dx11.dll"
     }
   },
   {

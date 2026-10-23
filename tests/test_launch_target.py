@@ -119,7 +119,7 @@ def test_unpatch_refuses_to_touch_the_bundle_itself(fgmod, home):
     with pytest.raises(WrapperError, match="OptiScaler bundle itself"):
         LaunchWrapper(home, {}).unpatch([str(fgmod)])
 
-    assert (fgmod / "OptiScaler.dll").exists()
+    assert (fgmod / "library" / "versions").is_dir()
 
 
 # ── integration: the CLI the wrappers run ────────────────────────────────────
@@ -166,4 +166,6 @@ def test_cli_reset_ini_replaces_the_games_ini(fgmod, home, tmp_path):
     run_cli(home, "patch", "--reset-ini", "--", str(game / "Game.exe"))
 
     assert "Keep=1" in kept
-    assert (game / "OptiScaler.ini").read_text() == (fgmod / "OptiScaler.ini").read_text()
+    # The game's own ini is backed up, and the version's, with the plugin's defaults, takes its place.
+    assert (game / "OptiScaler.ini.b").read_text() == "[Mine]\nKeep=1\n"
+    assert "FGInput=nukems" in (game / "OptiScaler.ini").read_text()

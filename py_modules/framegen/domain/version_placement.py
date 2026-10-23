@@ -15,7 +15,7 @@ from pathlib import PurePosixPath
 from . import ini
 from .bundle import VALID_DLL_NAMES
 from .library import Family
-from .patch_plan import BACKUP_SUFFIX, INI_FILENAME, CopyFromBundle, EditIni, Move, Operation, PlanError, preserving_existing
+from .patch_plan import BACKUP_SUFFIX, INI_FILENAME, Copy, EditIni, Move, Operation, PlanError, preserving_existing
 
 INJECTOR = "OptiScaler.dll"
 
@@ -52,16 +52,22 @@ def plan_patch(entries: frozenset[str], files: frozenset[str], family: Family, r
     for name in sorted(VALID_DLL_NAMES):
         if name in entries and name + BACKUP_SUFFIX not in entries:
             operations.append(Move(name, name + BACKUP_SUFFIX))
-    operations.append(CopyFromBundle(INJECTOR, request.dll_name))
+    operations.append(Copy(INJECTOR, request.dll_name))
 
     fresh_ini = request.reset_ini or INI_FILENAME not in entries
     if fresh_ini:
-        operations.append(CopyFromBundle(INI_FILENAME, INI_FILENAME))
+        operations.append(Copy(INI_FILENAME, INI_FILENAME))
         operations.append(EditIni("apply the plugin's defaults", lambda text: ini.apply_overrides(text, family.ini_defaults)))
-    variant = family.variant_settings(request.variant)
-    operations.append(EditIni(f"apply FSR 4 variant {request.variant}", lambda text: ini.apply_overrides(text, variant)))
+    others = family.other_variant_keys(request.variant)
+    chosen = family.variants[request.variant].ini
+    operations.append(
+        EditIni(
+            f"apply FSR 4 variant {request.variant}",
+            lambda text: ini.apply_overrides(ini.reset_to_auto(text, others), chosen),
+        )
+    )
 
     for path in sorted(files):
         if path not in (INJECTOR, INI_FILENAME) and is_for_the_game(path):
-            operations.append(CopyFromBundle(path, path))
+            operations.append(Copy(path, path))
     return preserving_existing(tuple(operations), entries)

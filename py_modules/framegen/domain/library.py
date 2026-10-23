@@ -84,11 +84,15 @@ class Family:
     def default_variant(self) -> str:
         return next(iter(self.variants))
 
-    def variant_settings(self, variant: str) -> dict[str, str]:
-        """What choosing `variant` writes: every variant's keys back to auto, then its own values,
-        so switching variants on a kept OptiScaler.ini leaves nothing of the previous one."""
-        reset = {key: "auto" for each in self.variants.values() for key in each.ini}
-        return {**reset, **self.variants[variant].ini}
+    def resolve_variant(self, requested: str | None) -> str:
+        """The variant to use: the one asked for when this family has it, else its default."""
+        return requested if requested in self.variants else self.default_variant
+
+    def other_variant_keys(self, variant: str) -> set[str]:
+        """Keys the other variants set and `variant` does not: switching to it puts them back to auto,
+        so a kept OptiScaler.ini keeps nothing of the previous variant."""
+        chosen = self.variants[variant].ini
+        return {key for each in self.variants.values() for key in each.ini if key not in chosen}
 
 
 FAMILIES = {

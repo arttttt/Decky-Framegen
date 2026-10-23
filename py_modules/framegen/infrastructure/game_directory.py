@@ -1,4 +1,4 @@
-"""Reading a game directory and the installed bundle for the patch planner, and carrying out its plans."""
+"""Reading game directories and the files a patch copies, and carrying out patch plans."""
 
 from __future__ import annotations
 
@@ -13,29 +13,13 @@ from framegen.infrastructure import files
 log = logging.getLogger(__name__)
 
 
-def bundle_files(fgmod_path: Path) -> frozenset[str]:
-    """Every file and directory in the installed bundle, as paths relative to it."""
-    if not fgmod_path.exists():
-        return frozenset()
-    return frozenset(path.relative_to(fgmod_path).as_posix() for path in fgmod_path.rglob("*"))
-
-
-def read(directory: Path, previous_variant: str = "") -> plan.GameDirectory:
-    """The facts the planner needs: what is in the directory."""
-    return plan.GameDirectory(frozenset(entry.name for entry in directory.iterdir()), previous_variant)
-
-
-def bundle_hashes(fgmod_path: Path, operations: tuple[plan.Operation, ...]) -> dict[str, str]:
-    """The sha256 of every bundle file a plan copies, directories expanded to their files."""
+def bundle_hashes(source: Path, operations: tuple[plan.Operation, ...]) -> dict[str, str]:
+    """The sha256 of every file a plan copies, by its path in `source`."""
     hashes: dict[str, str] = {}
     for operation in operations:
         match operation:
-            case plan.CopyFromBundle(source, _):
-                hashes[source] = files.sha256(fgmod_path / source)
-            case plan.MergeTreeFromBundle(name):
-                for path in (fgmod_path / name).rglob("*"):
-                    if path.is_file():
-                        hashes[path.relative_to(fgmod_path).as_posix()] = files.sha256(path)
+            case plan.Copy(origin, _):
+                hashes[origin] = files.sha256(source / origin)
     return hashes
 
 
@@ -53,8 +37,8 @@ def listing(directory: Path) -> tuple[frozenset[str], frozenset[str]]:
     return entries, plugin_entries
 
 
-def execute(operations: tuple, directory: Path, fgmod_path: Path) -> None:
-    """Carry out a plan in order. Filesystem errors propagate; INI edit failures are only logged."""
+def execute(operations: tuple, directory: Path, copy_root: Path) -> None:
+    """Carry out a plan in order, copying from `copy_root`. Filesystem errors propagate; INI edit failures are only logged."""
     for operation in operations:
         match operation:
             case plan.Move(source, destination):
@@ -73,13 +57,10 @@ def execute(operations: tuple, directory: Path, fgmod_path: Path) -> None:
                 else:
                     path.unlink()
                 log.info(f"Removed legacy {name} from {directory}")
-            case plan.CopyFromBundle(source, destination):
+            case plan.Copy(origin, destination):
                 (directory / destination).parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(fgmod_path / source, directory / destination)
-                log.info(f"Copied {source} → {destination} in {directory}")
-            case plan.MergeTreeFromBundle(name):
-                shutil.copytree(fgmod_path / name, directory / name, dirs_exist_ok=True)
-                log.info(f"Synced {name}/ into {directory}")
+                shutil.copy2(copy_root / origin, directory / destination)
+                log.info(f"Copied {origin} → {destination} in {directory}")
             case plan.EditIni(action, transform):
                 edit_ini(directory / plan.INI_FILENAME, transform, action)
             case patch_record.RemoveDirIfEmpty(name):

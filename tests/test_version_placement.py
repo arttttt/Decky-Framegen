@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from framegen.domain import ini, library
-from framegen.domain.patch_plan import CopyFromBundle, EditIni, Move, PlanError
+from framegen.domain.patch_plan import Copy, EditIni, Move, PlanError
 from framegen.domain.version_placement import Request, is_for_the_game, plan_patch
 
 # The files of the real OptiScaler 0.9.4 and nightly-20261023 archives (7zzs l).
@@ -24,7 +24,7 @@ V10 = frozenset({
 
 
 def copies(operations) -> dict[str, str]:
-    return {op.destination: op.source for op in operations if isinstance(op, CopyFromBundle)}
+    return {op.destination: op.source for op in operations if isinstance(op, Copy)}
 
 
 def edited_ini(operations, text: str) -> str:
@@ -68,7 +68,7 @@ def test_the_games_files_are_backed_up_and_only_one_proxy_loads():
 
     assert Move("version.dll", "version.dll.b") in operations  # another proxy would load OptiScaler again
     assert Move("dxgi.dll", "dxgi.dll.b") in operations
-    assert operations.index(Move("libxess.dll", "libxess.dll.b")) < operations.index(CopyFromBundle("libxess.dll", "libxess.dll"))
+    assert operations.index(Move("libxess.dll", "libxess.dll.b")) < operations.index(Copy("libxess.dll", "libxess.dll"))
 
 
 def test_a_fresh_ini_gets_the_familys_defaults_and_the_variant():
@@ -85,7 +85,7 @@ def test_a_kept_ini_only_switches_the_variant_and_forgets_the_previous_one():
 
     operations = plan_patch(frozenset({"OptiScaler.ini"}), V10, library.FAMILIES["10"], Request("dxgi.dll", "auto"))
 
-    assert CopyFromBundle("OptiScaler.ini", "OptiScaler.ini") not in operations
+    assert Copy("OptiScaler.ini", "OptiScaler.ini") not in operations
     assert edited_ini(operations, users) == "[FSR]\nFsr4GpuSupport=auto\nFsr4Model=auto\n\n[Menu]\nUseHQFont=true\n"
 
 
@@ -93,7 +93,7 @@ def test_asking_to_reset_the_ini_backs_up_the_games_and_places_the_versions():
     operations = plan_patch(frozenset({"OptiScaler.ini"}), V10, library.FAMILIES["10"], Request("dxgi.dll", "auto", True))
 
     assert operations.index(Move("OptiScaler.ini", "OptiScaler.ini.b")) < operations.index(
-        CopyFromBundle("OptiScaler.ini", "OptiScaler.ini")
+        Copy("OptiScaler.ini", "OptiScaler.ini")
     )
 
 
@@ -110,8 +110,15 @@ def test_what_cannot_be_placed_is_refused(files, request_, message):
         plan_patch(frozenset(), files, library.FAMILIES["10"], request_)
 
 
-def test_variant_settings_reset_the_other_variants_keys():
-    assert library.FAMILIES["10"].variant_settings("int8-lite") == {"FSR.Fsr4GpuSupport": "auto", "FSR.Fsr4Model": "3"}
-    assert ini.apply_overrides("[FSR]\nFsr4Model=1\n", library.FAMILIES["10"].variant_settings("auto")) == (
-        "[FSR]\nFsr4Model=auto\nFsr4GpuSupport=auto\n"
+def test_switching_variants_resets_only_keys_that_are_there():
+    assert library.FAMILIES["10"].other_variant_keys("int8-lite") == {"FSR.Fsr4GpuSupport"}
+    assert library.FAMILIES["10"].other_variant_keys("auto") == {"FSR.Fsr4GpuSupport", "FSR.Fsr4Model"}
+    assert ini.reset_to_auto("[FSR]\nFsr4Model=1\n[Other]\nFsr4Model=1\n", {"FSR.Fsr4Model", "FSR.Fsr4GpuSupport"}) == (
+        "[FSR]\nFsr4Model=auto\n[Other]\nFsr4Model=1\n"
     )
+
+
+def test_a_users_own_ini_gets_only_the_chosen_variants_keys():
+    operations = plan_patch(frozenset({"OptiScaler.ini"}), V094, library.FAMILIES["0.9"], Request("dxgi.dll", "sdk"))
+
+    assert edited_ini(operations, "[Mine]\nKeep=1\n") == "[Mine]\nKeep=1\n"

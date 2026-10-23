@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import game_file, make_game_dir, run, write
+from conftest import NIGHTLY, STABLE, game_file, make_game_dir, run, write
 from golden import assert_golden, describe_tree, normalize_result
 
 
@@ -35,17 +35,18 @@ class Recorder:
 
 # ── Manual directory patching ────────────────────────────────────────────────
 
+# Patches are (proxy DLL, library version or None for the default, FSR 4 variant or "" for its default).
 MANUAL_SCENARIOS = {
     "manual_clean_game": {
         "files": {},
-        "patches": [("dxgi.dll", "rdna23-int8")],
+        "patches": [("dxgi.dll", None, "")],
     },
     # The game ships its own proxy-named DLLs; both get backed up, whichever proxy is used.
     "manual_game_ships_proxy_dlls": {
         "files": {"version.dll": game_file("version.dll"), "dxgi.dll": game_file("dxgi.dll")},
-        "patches": [("version.dll", "rdna23-int8")],
+        "patches": [("version.dll", None, "")],
     },
-    # Game-shipped FidelityFX/XeSS/compiler DLLs that the patch also provides.
+    # Game-shipped FidelityFX/XeSS/compiler DLLs; those the version also provides are backed up.
     "manual_game_ships_support_dlls": {
         "files": {
             name: game_file(name)
@@ -56,44 +57,42 @@ MANUAL_SCENARIOS = {
                 "d3dcompiler_47.dll",
             )
         },
-        "patches": [("dxgi.dll", "rdna23-int8")],
+        "patches": [("dxgi.dll", None, "")],
     },
-    # User- or game-placed AMD driver DLLs that FSR4 variants also ship.
+    # User- or game-placed AMD driver DLLs: no version provides them, so they stay.
     "manual_game_ships_driver_dlls": {
         "files": {"amdxcffx64.dll": game_file("amdxcffx64.dll"), "amdxc64.dll": game_file("amdxc64.dll")},
-        "patches": [("dxgi.dll", "rdna23-int8")],
+        "patches": [("dxgi.dll", None, "")],
     },
     # A pre-existing plugins/ folder with someone else's ASI mod.
     "manual_game_has_plugins_dir": {
         "files": {"plugins/OtherMod.asi": game_file("OtherMod.asi")},
-        "patches": [("dxgi.dll", "rdna23-int8")],
+        "patches": [("dxgi.dll", None, "")],
     },
-    # Patching the same directory twice before unpatching.
+    # Patching twice before unpatching, the second time with a v10 nightly (another family).
     "manual_repatch": {
         "files": {},
-        "patches": [("dxgi.dll", "rdna23-int8"), ("winmm.dll", "rdna4-native")],
+        "patches": [("dxgi.dll", None, ""), ("winmm.dll", NIGHTLY, "int8")],
     },
-    # The variant with its own injector, extra driver DLLs and INI overrides.
-    "manual_valve_variant": {
+    "manual_nightly_int8": {
         "files": {},
-        "patches": [("dxgi.dll", "rdna2-valve-411-pre10")],
+        "patches": [("dxgi.dll", NIGHTLY, "int8")],
     },
-    "manual_driver_override_variant": {
+    "manual_stable_int8_forced": {
         "files": {},
-        "patches": [("version.dll", "rdna34-official-411")],
+        "patches": [("version.dll", STABLE, "sdk-int8")],
     },
     "manual_asi_proxy": {
         "files": {},
-        "patches": [("OptiScaler.asi", "rdna23-int8")],
+        "patches": [("OptiScaler.asi", None, "")],
     },
-    # An existing per-game INI from an older build (FGType, UseHQFont=auto) next to a
-    # game-shipped dxgi.dll; the INI also counts as a patch fingerprint.
+    # An existing per-game INI next to a game-shipped dxgi.dll: both are the game's and stay.
     "manual_existing_old_ini": {
         "files": {
             "OptiScaler.ini": b"[FrameGen]\nFGType=nukems\n\n[Menu]\nUseHQFont=auto\n",
             "dxgi.dll": game_file("dxgi.dll"),
         },
-        "patches": [("dxgi.dll", "rdna23-int8")],
+        "patches": [("dxgi.dll", None, "")],
     },
 }
 
@@ -105,9 +104,9 @@ def test_manual_patch_scenarios(name, plugin, fgmod, tmp_path):
     recorder = Recorder(tmp_path, game)
     recorder.record("initial")
 
-    for dll_name, variant in scenario["patches"]:
-        result = run(plugin.manual_patch_directory(str(game), dll_name, variant))
-        recorder.record(f"patch {dll_name} {variant}", result)
+    for dll_name, version, variant in scenario["patches"]:
+        result = run(plugin.manual_patch_directory(str(game), dll_name, variant, version or ""))
+        recorder.record(f"patch {dll_name} {version or 'default'} {variant or 'default'}", result)
 
     result = run(plugin.manual_unpatch_directory(str(game)))
     recorder.record("unpatch", result)
@@ -116,16 +115,21 @@ def test_manual_patch_scenarios(name, plugin, fgmod, tmp_path):
 
 
 def test_manual_patch_rejects_unknown_proxy_name(plugin, fgmod, game_dir):
-    result = run(plugin.manual_patch_directory(str(game_dir), "d3d11.dll", "rdna23-int8"))
+    result = run(plugin.manual_patch_directory(str(game_dir), "d3d11.dll", ""))
 
     assert result == {"status": "error", "message": "Invalid proxy DLL name: d3d11.dll"}
 
 
-def test_manual_patch_requires_installed_bundle(plugin, home, game_dir):
-    result = run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", "rdna23-int8"))
+def test_manual_patch_needs_an_optiscaler_version_in_the_library(plugin, home, game_dir):
+    result = run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", ""))
 
-    assert result["status"] == "error"
-    assert "Run Install first" in result["message"]
+    assert result == {"status": "error", "message": "No OptiScaler version is installed. Download one in the OptiScaler section first."}
+
+
+def test_manual_patch_with_a_version_not_in_the_library_is_refused(plugin, fgmod, game_dir):
+    result = run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", "", "nightly-20260101"))
+
+    assert result == {"status": "error", "message": "OptiScaler nightly-20260101 is not in the library."}
 
 
 # ── Steam AppID patching ─────────────────────────────────────────────────────
@@ -136,13 +140,13 @@ def test_steam_variant_switch_and_status(plugin, fgmod, steam_library, tmp_path)
     recorder = Recorder(tmp_path, root)
 
     recorder.record("status unpatched", run(plugin.get_game_status("100")))
-    recorder.record("patch valve", run(plugin.patch_game("100", "dxgi.dll", "", "rdna2-valve-411-pre10")))
-    recorder.record("status valve", run(plugin.get_game_status("100")))
+    recorder.record("patch nightly int8", run(plugin.patch_game("100", "dxgi.dll", "", "int8", NIGHTLY)))
+    recorder.record("status nightly int8", run(plugin.get_game_status("100")))
     recorder.record(
-        "repatch rdna23",
-        run(plugin.patch_game("100", "dxgi.dll", "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%", "rdna23-int8")),
+        "repatch nightly int8-lite",
+        run(plugin.patch_game("100", "dxgi.dll", "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%", "int8-lite", NIGHTLY)),
     )
-    recorder.record("status rdna23", run(plugin.get_game_status("100")))
+    recorder.record("status nightly int8-lite", run(plugin.get_game_status("100")))
     recorder.record("unpatch", run(plugin.unpatch_game("100")))
 
     assert_golden("steam_variant_switch_and_status", recorder.steps)
@@ -152,11 +156,11 @@ def test_steam_launch_options_survive_repatch(plugin, fgmod, steam_library, tmp_
     root = steam_library.add_game("200", "Options Game")
     recorder = Recorder(tmp_path, root)
 
-    recorder.record("patch", run(plugin.patch_game("200", "dxgi.dll", "gamemoderun %command% -dx12", "rdna23-int8")))
+    recorder.record("patch", run(plugin.patch_game("200", "dxgi.dll", "gamemoderun %command% -dx12", "")))
     # Steam now holds our managed options; a re-patch passes those back in.
     recorder.record(
         "repatch with winmm",
-        run(plugin.patch_game("200", "winmm.dll", "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%", "rdna23-int8")),
+        run(plugin.patch_game("200", "winmm.dll", "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%", "")),
     )
     recorder.record("unpatch", run(plugin.unpatch_game("200")))
 
@@ -167,11 +171,11 @@ def test_steam_target_directory_moves_between_patches(plugin, fgmod, steam_libra
     root = steam_library.add_game("300", "Moving Game")
     recorder = Recorder(tmp_path, root)
 
-    recorder.record("patch at root", run(plugin.patch_game("300", "dxgi.dll", "", "rdna23-int8")))
+    recorder.record("patch at root", run(plugin.patch_game("300", "dxgi.dll", "", "")))
     # A game update adds the real Unreal executable deeper in the tree.
     write(root / "Binaries" / "Win64" / "MovingGame-Win64-Shipping.exe", game_file("MovingGame-Win64-Shipping.exe"))
     recorder.record("game update")
-    recorder.record("repatch", run(plugin.patch_game("300", "dxgi.dll", "", "rdna23-int8")))
+    recorder.record("repatch", run(plugin.patch_game("300", "dxgi.dll", "", "")))
     recorder.record("unpatch", run(plugin.unpatch_game("300")))
 
     assert_golden("steam_target_directory_moves_between_patches", recorder.steps)
@@ -180,7 +184,7 @@ def test_steam_target_directory_moves_between_patches(plugin, fgmod, steam_libra
 def test_steam_marker_records_the_backed_up_game_files(plugin, fgmod, steam_library):
     root = steam_library.add_game("600", "Xess Game", {"libxess.dll": game_file("libxess.dll")})
 
-    run(plugin.patch_game("600", "dxgi.dll", "", "rdna23-int8"))
+    run(plugin.patch_game("600", "dxgi.dll", "", ""))
 
     marker = json.loads((root / "FRAMEGEN_PATCH").read_text())
     assert marker["backed_up_files"] == ["libxess.dll"]
@@ -191,10 +195,10 @@ def test_steam_unknown_and_unpatched_games(plugin, fgmod, steam_library, tmp_pat
     steam_library.add_game("400", "Untouched Game")
     observed = {
         "status unknown": run(plugin.get_game_status("999")),
-        "patch unknown": run(plugin.patch_game("999", "dxgi.dll", "", "rdna23-int8")),
+        "patch unknown": run(plugin.patch_game("999", "dxgi.dll", "", "")),
         "unpatch unknown": run(plugin.unpatch_game("999")),
         "unpatch never patched": run(plugin.unpatch_game("400")),
-        "patch invalid dll": run(plugin.patch_game("400", "d3d11.dll", "", "rdna23-int8")),
+        "patch invalid dll": run(plugin.patch_game("400", "d3d11.dll", "", "")),
     }
 
     assert_golden("steam_unknown_and_unpatched_games", normalize_result(observed, tmp_path))
