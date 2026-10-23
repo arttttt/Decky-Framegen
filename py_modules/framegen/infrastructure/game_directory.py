@@ -74,6 +74,7 @@ def execute(operations: tuple, directory: Path, fgmod_path: Path) -> None:
                     path.unlink()
                 log.info(f"Removed legacy {name} from {directory}")
             case plan.CopyFromBundle(source, destination):
+                (directory / destination).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(fgmod_path / source, directory / destination)
                 log.info(f"Copied {source} → {destination} in {directory}")
             case plan.MergeTreeFromBundle(name):

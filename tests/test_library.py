@@ -35,9 +35,13 @@ def test_only_known_generations_have_a_family(version, family):
     assert (found.id if found else None) == family
 
 
-def test_v10_keeps_its_support_files_in_a_subfolder_and_0_9_in_the_game_directory():
-    assert library.FAMILIES["0.9"].support_dir == ""
-    assert library.FAMILIES["10"].support_dir == "OptiScaler"
+def test_each_family_offers_its_own_fsr4_variants_as_ini_settings_with_a_default():
+    assert library.FAMILIES["0.9"].default_variant == "sdk"
+    assert library.FAMILIES["10"].default_variant == "auto"
+    assert library.FAMILIES["10"].variants["int8"].ini == {"FSR.Fsr4GpuSupport": "2", "FSR.Fsr4Model": "1"}
+    # 0.9 knows nothing of Fsr4Model, and 10 dropped the nukems FG setting.
+    assert all("Fsr4Model" not in key for v in library.FAMILIES["0.9"].variants.values() for key in v.ini)
+    assert "FrameGen.FGInput" not in library.FAMILIES["10"].ini_defaults
 
 
 def test_an_archive_missing_a_required_file_is_reported():

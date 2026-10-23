@@ -196,10 +196,10 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
         if source in bundle_files:
             operations.append(CopyFromBundle(source, extra["name"]))
 
-    return PatchPlan(_preserving(tuple(operations), game.entries), upscaler)
+    return PatchPlan(preserving_existing(tuple(operations), game.entries), upscaler)
 
 
-def _preserving(operations: tuple[Operation, ...], entries: frozenset[str]) -> tuple[Operation, ...]:
+def preserving_existing(operations: tuple[Operation, ...], entries: frozenset[str]) -> tuple[Operation, ...]:
     """The plan with every file that was in the directory kept as a backup before it is removed or overwritten.
 
     A repatch undoes the previous patch first, so whatever is in the directory now is not the
