@@ -1,9 +1,10 @@
-"""Resetting a game an earlier plugin version patched: rules (unit)."""
+"""Resetting a game an earlier plugin version patched: rules (unit) and the plugin (integration)."""
 
 from __future__ import annotations
 
 import pytest
 
+from conftest import game_file, make_game_dir, run, snapshot, write
 from framegen.domain import stock_reset
 from framegen.domain.patch_plan import DeleteFile, Move, RemoveTree
 
@@ -40,6 +41,11 @@ def test_without_evidence_of_the_plugin_nothing_is_planned(entries):
     reset = stock_reset.plan(frozenset(entries), frozenset())
 
     assert reset == stock_reset.ResetPlan(None, (), (), (), ())
+
+
+def test_a_marker_kept_in_another_directory_is_evidence_for_the_one_it_names():
+    assert stock_reset.evidence(frozenset({"Game.exe", "dxgi.dll"}), marked_elsewhere=True) == stock_reset.MARKER
+    assert stock_reset.plan(frozenset({"dxgi.dll"}), frozenset(), marked_elsewhere=True).removed == ("dxgi.dll",)
 
 
 # ── what a reset does ────────────────────────────────────────────────────────
@@ -88,3 +94,62 @@ def test_a_file_restored_from_its_backup_is_not_reported_as_removed():
 )
 def test_launch_options_go_back_to_the_users_own_only_when_the_plugin_wrote_them(current, stored, expected):
     assert stock_reset.launch_options_after_reset(current, stored) == expected
+
+
+# ── integration: the plugin, on one game the user picked ─────────────────────
+
+
+def test_previewing_a_reset_changes_nothing_and_resetting_restores_the_game(plugin, fgmod, steam_library):
+    root = steam_library.add_game("700", "Old Game", {"libxess.dll": game_file("libxess.dll")})
+    other = steam_library.add_game("701", "Other Game", {"libxess.dll": game_file("libxess.dll")})
+    assert run(plugin.patch_game("700", "dxgi.dll", "mangohud %command%", "rdna23-int8"))["status"] == "success"
+    assert run(plugin.patch_game("701", "dxgi.dll", "", "rdna23-int8"))["status"] == "success"
+    patched, other_before = snapshot(root), snapshot(other)
+
+    preview = run(plugin.preview_reset_game("700", "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%"))
+
+    assert snapshot(root) == patched
+    assert preview["status"] == "success"
+    assert preview["evidence"] == stock_reset.MARKER
+    assert "libxess.dll" in preview["restore"]
+    assert "dxgi.dll" in preview["remove"]
+    assert preview["launch_options"] == "mangohud %command%"
+
+    result = run(plugin.reset_game("700", "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%"))
+
+    assert result["status"] == "success"
+    assert result["launch_options"] == "mangohud %command%"
+    assert sorted(snapshot(root)) == ["Game.exe", "libxess.dll"]
+    assert (root / "libxess.dll").read_bytes() == game_file("libxess.dll")
+    assert snapshot(other) == other_before
+
+
+def test_a_game_the_plugin_never_touched_is_refused(plugin, steam_library):
+    root = steam_library.add_game("710", "Own Opti Game", {"dxgi.dll": b"user's own OptiScaler", "OptiScaler.ini": b"[x]"})
+    before = snapshot(root)
+
+    preview = run(plugin.preview_reset_game("710", ""))
+    result = run(plugin.reset_game("710", ""))
+
+    assert preview["status"] == result["status"] == "error"
+    assert "nothing to reset" in result["message"]
+    assert snapshot(root) == before
+
+
+def test_a_directory_with_an_old_versions_backups_is_reset(plugin, tmp_path):
+    game = make_game_dir(
+        tmp_path / "games" / "Wrapper Game",
+        {"dxgi.dll": b"opti", "libxess.dll": b"opti xess", "libxess.dll.b": game_file("libxess.dll"),
+         "fakenvapi.ini": b"", "OptiScaler.ini": b"[x]"},
+    )
+    write(game / "plugins" / "OtherMod.asi", game_file("OtherMod.asi"))
+    write(game / "plugins" / "OptiPatcher.asi", b"ours")
+
+    result = run(plugin.reset_directory(str(game)))
+
+    assert result["status"] == "success"
+    assert result["evidence"] == stock_reset.BACKUPS
+    assert sorted(path.relative_to(game).as_posix() for path in game.rglob("*")) == [
+        "Game.exe", "libxess.dll", "plugins", "plugins/OtherMod.asi"
+    ]
+    assert (game / "libxess.dll").read_bytes() == game_file("libxess.dll")

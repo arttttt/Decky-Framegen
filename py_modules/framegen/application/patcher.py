@@ -11,7 +11,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from framegen.domain import bundle, exe_target, launch_options, marker, steam
+from framegen.domain import bundle, exe_target, launch_options, marker, steam, stock_reset
 from framegen.domain import patch_plan as plan
 from framegen.infrastructure import bundle_store, files, game_directory, processes
 from framegen.infrastructure import steam as steam_library
@@ -323,3 +323,93 @@ class Patcher:
             "launch_options": str(metadata.get("original_launch_options") or ""),
             "message": f"Unpatched {game.name}.",
         }
+
+    # ── reset to stock ───────────────────────────────────────────────────────
+    # For games an earlier plugin version patched: one game the user picked, shown
+    # first (preview), carried out only when the user confirms (reset).
+
+    def _reset_target(self, appid: str) -> tuple[steam_library.InstalledGame, Path, Path | None]:
+        game = steam_library.find_game(self.home, str(appid))
+        if game is None:
+            raise LookupError("Game not found in Steam library.")
+        if not game.install_path.exists():
+            raise LookupError("Game install directory does not exist.")
+        marker_path = self._find_marker(game.install_path)
+        if marker_path is not None:
+            target = Path(files.read_json(marker_path).get("target_dir") or marker_path.parent)
+        else:
+            target, _ = self._patch_target(game)
+        return game, target, marker_path
+
+    def _reset_plan(
+        self, directory: Path, marker_path: Path | None, current_launch_options: str | None
+    ) -> tuple[dict, tuple[plan.Operation, ...]]:
+        """What resetting `directory` does, as the frontend shows it, and the operations that do it."""
+        entries, plugin_entries = game_directory.listing(directory)
+        marked_elsewhere = marker_path is not None and marker_path.parent != directory
+        reset = stock_reset.plan(entries, plugin_entries, marked_elsewhere)
+        if reset.evidence is None:
+            return _error(f"No sign of Decky Framegen in {directory}; nothing to reset."), ()
+        stored = str(files.read_json(marker_path).get("original_launch_options") or "") if marker_path else ""
+        new_options = (
+            stock_reset.launch_options_after_reset(current_launch_options, stored)
+            if current_launch_options is not None
+            else None
+        )
+        preview = {
+            "status": "success",
+            "target_dir": str(directory),
+            "evidence": reset.evidence,
+            "remove": list(reset.removed),
+            "restore": list(reset.restored),
+            "unrecoverable": list(reset.unrecoverable),
+            "launch_options": new_options,
+        }
+        return preview, reset.operations
+
+    def preview_reset_game(self, appid: str, current_launch_options: str) -> dict:
+        try:
+            game, target, marker_path = self._reset_target(appid)
+            preview, _ = self._reset_plan(target, marker_path, current_launch_options)
+            return {**preview, "name": game.name}
+        except Exception as exc:
+            log.error(f"[Framegen] preview_reset_game failed for {appid}: {exc}")
+            return _error(str(exc))
+
+    def reset_game(self, appid: str, current_launch_options: str) -> dict:
+        try:
+            game, target, marker_path = self._reset_target(appid)
+            if self._is_running(game):
+                return _error("Close the game before resetting it.")
+            preview, operations = self._reset_plan(target, marker_path, current_launch_options)
+            if preview["status"] != "success":
+                return preview
+            game_directory.execute(operations, target, self.fgmod_path)
+            if marker_path is not None and marker_path.exists():
+                marker_path.unlink()
+            log.info(f"[Framegen] reset_game: appid={appid} target={target}")
+            return {**preview, "name": game.name, "message": f"{game.name} is back to how it shipped."}
+        except Exception as exc:
+            log.error(f"[Framegen] reset_game failed for {appid}: {exc}")
+            return _error(str(exc))
+
+    def preview_reset_directory(self, directory: str) -> dict:
+        try:
+            preview, _ = self._reset_plan(self.resolve_directory(directory), None, None)
+            return preview
+        except Exception as exc:
+            log.error(f"[Framegen] preview_reset_directory failed for {directory}: {exc}")
+            return _error(str(exc))
+
+    def reset_directory(self, directory: str) -> dict:
+        try:
+            target = self.resolve_directory(directory)
+            preview, operations = self._reset_plan(target, None, None)
+            if preview["status"] != "success":
+                return preview
+            game_directory.execute(operations, target, self.fgmod_path)
+            log.info(f"[Framegen] reset_directory: {target}")
+            return {**preview, "message": f"{target} is back to how it shipped."}
+        except Exception as exc:
+            log.error(f"[Framegen] reset_directory failed for {directory}: {exc}")
+            return _error(str(exc))

@@ -46,9 +46,13 @@ class ResetPlan:
     """Removed files the game may have shipped and that have no backup."""
 
 
-def evidence(entries: frozenset[str]) -> str | None:
-    """The strongest sign in a directory that the plugin patched it, if any."""
-    if bundle.MARKER_FILENAME in entries:
+def evidence(entries: frozenset[str], marked_elsewhere: bool = False) -> str | None:
+    """The strongest sign that the plugin patched a directory, if any.
+
+    `marked_elsewhere`: the game's marker names this directory but sits in another one
+    (the game's executable directory changed between patches).
+    """
+    if marked_elsewhere or bundle.MARKER_FILENAME in entries:
         return MARKER
     backups = {f"{name}{BACKUP_SUFFIX}" for name in [*bundle.RESTORABLE_BACKUP_FILES, *bundle.LEGACY_FILES]}
     if entries & backups:
@@ -58,9 +62,9 @@ def evidence(entries: frozenset[str]) -> str | None:
     return None
 
 
-def plan(entries: frozenset[str], plugin_entries: frozenset[str]) -> ResetPlan:
+def plan(entries: frozenset[str], plugin_entries: frozenset[str], marked_elsewhere: bool = False) -> ResetPlan:
     """What resetting a directory does; nothing at all without evidence of the plugin."""
-    found = evidence(entries)
+    found = evidence(entries, marked_elsewhere)
     if found is None:
         return ResetPlan(None, (), (), (), ())
     operations = plan_unpatch(entries, plugin_entries)
