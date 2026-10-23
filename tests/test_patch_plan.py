@@ -38,11 +38,6 @@ def test_a_game_shipped_proxy_dll_is_backed_up_before_ours_is_copied():
     assert Move("version.dll", "version.dll.b") in result.operations
 
 
-def test_proxy_dlls_are_not_backed_up_where_we_patched_or_when_they_are_a_copy_of_ours():
-    assert not ops_of(patch({"version.dll", "FRAMEGEN_PATCH"}), Move)
-    assert not ops_of(patch({"dxgi.dll"}, bundled_proxy_copies=frozenset({"dxgi.dll"})), Move)
-
-
 def test_a_proxy_next_to_a_manual_optiscaler_install_is_backed_up_not_deleted():
     # An OptiScaler.ini proves nothing about the game's version.dll (often a mod loader).
     result = patch({"version.dll", "OptiScaler.ini"})
@@ -58,10 +53,34 @@ def test_an_existing_backup_is_never_overwritten():
     assert DeleteFile("version.dll") in result.operations
 
 
-def test_stale_injectors_and_logs_are_removed():
+def test_stale_injectors_and_logs_are_kept_as_backups_not_deleted():
+    # A repatch undoes the previous patch first, so nothing left in the directory is the patch's.
     result = patch({"nvngx.dll", "OptiScaler.log", "dlss-enabler.dll"})
 
-    assert {DeleteFile("nvngx.dll"), DeleteFile("OptiScaler.log"), DeleteFile("dlss-enabler.dll")} <= set(result.operations)
+    assert {Move("nvngx.dll", "nvngx.dll.b"), Move("OptiScaler.log", "OptiScaler.log.b"),
+            Move("dlss-enabler.dll", "dlss-enabler.dll.b")} <= set(result.operations)
+    assert not ops_of(result, DeleteFile)
+
+
+def test_a_backup_left_in_the_directory_is_never_deleted():
+    result = patch({"nvapi64.dll.b"})
+
+    assert not [op for op in result.operations if "nvapi64.dll.b" in str(op)]
+
+
+def test_any_file_a_copy_would_overwrite_is_backed_up_first_even_outside_the_tables():
+    # E.g. a Nukem DLL the user put there by hand.
+    result = patch({"dlssg_to_fsr3_amd_is_better.dll"})
+    reset_ini = plan.plan_patch(
+        plan.GameDirectory(frozenset({"OptiScaler.ini"})), BASE_BUNDLE, plan.PatchRequest("dxgi.dll", "rdna23-int8", True)
+    )
+
+    backup = Move("dlssg_to_fsr3_amd_is_better.dll", "dlssg_to_fsr3_amd_is_better.dll.b")
+    copy = CopyFromBundle("dlssg_to_fsr3_amd_is_better.dll", "dlssg_to_fsr3_amd_is_better.dll")
+    assert result.operations.index(backup) < result.operations.index(copy)
+    assert reset_ini.operations.index(Move("OptiScaler.ini", "OptiScaler.ini.b")) < reset_ini.operations.index(
+        CopyFromBundle("OptiScaler.ini", "OptiScaler.ini")
+    )
 
 
 def test_game_dlls_the_bundle_replaces_are_backed_up():
@@ -69,30 +88,6 @@ def test_game_dlls_the_bundle_replaces_are_backed_up():
 
     assert Move("amd_fidelityfx_dx12.dll", "amd_fidelityfx_dx12.dll.b") in result.operations
     assert Move("d3dcompiler_47.dll", "d3dcompiler_47.dll.b") in result.operations
-
-
-def test_where_our_marker_proves_an_earlier_patch_our_own_support_dlls_are_replaced():
-    result = patch({"amd_fidelityfx_dx12.dll", "FRAMEGEN_PATCH"}, managed_support_files=frozenset({"amd_fidelityfx_dx12.dll"}))
-
-    assert DeleteFile("amd_fidelityfx_dx12.dll") in result.operations
-    assert not ops_of(result, Move)
-
-
-@pytest.mark.parametrize("trace", ["OptiScaler.ini", "fakenvapi.dll", "D3D12_Optiscaler"])
-def test_other_patch_traces_do_not_prove_an_identical_dll_is_ours(trace):
-    # E.g. an OptiScaler.ini left by a manual install next to a game-shipped DLL
-    # that happens to match ours byte for byte: keep it, never delete it.
-    result = patch({"amd_fidelityfx_dx12.dll", trace}, managed_support_files=frozenset({"amd_fidelityfx_dx12.dll"}))
-
-    assert Move("amd_fidelityfx_dx12.dll", "amd_fidelityfx_dx12.dll.b") in result.operations
-    assert DeleteFile("amd_fidelityfx_dx12.dll") not in result.operations
-
-
-def test_in_a_fresh_directory_a_dll_matching_ours_is_still_treated_as_the_games():
-    # Without a trace of an earlier patch, an identical file can only have come with the game.
-    result = patch({"amd_fidelityfx_dx12.dll"}, managed_support_files=frozenset({"amd_fidelityfx_dx12.dll"}))
-
-    assert Move("amd_fidelityfx_dx12.dll", "amd_fidelityfx_dx12.dll.b") in result.operations
 
 
 # ── laying down the bundle ───────────────────────────────────────────────────
@@ -276,10 +271,3 @@ def test_a_game_shipped_xess_runtime_is_backed_up_and_restored(name):
     assert Move(name, f"{name}.b") in patched.operations
     assert CopyFromBundle(name, name) in patched.operations
     assert unpatch[-1] == Move(f"{name}.b", name)
-
-
-def test_our_own_xess_runtime_is_replaced_on_a_repatch():
-    result = patch({"libxess.dll", "FRAMEGEN_PATCH"}, managed_support_files=frozenset({"libxess.dll"}))
-
-    assert DeleteFile("libxess.dll") in result.operations
-    assert Move("libxess.dll", "libxess.dll.b") not in result.operations
