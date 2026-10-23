@@ -43,6 +43,7 @@
     "framegen/domain/library.py": "core:framegen/domain/library.py",
     "framegen/domain/marker.py": "core:framegen/domain/marker.py",
     "framegen/domain/patch_plan.py": "core:framegen/domain/patch_plan.py",
+    "framegen/domain/release_assets.py": "core:framegen/domain/release_assets.py",
     "framegen/domain/steam.py": "core:framegen/domain/steam.py",
     "framegen/domain/stock_reset.py": "core:framegen/domain/stock_reset.py",
     "framegen/infrastructure": "<dir>",

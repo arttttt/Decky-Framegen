@@ -146,3 +146,19 @@ def test_versions_are_ordered_newest_first_whatever_order_github_sends():
     ids = [v.id for v in library.available(library.STABLE, shuffled)]
 
     assert ids[:2] == ["stable-0.9.4", "stable-0.9.3"]
+
+
+def test_a_version_released_twice_is_offered_once_from_the_newest_release():
+    listing = stable()
+    reupload = copy.deepcopy(listing[0])
+    reupload["tag_name"] = "v0.9.4-fix"
+    reupload["published_at"] = "2026-07-20T10:00:00Z"
+    asset = reupload["assets"][0]
+    asset["name"] = "Optiscaler_0.9.4-final.20260720._Reup.7z"
+    asset["browser_download_url"] = f"https://github.com/optiscaler/OptiScaler/releases/download/v0.9.4-fix/{asset['name']}"
+    listing.append(reupload)
+
+    versions = [v for v in library.available(library.STABLE, listing) if v.id == "stable-0.9.4"]
+
+    assert len(versions) == 1
+    assert versions[0].date == "20260720"

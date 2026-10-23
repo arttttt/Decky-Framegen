@@ -13,6 +13,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from . import release_assets
+
 STABLE = "stable"
 NIGHTLY = "nightly"
 
@@ -98,7 +100,6 @@ UPLOADING = "still uploading"
 UNKNOWN_FAMILY = "a version this plugin does not support yet"
 ELSEWHERE = "a download outside the OptiScaler release"
 
-_SHA256_DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 
 
 @dataclass(frozen=True)
@@ -128,7 +129,12 @@ def available(channel_id: str, listing: object) -> list[Available]:
     ]
     versions = [_version(channel, release) for release in releases]
     versions.sort(key=lambda v: v.published_at, reverse=True)
-    return versions if channel.shown is None else versions[: channel.shown]
+    # A version re-released upstream (a fixed re-upload as a new release) is offered once: the newest.
+    newest: list[Available] = []
+    for version in versions:
+        if all(version.id != kept.id for kept in newest):
+            newest.append(version)
+    return newest if channel.shown is None else newest[: channel.shown]
 
 
 def _version(channel: Channel, release: dict) -> Available:
@@ -141,7 +147,7 @@ def _version(channel: Channel, release: dict) -> Available:
         return Available(f"{channel.id}-{tag}", channel.id, tag, "", published_at, None, "", "", 0, reason)
     asset, match = matches[0]
     version, date = match.group(1), match.group(2)
-    digest = _SHA256_DIGEST.match(str(asset.get("digest", "")))
+    digest = release_assets.sha256(asset)
     family = family_of(version)
     url = str(asset.get("browser_download_url", ""))
     expected_url = f"https://github.com/{channel.repository}/releases/download/{tag}/{asset.get('name')}"
@@ -163,7 +169,7 @@ def _version(channel: Channel, release: dict) -> Available:
         published_at=published_at,
         family=family.id if family else None,
         url=url,
-        sha256=digest.group(1) if digest else "",
+        sha256=digest or "",
         size=int(asset.get("size") or 0),
         unsupported=reason,
     )
