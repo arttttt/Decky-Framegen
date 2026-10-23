@@ -247,3 +247,20 @@ def test_original_launch_options_prefer_the_stored_user_options_and_never_keep_o
     # Stored options the plugin wrote are not the user's; the current ones are.
     assert marker.original_launch_options("mangohud %command%", ours) == "mangohud %command%"
     assert marker.original_launch_options("", "") == ""
+
+
+@pytest.mark.parametrize("name", ["libxess.dll", "libxess_dx11.dll", "libxess_fg.dll", "libxell.dll"])
+def test_a_game_shipped_xess_runtime_is_backed_up_and_restored(name):
+    patched = patch({name})
+    unpatch = plan.plan_unpatch(frozenset({name, f"{name}.b"}))
+
+    assert Move(name, f"{name}.b") in patched.operations
+    assert CopyFromBundle(name, name) in patched.operations
+    assert unpatch[-1] == Move(f"{name}.b", name)
+
+
+def test_our_own_xess_runtime_is_replaced_on_a_repatch():
+    result = patch({"libxess.dll", "FRAMEGEN_PATCH"}, managed_support_files=frozenset({"libxess.dll"}))
+
+    assert DeleteFile("libxess.dll") in result.operations
+    assert Move("libxess.dll", "libxess.dll.b") not in result.operations

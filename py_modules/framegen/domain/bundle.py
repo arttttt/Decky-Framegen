@@ -168,6 +168,7 @@ PATCH_CLEANUP_FILES = [
     "dlssg_to_fsr3_amd_is_better-3.0.dll",
 ]
 
+# Game DLLs the patch replaces: backed up before patching, restored on unpatch.
 ORIGINAL_DLL_BACKUPS = [
     "d3dcompiler_47.dll",
     "amd_fidelityfx_dx12.dll",
@@ -176,6 +177,11 @@ ORIGINAL_DLL_BACKUPS = [
     FSR4_DRIVER_OVERRIDE_FILENAME,
     "amdxc64.dll",
     "amd_fidelityfx_vk.dll",
+    # Many games ship their own XeSS runtime next to the executable.
+    "libxess.dll",
+    "libxess_dx11.dll",
+    "libxess_fg.dll",
+    "libxell.dll",
 ]
 
 RESTORABLE_BACKUP_FILES = [
