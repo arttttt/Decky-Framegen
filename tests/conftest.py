@@ -34,7 +34,7 @@ sys.modules["decky"] = _decky
 sys.path[:0] = [str(REPO_ROOT / "py_modules"), str(REPO_ROOT)]
 
 import main  # noqa: E402
-from framegen import bundle  # noqa: E402
+from framegen.domain import bundle  # noqa: E402
 
 
 # sha256 → label of every placeholder handed out, so snapshots can name content.

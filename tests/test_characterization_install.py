@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-from framegen import bundle
+from framegen.domain import bundle
 from conftest import INT8_UPSCALER, NATIVE_UPSCALER, PRE10_INJECTOR, REPO_ROOT, blob, sha256, write
 from golden import assert_golden, describe_tree, normalize_result
 

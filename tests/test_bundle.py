@@ -1,4 +1,4 @@
-from framegen import bundle
+from framegen.domain import bundle
 
 
 def test_select_variant_prefers_a_valid_requested_variant():

@@ -9,7 +9,7 @@ import hashlib
 from datetime import datetime, timezone
 from pathlib import Path
 
-from framegen import bundle
+from framegen.domain import bundle
 
 
 BAD_EXE_SUBSTRINGS = [
