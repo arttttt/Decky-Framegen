@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import REPO_ROOT, game_file, make_game_dir, write
+from conftest import REPO_ROOT, game_file, install_tools, make_game_dir, write
 from golden import assert_golden, describe_tree, normalize_result
 
 pytestmark = pytest.mark.skipif(sys.platform != "linux", reason="the wrappers target Linux (bash 5, GNU sed)")
@@ -42,18 +42,14 @@ def tools(tmp_path) -> Path:
 
     The tee stand-in sends the scripts' log (meant for /tmp) into the test's own directory.
     """
-    bin_dir = tmp_path / "tools"
-    stubs = {
+    return install_tools(tmp_path / "tools", {
         "tee": f'#!/usr/bin/env bash\nexec "{shutil.which("tee")}" -a "{tmp_path / "wrapper.log"}"\n',
         "zenity": "#!/usr/bin/env bash\nexit 0\n",
         "logger": "#!/usr/bin/env bash\nexit 0\n",
         "python": f'#!/usr/bin/env bash\nexec "{sys.executable}" "$@"\n',
         "python3": f'#!/usr/bin/env bash\nexec "{sys.executable}" "$@"\n',
         "launch-recorder": RECORDER,
-    }
-    for name, body in stubs.items():
-        write(bin_dir / name, body.encode()).chmod(0o755)
-    return bin_dir
+    })
 
 
 @pytest.fixture

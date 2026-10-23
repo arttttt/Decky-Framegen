@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import REPO_ROOT, game_file, make_game_dir, write
+from conftest import REPO_ROOT, game_file, make_game_dir, put_tools_on_path, write
 from framegen.application.launch_wrapper import LaunchWrapper, WrapperError
 from framegen.domain import launch_target
 from framegen.infrastructure import game_locator
@@ -81,13 +81,8 @@ def test_unreal_binaries_dir_is_none_without_a_project_binary(tmp_path):
 @pytest.fixture
 def fake_lutris(tmp_path, monkeypatch, home):
     """A `lutris` on PATH listing one game, and that game's YAML config."""
-    tools = tmp_path / "lutris-bin"
-    script = write(
-        tools / "lutris",
-        f'#!{sys.executable}\nimport json; print(json.dumps([{{"id": 7, "slug": "hades"}}]))\n'.encode(),
-    )
-    script.chmod(0o755)
-    monkeypatch.setenv("PATH", f"{tools}{os.pathsep}{os.environ['PATH']}")
+    lutris = f'#!{sys.executable}\nimport json; print(json.dumps([{{"id": 7, "slug": "hades"}}]))\n'
+    put_tools_on_path(monkeypatch, tmp_path / "lutris-bin", {"lutris": lutris})
     game = make_game_dir(tmp_path / "lutris-games" / "Hades" / "x64")
     write(home / ".config" / "lutris" / "games" / "Hades-1700000000.yml", f"game:\n  exe: {game}/Game.exe\n".encode())
     return game

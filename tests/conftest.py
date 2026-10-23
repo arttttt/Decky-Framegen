@@ -18,7 +18,6 @@ import json
 import logging
 import os
 import shutil
-import stat
 import sys
 import types
 import zipfile
@@ -68,6 +67,20 @@ def write(path: Path, data: bytes) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(data)
     return path
+
+
+def install_tools(directory: Path, scripts: dict[str, str]) -> Path:
+    """Executable stand-ins for command-line tools, written into `directory`."""
+    for name, body in scripts.items():
+        write(directory / name, body.encode()).chmod(0o755)
+    return directory
+
+
+def put_tools_on_path(monkeypatch, directory: Path, scripts: dict[str, str]) -> Path:
+    """Stand-in tools that shadow the real ones for the rest of the test."""
+    install_tools(directory, scripts)
+    monkeypatch.setenv("PATH", f"{directory}{os.pathsep}{os.environ['PATH']}")
+    return directory
 
 
 def snapshot(root: Path) -> dict[str, str | None]:
@@ -266,8 +279,5 @@ def release_assets(home, fake_variants, tmp_path, monkeypatch) -> Path:
 
     shutil.copytree(REPO_ROOT / "defaults" / "assets", plugin_dir / "assets")
 
-    tools = tmp_path / "tools"
-    seven_zip = write(tools / "7z", FAKE_7Z.encode())
-    seven_zip.chmod(seven_zip.stat().st_mode | stat.S_IEXEC)
-    monkeypatch.setenv("PATH", f"{tools}:{os.environ['PATH']}")
+    put_tools_on_path(monkeypatch, tmp_path / "tools", {"7z": FAKE_7Z})
     return plugin_dir
