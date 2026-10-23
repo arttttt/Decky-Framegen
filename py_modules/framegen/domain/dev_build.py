@@ -102,7 +102,8 @@ def releases(listing: object, current: BuildInfo, plugin_name: str) -> list[DevR
 
     A release qualifies when it is a published prerelease tagged with a channel, its target is a full
     commit, and it holds exactly the asset that commit's build is named after, uploaded and with a
-    sha256 digest Decky can check the download against. Anything else is skipped.
+    sha256 digest Decky can check the download against, served from the repository's own release
+    downloads. Anything else is skipped.
     """
     found = [release for entry in (listing if isinstance(listing, list) else []) if (release := _release(entry, current, plugin_name))]
     return sorted(found, key=lambda release: _channel_order(release.info.channel))
@@ -121,7 +122,7 @@ def _release(entry: object, current: BuildInfo, plugin_name: str) -> DevRelease 
         return None
     digest = _SHA256_DIGEST.match(str(asset.get("digest", "")))
     url = str(asset.get("browser_download_url", ""))
-    if digest is None or not url.startswith("https://"):
+    if digest is None or url != download_url(info, name):
         return None
     return DevRelease(
         info=info,
@@ -130,6 +131,11 @@ def _release(entry: object, current: BuildInfo, plugin_name: str) -> DevRelease 
         url=url,
         sha256=digest.group(1),
     )
+
+
+def download_url(info: BuildInfo, asset: str) -> str:
+    """Where GitHub serves a release asset of the build's own repository; nothing else is downloaded."""
+    return f"https://github.com/{info.repository}/releases/download/{info.channel}/{asset}"
 
 
 def _channel_order(channel: str) -> tuple[int, int]:

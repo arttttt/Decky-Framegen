@@ -32,7 +32,7 @@ class DevUpdates:
             return None
 
     def _plugin_name(self) -> str:
-        return str(read_json(self.plugin_dir / "plugin.json")["name"])
+        return str(read_json(self.plugin_dir / "plugin.json").get("name") or "")
 
     def build(self) -> dict:
         """What the running build is; the Developer section exists only for a development build."""
@@ -52,6 +52,8 @@ class DevUpdates:
             log.error(f"Listing development builds failed: {exc}")
             return {"status": "error", "message": str(exc)}
         plugin_name = self._plugin_name()
+        if not plugin_name:
+            return {"status": "error", "message": "The plugin's plugin.json has no name."}
         return {
             "status": "success",
             "builds": [

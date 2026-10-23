@@ -72,11 +72,19 @@ def _broken(change) -> dict:
         _broken(lambda e: e["assets"][0].pop("digest")),
         _broken(lambda e: e["assets"][0].update(digest="md5:00")),
         _broken(lambda e: e["assets"][0].update(browser_download_url="http://example.com/a.zip")),
+        _broken(lambda e: e["assets"][0].update(browser_download_url="https://example.com/Decky-Framegen-1a2b3c4.zip")),
+        _broken(lambda e: e["assets"][0].update(
+            browser_download_url="https://github.com/someone/Decky-Framegen/releases/download/pr-12/Decky-Framegen-1a2b3c4.zip"
+        )),
+        _broken(lambda e: e["assets"][0].update(
+            browser_download_url="https://github.com/arttttt/Decky-Framegen/releases/download/dev/Decky-Framegen-1a2b3c4.zip"
+        )),
         "not a release",
     ],
     ids=[
         "draft", "not-prerelease", "not-a-channel-tag", "target-not-a-commit", "no-asset", "asset-of-another-commit",
-        "upload-unfinished", "no-digest", "not-sha256", "not-https", "not-an-object",
+        "upload-unfinished", "no-digest", "not-sha256", "not-https", "other-host", "other-repository", "other-channel",
+        "not-an-object",
     ],
 )
 def test_anything_that_cannot_be_installed_safely_is_skipped(entry):
@@ -231,6 +239,15 @@ def test_github_failures_are_reported_not_raised(plugin_dir, github, status, bod
 
     assert result["status"] == "error"
     assert result["message"].startswith(message)
+
+
+def test_a_plugin_without_a_name_is_reported_not_raised(plugin_dir, github):
+    stamp(plugin_dir)
+    (plugin_dir / "plugin.json").write_text("{}")
+
+    result = DevUpdates(plugin_dir, github_releases.list_releases).available_builds()
+
+    assert result == {"status": "error", "message": "The plugin's plugin.json has no name."}
 
 
 def test_an_unreachable_github_is_reported(plugin_dir, monkeypatch):
