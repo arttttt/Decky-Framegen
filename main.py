@@ -4,13 +4,16 @@ Each method resolves Decky's paths and delegates to a service in
 py_modules/framegen; no decisions are made here.
 """
 
+import asyncio
 from pathlib import Path
 
 import decky
 
+from framegen.application.dev_updates import DevUpdates
 from framegen.application.installer import Installer
 from framegen.application.patcher import Patcher
 from framegen.domain import bundle
+from framegen.infrastructure import github_releases
 
 
 class Plugin:
@@ -28,6 +31,9 @@ class Plugin:
 
     def _patcher(self) -> Patcher:
         return Patcher(self._home_path())
+
+    def _dev_updates(self) -> DevUpdates:
+        return DevUpdates(Path(decky.DECKY_PLUGIN_DIR), github_releases.list_releases)
 
     # ── OptiScaler bundle ─────────────────────────────────────────────────────
 
@@ -73,6 +79,15 @@ class Plugin:
 
     async def unpatch_game(self, appid: str) -> dict:
         return self._patcher().unpatch_game(appid)
+
+    # ── Development builds ────────────────────────────────────────────────────
+
+    async def get_dev_build(self) -> dict:
+        return self._dev_updates().build()
+
+    async def list_dev_builds(self) -> dict:
+        # The request to GitHub can take seconds; keep it off Decky's event loop.
+        return await asyncio.to_thread(self._dev_updates().available_builds)
 
     # ── Misc ──────────────────────────────────────────────────────────────────
 

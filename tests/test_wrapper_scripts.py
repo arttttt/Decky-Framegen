@@ -14,7 +14,6 @@ compared with golden files, like the Python patch scenarios.
 
 from __future__ import annotations
 
-import asyncio
 import shutil
 import subprocess
 import sys
@@ -22,7 +21,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import REPO_ROOT, game_file, install_tools, make_game_dir, write
+from conftest import REPO_ROOT, game_file, install_tools, make_game_dir, run, write
 from golden import assert_golden, describe_tree, normalize_result
 
 pytestmark = pytest.mark.skipif(sys.platform != "linux", reason="the wrappers target Linux (bash 5, GNU sed)")
@@ -273,7 +272,7 @@ def test_the_wrapper_and_the_plugin_patch_a_game_identically(wrapper, plugin, tm
     by_plugin = make_game_dir(tmp_path / "games" / "B" / "Game", shipped)
 
     wrapper.run("fgmod", str(by_wrapper / "Game.exe"), env={"DLL": "winmm.dll", "FGMOD_FSR4_VARIANT": "rdna4-native"})
-    asyncio.run(plugin.manual_patch_directory(str(by_plugin), "winmm.dll", "rdna4-native"))
+    run(plugin.manual_patch_directory(str(by_plugin), "winmm.dll", "rdna4-native"))
 
     assert describe_tree(by_wrapper) == describe_tree(by_plugin)
 

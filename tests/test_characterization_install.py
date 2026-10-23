@@ -7,18 +7,13 @@ patch scenarios.
 
 from __future__ import annotations
 
-import asyncio
 import json
 
 import pytest
 
-from conftest import write
+from conftest import run, write
 from framegen.domain import bundle
 from golden import assert_golden, describe_tree, normalize_result
-
-
-def run(coro):
-    return asyncio.run(coro)
 
 
 @pytest.mark.parametrize("variant", sorted(bundle.FSR4_VARIANTS))
