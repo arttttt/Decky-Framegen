@@ -59,3 +59,4 @@ cli/decky
 # Python tooling
 .venv/
 .pytest_cache/
+defaults/build-info.json
