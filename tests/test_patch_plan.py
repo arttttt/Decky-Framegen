@@ -63,14 +63,21 @@ def test_game_dlls_the_bundle_replaces_are_backed_up():
     assert Move("d3dcompiler_47.dll", "d3dcompiler_47.dll.b") in result.operations
 
 
-@pytest.mark.parametrize("trace", ["OptiScaler.ini", "fakenvapi.dll", "FRAMEGEN_PATCH", "D3D12_Optiscaler"])
-def test_in_an_already_patched_directory_our_own_support_dlls_are_replaced_not_backed_up(trace):
-    facts = {"managed_support_files": frozenset({"amd_fidelityfx_dx12.dll"})}
-
-    result = patch({"amd_fidelityfx_dx12.dll", trace}, **facts)
+def test_where_our_marker_proves_an_earlier_patch_our_own_support_dlls_are_replaced():
+    result = patch({"amd_fidelityfx_dx12.dll", "FRAMEGEN_PATCH"}, managed_support_files=frozenset({"amd_fidelityfx_dx12.dll"}))
 
     assert DeleteFile("amd_fidelityfx_dx12.dll") in result.operations
     assert not ops_of(result, Move)
+
+
+@pytest.mark.parametrize("trace", ["OptiScaler.ini", "fakenvapi.dll", "D3D12_Optiscaler"])
+def test_other_patch_traces_do_not_prove_an_identical_dll_is_ours(trace):
+    # E.g. an OptiScaler.ini left by a manual install next to a game-shipped DLL
+    # that happens to match ours byte for byte: keep it, never delete it.
+    result = patch({"amd_fidelityfx_dx12.dll", trace}, managed_support_files=frozenset({"amd_fidelityfx_dx12.dll"}))
+
+    assert Move("amd_fidelityfx_dx12.dll", "amd_fidelityfx_dx12.dll.b") in result.operations
+    assert DeleteFile("amd_fidelityfx_dx12.dll") not in result.operations
 
 
 def test_in_a_fresh_directory_a_dll_matching_ours_is_still_treated_as_the_games():
@@ -188,6 +195,10 @@ def test_unpatch_removes_legacy_artifacts_whether_file_or_directory():
 
     assert RemoveFileOrTree("nvngx.ini") in operations
     assert RemoveFileOrTree("dlss-enabler.log") in operations
+
+
+def test_unpatch_removes_our_marker():
+    assert plan.plan_unpatch(frozenset({"Game.exe", "FRAMEGEN_PATCH"})) == (DeleteFile("FRAMEGEN_PATCH"),)
 
 
 def test_unpatch_of_a_clean_directory_does_nothing():

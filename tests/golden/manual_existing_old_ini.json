@@ -20,6 +20,26 @@
     "tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
+      "FRAMEGEN_PATCH": {
+        "appid": "",
+        "backed_up_files": [],
+        "dll_name": "dxgi.dll",
+        "fsr4_upscaler_sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
+        "fsr4_variant": "rdna23-int8",
+        "fsr4_variant_label": "4.0.2c / RDNA2-3 compatibility",
+        "game_name": "",
+        "managed_files": [
+          {
+            "kind": "fsr4-upscaler",
+            "path": "<root>/amd_fidelityfx_upscaler_dx12.dll",
+            "sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
+            "variant": "rdna23-int8"
+          }
+        ],
+        "optiscaler_version": "test-0.9.4",
+        "original_launch_options": "",
+        "target_dir": "<root>"
+      },
       "Game.exe": "game:Game.exe",
       "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n\n[Menu]\nUseHQFont=false\n",
       "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",

@@ -170,12 +170,9 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
         operations.append(DeleteFile(name))
         present.discard(name)
 
-    # A directory that already carries a patch holds our files, not the game's:
-    # they are replaced, never backed up as originals.
-    already_patched = has_patch_fingerprint(game.entries)
-
     # 1. Proxy-named DLLs the game shipped are kept as backups — unless the
     #    directory already carries a patch, or the file is our own copy.
+    already_patched = has_patch_fingerprint(game.entries)
     for name in bundle.PROXY_DLL_BACKUPS:
         if name not in present or name + BACKUP_SUFFIX in present:
             continue
@@ -189,10 +186,14 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
             delete(name)
 
     # 3. Back up game DLLs the bundle replaces; drop our own copies on a repatch.
+    #    Only our marker proves a file identical to the bundle's is ours: other
+    #    traces (an OptiScaler.ini from a manual install) do not, and deleting a
+    #    game's own file would lose it — backing up ours merely keeps a copy.
+    patched_by_us = bundle.MARKER_FILENAME in game.entries
     for name in bundle.ORIGINAL_DLL_BACKUPS:
         if name not in present or name + BACKUP_SUFFIX in present:
             continue
-        if already_patched and name in game.managed_support_files:
+        if patched_by_us and name in game.managed_support_files:
             delete(name)
         else:
             move(name, name + BACKUP_SUFFIX)
@@ -265,6 +266,7 @@ def plan_unpatch(entries: frozenset[str]) -> tuple[Operation, ...]:
         operations.append(Move(backup, name))
         present.discard(backup)
         present.add(name)
-    if UNINSTALLER_FILENAME in present:
-        remove(DeleteFile(UNINSTALLER_FILENAME), UNINSTALLER_FILENAME)
+    for name in (UNINSTALLER_FILENAME, bundle.MARKER_FILENAME):
+        if name in present:
+            remove(DeleteFile(name), name)
     return tuple(operations)
