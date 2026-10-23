@@ -12,9 +12,16 @@ import json
 import os
 from pathlib import Path
 
-from conftest import KNOWN_CONTENT, sha256
+from conftest import KNOWN_CONTENT, REPO_ROOT, sha256
 
 GOLDEN_DIR = Path(__file__).parent / "golden"
+
+# Copies of the plugin's own files (its Python core, its launcher scripts) are
+# named by their source path, so golden files do not change whenever that code does.
+for _label, _root, _pattern in (("core", "py_modules", "*.py"), ("asset", "defaults/assets", "*")):
+    for _source in (REPO_ROOT / _root).rglob(_pattern):
+        if _source.is_file():
+            KNOWN_CONTENT[sha256(_source.read_bytes())] = f"{_label}:{_source.relative_to(REPO_ROOT / _root).as_posix()}"
 
 # Fields that differ between runs and say nothing about behaviour.
 _VOLATILE_FIELDS = ("patched_at", "installed_at", "updated_at")

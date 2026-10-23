@@ -12,6 +12,9 @@ from framegen.infrastructure import archive, bundle_store, files, game_directory
 
 log = logging.getLogger(__name__)
 
+# The framegen package this module belongs to.
+CORE_SOURCE = Path(__file__).resolve().parents[1]
+
 
 class AssetError(RuntimeError):
     """A bundled asset is missing or does not match its expected hash."""
@@ -80,6 +83,9 @@ class Installer:
 
             self._create_renamed_copies(fgmod / "OptiScaler.dll", fgmod / "renames")
             self._install_launcher_scripts()
+            shutil.copytree(
+                CORE_SOURCE, fgmod / bundle.CORE_PACKAGE, ignore=shutil.ignore_patterns("__pycache__", "*.pyc")
+            )
             optipatcher_sha256 = _copy_verified(
                 self.bin_path / bundle.OPTIPATCHER_ASSET["name"],
                 self._mkdir_parent(fgmod / bundle.OPTIPATCHER_TARGET),

@@ -133,6 +133,11 @@ def fgmod(home, fake_variants) -> Path:
         write(root / name, blob(name))
     write(root / "D3D12_Optiscaler" / "D3D12Core.dll", blob("D3D12Core.dll"))
     write(root / "plugins" / "OptiPatcher.asi", blob("OptiPatcher.asi"))
+    shutil.copytree(
+        REPO_ROOT / "py_modules" / bundle.CORE_PACKAGE,
+        root / bundle.CORE_PACKAGE,
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+    )
     for name in ("fgmod", "fgmod-uninstaller.sh", "update-optiscaler-config.py"):
         write(root / name, blob(name))
 
