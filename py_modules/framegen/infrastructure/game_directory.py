@@ -6,7 +6,7 @@ import logging
 import shutil
 from pathlib import Path
 
-from framegen.domain import bundle
+from framegen.domain import bundle, patch_record
 from framegen.domain import patch_plan as plan
 from framegen.infrastructure import files
 
@@ -40,6 +40,26 @@ def read(directory: Path, fgmod_path: Path, previous_variant: str = "") -> plan.
     return plan.GameDirectory(entries, proxies, managed, previous_variant)
 
 
+def bundle_hashes(fgmod_path: Path, operations: tuple[plan.Operation, ...]) -> dict[str, str]:
+    """The sha256 of every bundle file a plan copies, directories expanded to their files."""
+    hashes: dict[str, str] = {}
+    for operation in operations:
+        match operation:
+            case plan.CopyFromBundle(source, _):
+                hashes[source] = files.sha256(fgmod_path / source)
+            case plan.MergeTreeFromBundle(name):
+                for path in (fgmod_path / name).rglob("*"):
+                    if path.is_file():
+                        hashes[path.relative_to(fgmod_path).as_posix()] = files.sha256(path)
+    return hashes
+
+
+def current_state(directory: Path, patch: patch_record.PatchRecord) -> dict[str, str | None]:
+    """The sha256 now of every file a recorded patch placed or backed up that is still there."""
+    paths = [item.path for item in patch.placed] + [backup.backup for backup in patch.backups]
+    return {path: files.sha256(directory / path) for path in paths if (directory / path).is_file()}
+
+
 def listing(directory: Path) -> tuple[frozenset[str], frozenset[str]]:
     """The names in a game directory and in its plugins/ subdirectory (empty when there is none)."""
     entries = frozenset(entry.name for entry in directory.iterdir())
@@ -48,7 +68,7 @@ def listing(directory: Path) -> tuple[frozenset[str], frozenset[str]]:
     return entries, plugin_entries
 
 
-def execute(operations: tuple[plan.Operation, ...], directory: Path, fgmod_path: Path) -> None:
+def execute(operations: tuple, directory: Path, fgmod_path: Path) -> None:
     """Carry out a plan in order. Filesystem errors propagate; INI edit failures are only logged."""
     for operation in operations:
         match operation:
@@ -76,6 +96,11 @@ def execute(operations: tuple[plan.Operation, ...], directory: Path, fgmod_path:
                 log.info(f"Synced {name}/ into {directory}")
             case plan.EditIni(action, transform):
                 edit_ini(directory / plan.INI_FILENAME, transform, action)
+            case patch_record.RemoveDirIfEmpty(name):
+                path = directory / name
+                if path.is_dir() and not any(path.iterdir()):
+                    path.rmdir()
+                    log.info(f"Removed empty directory {name} from {directory}")
 
 
 def edit_ini(ini_file: Path, transform, action: str) -> bool:

@@ -11,7 +11,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from framegen.domain import bundle, exe_target, launch_options, marker, steam, stock_reset
+from framegen.domain import bundle, exe_target, launch_options, marker, patch_record, steam, stock_reset
 from framegen.domain import patch_plan as plan
 from framegen.infrastructure import bundle_store, files, game_directory, processes
 from framegen.infrastructure import steam as steam_library
@@ -20,6 +20,9 @@ log = logging.getLogger(__name__)
 
 NOT_INSTALLED = "OptiScaler bundle not installed. Run Install first."
 BUNDLE_IS_NOT_A_GAME = "The target directory is the OptiScaler bundle itself. Aborting to prevent accidental deletion."
+PATCHED_BY_AN_OLDER_VERSION = (
+    "This game was patched by an older version of the plugin. Use Reset to stock to remove that patch first."
+)
 
 
 def _error(message: str) -> dict:
@@ -59,6 +62,11 @@ class Patcher:
         if not self.fgmod_path.exists():
             return _error(NOT_INSTALLED)
         previous_variant = str(files.read_json(directory / bundle.MARKER_FILENAME).get("fsr4_variant") or "").strip()
+        if (directory / bundle.MARKER_FILENAME).exists():
+            # A repatch first undoes the previous patch, exactly as its marker records it.
+            undone = self.unpatch_directory(directory)
+            if undone["status"] != "success":
+                return undone
         variant = bundle_store.selected_variant(self.fgmod_path, fsr4_variant)
         label = bundle.FSR4_VARIANTS[variant]["label"]
         request = plan.PatchRequest(dll_name, variant, reset_ini)
@@ -67,25 +75,25 @@ class Patcher:
             patch = plan.plan_patch(game, game_directory.bundle_files(self.fgmod_path), request)
             upscaler_sha256 = files.sha256(self.fgmod_path / patch.upscaler_source)
             log.info(f"Patching {directory} with {dll_name} and FSR4 variant {variant} ({label})")
-            game_directory.execute(patch.operations, directory, self.fgmod_path)
-            optiscaler_version = bundle_store.optiscaler_version(self.fgmod_path)
-            files.write_json(
-                directory / bundle.MARKER_FILENAME,
-                marker.build(
-                    dll_name=dll_name,
-                    target_dir=directory,
-                    backed_up_files=[
-                        name
-                        for name in dict.fromkeys(bundle.RESTORABLE_BACKUP_FILES)
-                        if (directory / f"{name}{plan.BACKUP_SUFFIX}").exists()
-                    ],
-                    optiscaler_version=optiscaler_version,
-                    fsr4_variant=variant,
-                    fsr4_upscaler_sha256=upscaler_sha256,
-                    patched_at=datetime.now(timezone.utc).isoformat(),
-                    steam_game=steam_game,
-                ),
+            recorded = patch_record.record(
+                patch.operations, game.entries, game_directory.bundle_hashes(self.fgmod_path, patch.operations)
             )
+            optiscaler_version = bundle_store.optiscaler_version(self.fgmod_path)
+            details = marker.build(
+                dll_name=dll_name,
+                target_dir=directory,
+                backed_up_files=[backup.original for backup in recorded.backups],
+                optiscaler_version=optiscaler_version,
+                fsr4_variant=variant,
+                fsr4_upscaler_sha256=upscaler_sha256,
+                patched_at=datetime.now(timezone.utc).isoformat(),
+                steam_game=steam_game,
+            )
+            marker_path = directory / bundle.MARKER_FILENAME
+            # The record lands before the first file does, so even an interrupted patch can be undone.
+            files.write_json(marker_path, {**details, **patch_record.to_json(recorded, complete=False)})
+            game_directory.execute(patch.operations, directory, self.fgmod_path)
+            files.write_json(marker_path, {**details, **patch_record.to_json(recorded, complete=True)})
         except plan.PlanError as exc:
             return _error(str(exc))
         except PermissionError as exc:
@@ -108,17 +116,24 @@ class Patcher:
         return directory.resolve().is_relative_to(self.fgmod_path.resolve())
 
     def unpatch_directory(self, directory: Path) -> dict:
+        """Undo the patch recorded in the directory's marker. The marker goes last, so a failure keeps it."""
         if self._is_bundle(directory):
             return _error(BUNDLE_IS_NOT_A_GAME)
+        marker_path = directory / bundle.MARKER_FILENAME
+        if not marker_path.exists():
+            return {"status": "success", "message": f"No Framegen patch found in {directory}"}
+        recorded = patch_record.parse(files.read_json(marker_path))
+        if recorded is None:
+            return _error(PATCHED_BY_AN_OLDER_VERSION)
         try:
-            entries, plugin_entries = game_directory.listing(directory)
-            game_directory.execute(plan.plan_unpatch(entries, plugin_entries), directory, self.fgmod_path)
+            operations = patch_record.plan_unpatch(recorded, game_directory.current_state(directory, recorded))
+            game_directory.execute(operations, directory, self.fgmod_path)
         except PermissionError as exc:
-            log.error(f"Manual unpatch permission error: {exc}")
+            log.error(f"Unpatch permission error: {exc}")
             return _error(f"Permission error while unpatching: {exc}")
         except Exception as exc:
-            log.error(f"Manual unpatch failed: {exc}")
-            return _error(f"Manual unpatch failed: {exc}")
+            log.error(f"Unpatch failed: {exc}")
+            return _error(f"Unpatch failed: {exc}")
         return {"status": "success", "message": f"OptiScaler files removed from {directory}"}
 
     def patch_user_directory(self, directory: str, dll_name: str, fsr4_variant: str) -> dict:
@@ -204,6 +219,11 @@ class Patcher:
             return {**unpatched, "name": game.name, "install_found": True, "message": "Not patched."}
 
         metadata = files.read_json(marker_path)
+        if patch_record.parse(metadata) is None:
+            return {
+                **unpatched, "name": game.name, "install_found": True, "patched": True,
+                "target_dir": str(marker_path.parent), "message": PATCHED_BY_AN_OLDER_VERSION,
+            }
         dll_name = metadata.get("dll_name", bundle.DEFAULT_PROXY_DLL)
         target_dir = Path(metadata.get("target_dir", str(marker_path.parent)))
         dll_present = (target_dir / dll_name).exists()
@@ -264,19 +284,17 @@ class Patcher:
         )
 
         target_dir, target_exe = self._patch_target(game)
+        if existing_marker and existing_marker.parent != target_dir:
+            # The game's executable moved since its last patch; that directory is undone first.
+            moved = self.unpatch_directory(existing_marker.parent)
+            if moved["status"] != "success":
+                return moved
         log.info(f"[Framegen] patch_game: appid={appid} dll={dll_name} target={target_dir} exe={target_exe}")
         result = self.patch_directory(
             target_dir, dll_name, fsr4_variant, steam_game=marker.SteamGame(str(appid), game.name, original_options)
         )
         if result["status"] != "success":
             return result
-
-        marker_path = target_dir / bundle.MARKER_FILENAME
-        if existing_marker and existing_marker != marker_path:
-            try:
-                existing_marker.unlink()
-            except OSError:
-                pass
 
         managed_options = launch_options.managed(dll_name)
         log.info(f"[Framegen] patch_game success: appid={appid} launch_options={managed_options}")
@@ -316,12 +334,10 @@ class Patcher:
             return {**not_patched, "message": "No Framegen patch found for this game."}
 
         metadata = files.read_json(marker_path)
-        target_dir = Path(metadata.get("target_dir", str(marker_path.parent)))
-        self.unpatch_directory(target_dir)
-        try:
-            marker_path.unlink()
-        except FileNotFoundError:
-            pass
+        target_dir = marker_path.parent
+        result = self.unpatch_directory(target_dir)
+        if result["status"] != "success":
+            return result
         log.info(f"[Framegen] unpatch_game success: appid={appid} target={target_dir}")
         return {
             "status": "success",

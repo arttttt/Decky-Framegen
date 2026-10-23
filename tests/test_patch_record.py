@@ -1,0 +1,197 @@
+"""The patch record: what a patch did, written first, and undone exactly (unit + integration)."""
+
+from __future__ import annotations
+
+import json
+
+import pytest
+
+from conftest import game_file, make_game_dir, run, snapshot, write
+from framegen.domain import patch_record
+from framegen.domain.patch_plan import CopyFromBundle, DeleteFile, EditIni, MergeTreeFromBundle, Move
+from framegen.domain.patch_record import Backup, PatchRecord, Placed, RemoveDirIfEmpty
+from framegen.infrastructure import game_directory
+
+HASHES = {
+    "OptiScaler.dll": "a" * 64,
+    "OptiScaler.ini": "b" * 64,
+    "libxess.dll": "c" * 64,
+    "plugins/OptiPatcher.asi": "d" * 64,
+    "D3D12_Optiscaler/D3D12Core.dll": "e" * 64,
+}
+
+# ── unit: recording a plan ───────────────────────────────────────────────────
+
+
+def test_a_plan_is_recorded_as_placed_files_backups_and_created_directories():
+    operations = (
+        Move("libxess.dll", "libxess.dll.b"),
+        DeleteFile("nvngx.ini"),
+        CopyFromBundle("OptiScaler.dll", "dxgi.dll"),
+        CopyFromBundle("OptiScaler.ini", "OptiScaler.ini"),
+        EditIni("x", lambda text: text),
+        MergeTreeFromBundle("plugins"),
+        MergeTreeFromBundle("D3D12_Optiscaler"),
+        CopyFromBundle("libxess.dll", "libxess.dll"),
+    )
+
+    recorded = patch_record.record(operations, frozenset({"Game.exe", "libxess.dll", "plugins"}), HASHES)
+
+    assert recorded == PatchRecord(
+        placed=(
+            Placed("dxgi.dll", "a" * 64),
+            Placed("OptiScaler.ini", None),  # OptiScaler rewrites its ini; it is ours whatever it holds
+            Placed("plugins/OptiPatcher.asi", "d" * 64),
+            Placed("D3D12_Optiscaler/D3D12Core.dll", "e" * 64),
+            Placed("libxess.dll", "c" * 64),
+        ),
+        backups=(Backup("libxess.dll", "libxess.dll.b"),),
+        # plugins/ was the game's own; D3D12_Optiscaler/ is the patch's.
+        created_dirs=("D3D12_Optiscaler",),
+    )
+
+
+def test_the_record_round_trips_through_the_marker_and_old_markers_have_none():
+    recorded = PatchRecord((Placed("dxgi.dll", "a" * 64), Placed("OptiScaler.ini", None)), (Backup("x", "x.b"),), ("d",))
+    marker = {"dll_name": "dxgi.dll", **patch_record.to_json(recorded, complete=True)}
+
+    assert patch_record.parse(json.loads(json.dumps(marker))) == recorded
+    assert marker["complete"] is True
+    assert patch_record.parse({"dll_name": "dxgi.dll", "backed_up_files": []}) is None
+    assert patch_record.parse({"format": 2, "placed": "garbage"}) is None
+    assert patch_record.parse({**marker, "format": 1}) is None
+
+
+# ── unit: undoing a record ───────────────────────────────────────────────────
+
+RECORD = PatchRecord(
+    placed=(Placed("dxgi.dll", "a" * 64), Placed("libxess.dll", "c" * 64), Placed("OptiScaler.ini", None),
+            Placed("D3D12_Optiscaler/D3D12Core.dll", "e" * 64)),
+    backups=(Backup("libxess.dll", "libxess.dll.b"),),
+    created_dirs=("D3D12_Optiscaler",),
+)
+
+
+def test_undoing_removes_what_was_placed_restores_backups_and_drops_the_marker_last():
+    current = {"dxgi.dll": "a" * 64, "libxess.dll": "c" * 64, "OptiScaler.ini": "f" * 64,
+               "D3D12_Optiscaler/D3D12Core.dll": "e" * 64, "libxess.dll.b": "9" * 64}
+
+    assert patch_record.plan_unpatch(RECORD, current) == (
+        DeleteFile("dxgi.dll"),
+        DeleteFile("libxess.dll"),
+        DeleteFile("OptiScaler.ini"),
+        DeleteFile("D3D12_Optiscaler/D3D12Core.dll"),
+        Move("libxess.dll.b", "libxess.dll"),
+        RemoveDirIfEmpty("D3D12_Optiscaler"),
+        DeleteFile("FRAMEGEN_PATCH"),
+    )
+
+
+def test_a_file_the_game_replaced_since_stays_and_its_stale_backup_goes():
+    current = {"dxgi.dll": "a" * 64, "libxess.dll": "1" * 64, "libxess.dll.b": "9" * 64}
+
+    operations = patch_record.plan_unpatch(RECORD, current)
+
+    assert DeleteFile("libxess.dll") not in operations
+    assert DeleteFile("libxess.dll.b") in operations
+    assert Move("libxess.dll.b", "libxess.dll") not in operations
+
+
+def test_files_and_backups_already_gone_are_skipped():
+    operations = patch_record.plan_unpatch(RECORD, {"dxgi.dll": "a" * 64})
+
+    assert operations == (DeleteFile("dxgi.dll"), RemoveDirIfEmpty("D3D12_Optiscaler"), DeleteFile("FRAMEGEN_PATCH"))
+
+
+# ── integration: the plugin ──────────────────────────────────────────────────
+
+
+def test_patching_writes_the_record_and_unpatching_restores_the_game_exactly(plugin, fgmod, tmp_path):
+    game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
+    before = snapshot(game)
+
+    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", "rdna23-int8"))["status"] == "success"
+    marker = json.loads((game / "FRAMEGEN_PATCH").read_text())
+    assert marker["format"] == 2 and marker["complete"] is True
+    assert {"path": "dxgi.dll", "sha256": marker["placed"][0]["sha256"]} in marker["placed"]
+    assert marker["backups"] == [{"original": "libxess.dll", "backup": "libxess.dll.b"}]
+
+    assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"
+    assert snapshot(game) == before
+
+
+def test_an_interrupted_patch_can_still_be_undone(plugin, fgmod, tmp_path, monkeypatch):
+    game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
+    before = snapshot(game)
+    real_execute = game_directory.execute
+
+    def crash_halfway(operations, directory, fgmod_path):
+        real_execute(operations[: len(operations) // 2], directory, fgmod_path)
+        raise OSError("device went to sleep")
+
+    monkeypatch.setattr(game_directory, "execute", crash_halfway)
+    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", "rdna23-int8"))["status"] == "error"
+    assert json.loads((game / "FRAMEGEN_PATCH").read_text())["complete"] is False
+    monkeypatch.setattr(game_directory, "execute", real_execute)
+
+    assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"
+    assert snapshot(game) == before
+
+
+def test_a_game_updated_while_patched_keeps_its_new_file(plugin, fgmod, tmp_path):
+    game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
+    run(plugin.manual_patch_directory(str(game), "dxgi.dll", "rdna23-int8"))
+    write(game / "libxess.dll", b"the game's updated libxess")
+
+    assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"
+    assert (game / "libxess.dll").read_bytes() == b"the game's updated libxess"
+    assert not (game / "libxess.dll.b").exists()
+    assert not (game / "dxgi.dll").exists()
+
+
+def test_a_failed_unpatch_keeps_the_marker_and_says_so(plugin, fgmod, tmp_path, monkeypatch):
+    game = make_game_dir(tmp_path / "games" / "Game")
+    run(plugin.manual_patch_directory(str(game), "dxgi.dll", "rdna23-int8"))
+    real_execute = game_directory.execute
+
+    def fail_before_the_end(operations, directory, fgmod_path):
+        real_execute(operations[:2], directory, fgmod_path)
+        raise PermissionError("read-only file system")
+
+    monkeypatch.setattr(game_directory, "execute", fail_before_the_end)
+    result = run(plugin.manual_unpatch_directory(str(game)))
+
+    assert result == {"status": "error", "message": "Permission error while unpatching: read-only file system"}
+    assert (game / "FRAMEGEN_PATCH").exists()
+    monkeypatch.setattr(game_directory, "execute", real_execute)
+    assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"
+    assert sorted(p.name for p in game.iterdir()) == ["Game.exe"]
+
+
+@pytest.mark.parametrize("action", ["unpatch", "patch"])
+def test_a_game_patched_by_an_older_version_is_left_alone(plugin, fgmod, tmp_path, action):
+    old_marker = json.dumps({"dll_name": "dxgi.dll", "backed_up_files": ["libxess.dll"]}).encode()
+    game = make_game_dir(tmp_path / "games" / "Game", {"FRAMEGEN_PATCH": old_marker, "dxgi.dll": b"old opti"})
+    before = snapshot(game)
+
+    if action == "unpatch":
+        result = run(plugin.manual_unpatch_directory(str(game)))
+    else:
+        result = run(plugin.manual_patch_directory(str(game), "dxgi.dll", "rdna23-int8"))
+
+    assert result == {"status": "error", "message": "This game was patched by an older version of the plugin. "
+                                                     "Use Reset to stock to remove that patch first."}
+    assert snapshot(game) == before
+
+
+def test_a_steam_game_patched_by_an_older_version_says_so_and_keeps_its_launch_options(plugin, steam_library):
+    old_marker = json.dumps({"dll_name": "dxgi.dll", "original_launch_options": "mangohud %command%"}).encode()
+    root = steam_library.add_game("800", "Old Steam Game", {"FRAMEGEN_PATCH": old_marker, "dxgi.dll": b"old opti"})
+    before = snapshot(root)
+
+    status = run(plugin.get_game_status("800"))
+    result = run(plugin.unpatch_game("800"))
+
+    assert status["patched"] is True and "older version of the plugin" in status["message"]
+    assert result["status"] == "error" and "launch_options" not in result
+    assert snapshot(root) == before
