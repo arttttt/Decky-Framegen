@@ -5,6 +5,26 @@
     "tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
+      "FRAMEGEN_PATCH": {
+        "appid": "",
+        "backed_up_files": [],
+        "dll_name": "dxgi.dll",
+        "fsr4_upscaler_sha256": "bdd68bab744ba88beffd38665c57b1e10539fcbd959095a54e6a9f87d82201fe",
+        "fsr4_variant": "rdna4-native",
+        "fsr4_variant_label": "4.1.1 SDK / RDNA3 dGPU + RDNA4",
+        "game_name": "",
+        "managed_files": [
+          {
+            "kind": "fsr4-upscaler",
+            "path": "<root>/amd_fidelityfx_upscaler_dx12.dll",
+            "sha256": "bdd68bab744ba88beffd38665c57b1e10539fcbd959095a54e6a9f87d82201fe",
+            "variant": "rdna4-native"
+          }
+        ],
+        "optiscaler_version": "test-0.9.4",
+        "original_launch_options": "",
+        "target_dir": "<root>"
+      },
       "Game.exe": "game:Game.exe",
       "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n",
       "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",
@@ -31,6 +51,26 @@
     "final_tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
+      "FRAMEGEN_PATCH": {
+        "appid": "",
+        "backed_up_files": [],
+        "dll_name": "dxgi.dll",
+        "fsr4_upscaler_sha256": "bdd68bab744ba88beffd38665c57b1e10539fcbd959095a54e6a9f87d82201fe",
+        "fsr4_variant": "rdna34-official-411",
+        "fsr4_variant_label": "4.1.1 driver override / RDNA3-4",
+        "game_name": "",
+        "managed_files": [
+          {
+            "kind": "fsr4-upscaler",
+            "path": "<root>/amd_fidelityfx_upscaler_dx12.dll",
+            "sha256": "bdd68bab744ba88beffd38665c57b1e10539fcbd959095a54e6a9f87d82201fe",
+            "variant": "rdna34-official-411"
+          }
+        ],
+        "optiscaler_version": "test-0.9.4",
+        "original_launch_options": "",
+        "target_dir": "<root>"
+      },
       "Game.exe": "game:Game.exe",
       "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n",
       "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",

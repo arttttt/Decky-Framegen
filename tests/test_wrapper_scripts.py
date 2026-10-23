@@ -5,14 +5,16 @@ starts it; `fgmod-uninstaller.sh` unpatches and starts it. Both are bash for
 SteamOS-like Linux (bash 5, GNU coreutils), so these tests run on Linux only —
 CI runs them on every PR.
 
-Each scenario runs the real scripts against the fake ~/fgmod with stubs for
-zenity, logger and python on PATH. In launch mode the "game" is a recorder that
+Each scenario runs the real scripts against the fake ~/fgmod (which carries
+the plugin's Python core, as an install does) with stubs for zenity, logger and
+python on PATH. In launch mode the "game" is a recorder that
 writes the environment and arguments the wrapper started it with. Results are
 compared with golden files, like the Python patch scenarios.
 """
 
 from __future__ import annotations
 
+import asyncio
 import shutil
 import subprocess
 import sys
@@ -264,3 +266,40 @@ def test_uninstaller_launch_mode_starts_the_game(wrapper, tmp_path):
     launched = wrapper.launch("fgmod-uninstaller.sh", game / "Game.exe")
 
     scenario("wrapper_uninstaller_launch_mode", game, [("launch", launched)])
+
+
+# ── one implementation behind both entry points ──────────────────────────────
+
+
+def test_the_wrapper_and_the_plugin_patch_a_game_identically(wrapper, plugin, tmp_path):
+    shipped = {"version.dll": game_file("version.dll"), "libxess.dll": game_file("libxess.dll")}
+    by_wrapper = make_game_dir(tmp_path / "games" / "A" / "Game", shipped)
+    by_plugin = make_game_dir(tmp_path / "games" / "B" / "Game", shipped)
+
+    wrapper.run("fgmod", str(by_wrapper / "Game.exe"), env={"DLL": "winmm.dll", "FGMOD_FSR4_VARIANT": "rdna4-native"})
+    asyncio.run(plugin.manual_patch_directory(str(by_plugin), "winmm.dll", "rdna4-native"))
+
+    assert describe_tree(by_wrapper) == describe_tree(by_plugin)
+
+
+def test_a_missing_python_is_reported_instead_of_guessed_around(wrapper, tmp_path):
+    # Only bash, tee and the zenity/logger stubs: no python anywhere on PATH.
+    bare = tmp_path / "bare-bin"
+    bare.mkdir()
+    for tool in ("bash", "tee"):
+        (bare / tool).symlink_to(shutil.which(tool))
+    for stub in ("zenity", "logger"):
+        (bare / stub).symlink_to(wrapper.tools / stub)
+    game = make_game_dir(tmp_path / "games" / "No Python Game")
+
+    result = subprocess.run(
+        [shutil.which("bash"), str(wrapper.fgmod / "fgmod"), str(game / "Game.exe")],
+        env={"HOME": str(wrapper.home), "PATH": str(bare)},
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
+    assert result.returncode == 1
+    assert "Python 3 is required" in result.stdout
+    assert sorted(p.name for p in game.iterdir()) == ["Game.exe"]

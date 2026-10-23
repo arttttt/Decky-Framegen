@@ -11,15 +11,7 @@
   },
   {
     "final_tree": {
-      "Game.exe": "game:Game.exe",
-      "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",
-      "amd_fidelityfx_framegeneration_dx12.dll": "bundle:amd_fidelityfx_framegeneration_dx12.dll",
-      "amd_fidelityfx_upscaler_dx12.dll": "bundle:int8 amd_fidelityfx_upscaler_dx12.dll",
-      "amd_fidelityfx_vk.dll": "bundle:amd_fidelityfx_vk.dll",
-      "libxell.dll": "bundle:libxell.dll",
-      "libxess.dll": "bundle:libxess.dll",
-      "libxess_dx11.dll": "bundle:libxess_dx11.dll",
-      "libxess_fg.dll": "bundle:libxess_fg.dll"
+      "Game.exe": "game:Game.exe"
     }
   }
 ]
