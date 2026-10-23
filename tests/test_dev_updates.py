@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import copy
 import hashlib
-import http.server
 import inspect
 import json
-import threading
 from pathlib import Path
 
 import pytest
@@ -181,26 +179,9 @@ def stamp(plugin_dir: Path, info: dev_build.BuildInfo = RUNNING) -> None:
 
 
 @pytest.fixture
-def github(monkeypatch):
-    """A local stand-in for api.github.com; set `.status` and `.body` to change its answer."""
-
-    class Handler(http.server.BaseHTTPRequestHandler):
-        def do_GET(self):
-            server.requests.append(self.path)
-            self.send_response(server.status)
-            self.end_headers()
-            self.wfile.write(server.body)
-
-        def log_message(self, *args):
-            pass
-
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    server.status, server.body, server.requests = 200, FIXTURE.read_bytes(), []
-    threading.Thread(target=server.serve_forever, daemon=True).start()
-    monkeypatch.setattr(github_releases, "API_ROOT", f"http://127.0.0.1:{server.server_port}")
-    yield server
-    server.shutdown()
-    server.server_close()
+def github(github_api):
+    github_api.body = FIXTURE.read_bytes()
+    return github_api
 
 
 def test_a_release_build_is_not_a_development_build_and_lists_nothing(plugin_dir, github):
