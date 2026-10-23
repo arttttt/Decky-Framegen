@@ -13,6 +13,7 @@ for the hashes of those blobs so variant detection behaves as on a device.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -57,6 +58,11 @@ def blob(name: str) -> bytes:
 def game_file(name: str) -> bytes:
     """Deterministic content for a file the game itself ships."""
     return _labelled(f"game:{name}", f"file shipped by the game: {name}\n".encode())
+
+
+def run(coro):
+    """Run one of the plugin's async methods to completion."""
+    return asyncio.run(coro)
 
 
 def sha256(data: bytes) -> str:

@@ -9,13 +9,12 @@ and the diff shows exactly what changed.
 
 from __future__ import annotations
 
-import asyncio
 import json
 from pathlib import Path
 
 import pytest
 
-from conftest import game_file, make_game_dir, write
+from conftest import game_file, make_game_dir, run, write
 from golden import assert_golden, describe_tree, normalize_result
 
 
@@ -32,10 +31,6 @@ class Recorder:
         if result is not None:
             entry["result"] = normalize_result(result, self.tmp_path)
         self.steps.append(entry)
-
-
-def run(coro):
-    return asyncio.run(coro)
 
 
 # ── Manual directory patching ────────────────────────────────────────────────
@@ -185,7 +180,7 @@ def test_steam_target_directory_moves_between_patches(plugin, fgmod, steam_libra
 def test_steam_marker_records_the_backed_up_game_files(plugin, fgmod, steam_library):
     root = steam_library.add_game("600", "Xess Game", {"libxess.dll": game_file("libxess.dll")})
 
-    asyncio.run(plugin.patch_game("600", "dxgi.dll", "", "rdna23-int8"))
+    run(plugin.patch_game("600", "dxgi.dll", "", "rdna23-int8"))
 
     marker = json.loads((root / "FRAMEGEN_PATCH").read_text())
     assert marker["backed_up_files"] == ["libxess.dll"]
