@@ -86,6 +86,8 @@ class PatchRequest:
     dll_name: str
     variant: str
     """A known variant id (already selected)."""
+    reset_ini: bool = False
+    """Replace the game's OptiScaler.ini with the bundle's instead of keeping it."""
 
 
 class PlanError(Exception):
@@ -199,8 +201,8 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
     operations.append(CopyFromBundle(injector, request.dll_name))
     present.add(request.dll_name)
 
-    # 5. The per-game INI: keep the user's, otherwise start from the bundle's.
-    if INI_FILENAME not in present and INI_FILENAME in bundle_files:
+    # 5. The per-game INI: keep the user's (unless asked to reset it), otherwise start from the bundle's.
+    if (request.reset_ini or INI_FILENAME not in present) and INI_FILENAME in bundle_files:
         operations.append(CopyFromBundle(INI_FILENAME, INI_FILENAME))
         present.add(INI_FILENAME)
     if INI_FILENAME in present:
