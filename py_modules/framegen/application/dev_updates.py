@@ -13,8 +13,8 @@ from framegen.infrastructure.github_releases import ReleasesUnavailable
 log = logging.getLogger(__name__)
 
 ListReleases = Callable[[str], list]
-Download = Callable[..., None]
-"""github_releases.download: (url, destination, on_progress)."""
+Download = Callable[[str, Path, Callable[[int, int | None], None]], None]
+"""github_releases.download: (url, destination, on_progress(received, total))."""
 Report = Callable[[str, int, int | None], None]
 """Tells the frontend how a download goes: channel, bytes received, total bytes if known."""
 
@@ -105,7 +105,8 @@ class DevUpdates:
             return {"status": "error", "message": f"The {channel} build is no longer published. Check again."}
         target = self.downloads_dir / dev_build.asset_name(plugin_name, release.info)
         try:
-            for stale in self.downloads_dir.glob("*.zip"):
+            # Earlier builds, and partial files a plugin stopped mid-download left behind.
+            for stale in [*self.downloads_dir.glob("*.zip"), *self.downloads_dir.glob("*.part")]:
                 stale.unlink()
             self.download(release.url, target, lambda received, total: self.report(channel, received, total))
         except (ReleasesUnavailable, OSError) as exc:

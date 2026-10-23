@@ -264,6 +264,7 @@ def test_installing_downloads_the_build_published_now_and_hands_decky_the_file(p
     pr["assets"][0]["digest"] = f"sha256:{ZIP_SHA256}"
     github.body = json.dumps(replaced).encode()
     stale = write(plugin_dir.parent / "runtime" / "Decky-Framegen-1a2b3c4.zip", b"an earlier download")
+    partial = write(plugin_dir.parent / "runtime" / "Decky-Framegen-9f2c1a6.zip.part", b"cut off")
 
     result = updates.install_request("pr-12")
 
@@ -272,6 +273,7 @@ def test_installing_downloads_the_build_published_now_and_hands_decky_the_file(p
     assert download.urls == ["https://github.com/arttttt/Decky-Framegen/releases/download/pr-12/Decky-Framegen-2222222.zip"]
     assert downloaded.read_bytes() == ZIP
     assert not stale.exists()
+    assert not partial.exists()
     half = len(ZIP) // 2
     assert reports == [("pr-12", half, len(ZIP)), ("pr-12", len(ZIP), len(ZIP))]
     assert result == {
