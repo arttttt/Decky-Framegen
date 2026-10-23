@@ -97,22 +97,7 @@ FSR 4.1.1 can fall back internally to FSR3 on unsupported hardware. Check the FS
 
 ## Development
 
-### Running the backend tests
-The Python backend is tested with pytest against a fake `~/fgmod`, fake game directories and a fake Steam library built in temporary directories; no Steam Deck or Decky Loader is needed. Python 3.10+ is required (Decky Loader currently ships 3.14).
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -r requirements-dev.txt
-.venv/bin/python -m pytest
-```
-
-The tests for the bash launch wrappers (`tests/test_wrapper_scripts.py`) run on Linux only, since the scripts target SteamOS-like systems (bash 5, GNU coreutils); CI runs them on every PR. On macOS, run them in a container:
-
-```bash
-docker run --rm -v "$PWD":/src -w /src python:3.14-slim \
-  bash -c "pip install -q -r requirements-dev.txt && python -m pytest tests/test_wrapper_scripts.py"
-```
-
+How to build, test, and try a work-in-progress build on a device: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 
