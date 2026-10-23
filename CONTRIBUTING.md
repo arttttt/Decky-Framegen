@@ -59,6 +59,8 @@ Development builds carry a **Developer** section in the plugin; release builds n
 2. Pick a build (main or a pull request) → **Install** → confirm in Decky's dialog.
 3. Decky replaces the plugin and reloads it; the section then shows the new build as running.
 
+If you cancel Decky's confirmation, the section stays disabled until the Quick Access menu is closed and opened again.
+
 Switching back to `main` works the same way.
 
 ### What to know
