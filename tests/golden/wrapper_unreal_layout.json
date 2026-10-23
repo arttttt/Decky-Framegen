@@ -1,0 +1,36 @@
+[
+  {
+    "exit_code": 0,
+    "step": "patch"
+  },
+  {
+    "final_tree": {
+      "Engine": "<dir>",
+      "Engine/Binaries": "<dir>",
+      "Engine/Binaries/ThirdParty": "<dir>",
+      "Engine/Binaries/ThirdParty/x.dll": "game:x.dll",
+      "Game.exe": "game:Game.exe",
+      "UnrealGame": "<dir>",
+      "UnrealGame/Binaries": "<dir>",
+      "UnrealGame/Binaries/Win64": "<dir>",
+      "UnrealGame/Binaries/Win64/D3D12_Optiscaler": "<dir>",
+      "UnrealGame/Binaries/Win64/D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
+      "UnrealGame/Binaries/Win64/OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n",
+      "UnrealGame/Binaries/Win64/UnrealGame-Win64-Shipping.exe": "game:shipping.exe",
+      "UnrealGame/Binaries/Win64/amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",
+      "UnrealGame/Binaries/Win64/amd_fidelityfx_framegeneration_dx12.dll": "bundle:amd_fidelityfx_framegeneration_dx12.dll",
+      "UnrealGame/Binaries/Win64/amd_fidelityfx_upscaler_dx12.dll": "bundle:int8 amd_fidelityfx_upscaler_dx12.dll",
+      "UnrealGame/Binaries/Win64/amd_fidelityfx_vk.dll": "bundle:amd_fidelityfx_vk.dll",
+      "UnrealGame/Binaries/Win64/dlssg_to_fsr3_amd_is_better.dll": "bundle:dlssg_to_fsr3_amd_is_better.dll",
+      "UnrealGame/Binaries/Win64/dxgi.dll": "bundle:OptiScaler.dll",
+      "UnrealGame/Binaries/Win64/fakenvapi.dll": "bundle:fakenvapi.dll",
+      "UnrealGame/Binaries/Win64/fakenvapi.ini": "bundle:fakenvapi.ini",
+      "UnrealGame/Binaries/Win64/libxell.dll": "bundle:libxell.dll",
+      "UnrealGame/Binaries/Win64/libxess.dll": "bundle:libxess.dll",
+      "UnrealGame/Binaries/Win64/libxess_dx11.dll": "bundle:libxess_dx11.dll",
+      "UnrealGame/Binaries/Win64/libxess_fg.dll": "bundle:libxess_fg.dll",
+      "UnrealGame/Binaries/Win64/plugins": "<dir>",
+      "UnrealGame/Binaries/Win64/plugins/OptiPatcher.asi": "bundle:OptiPatcher.asi"
+    }
+  }
+]

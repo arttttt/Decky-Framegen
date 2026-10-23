@@ -106,6 +106,13 @@ python3 -m venv .venv
 .venv/bin/python -m pytest
 ```
 
+The tests for the bash launch wrappers (`tests/test_wrapper_scripts.py`) run on Linux only, since the scripts target SteamOS-like systems (bash 5, GNU coreutils); CI runs them on every PR. On macOS, run them in a container:
+
+```bash
+docker run --rm -v "$PWD":/src -w /src python:3.14-slim \
+  bash -c "pip install -q -r requirements-dev.txt && python -m pytest tests/test_wrapper_scripts.py"
+```
+
 
 ## Credits
 
