@@ -68,7 +68,7 @@ class Installer:
         """Prepare ~/fgmod with every bundled FSR4 runtime variant and activate `variant`."""
         try:
             if not self.bin_path.exists():
-                return {"status": "error", "message": f"Bin directory not found: {self.bin_path}"}
+                return {"status": "error", "message": "This plugin build does not include OptiScaler."}
             for asset in bundle.RELEASE_ASSETS:
                 source = self.bin_path / asset["name"]
                 if not source.exists():

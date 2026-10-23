@@ -70,13 +70,14 @@ def test_install_refuses_tampered_asset_and_keeps_existing_bundle(plugin, releas
     assert describe_tree(home / "fgmod") == before
 
 
-def test_install_reports_missing_bin_dir(plugin, home, tmp_path):
+def test_install_from_a_package_without_optiscaler_says_so_and_touches_nothing(plugin, home):
     result = run(plugin.run_install_fgmod("rdna23-int8"))
 
-    assert normalize_result(result, tmp_path) == {
+    assert result == {
         "status": "error",
-        "message": "OptiScaler extraction failed: Bin directory not found: <root>/plugin/bin",
+        "message": "OptiScaler extraction failed: This plugin build does not include OptiScaler.",
     }
+    assert not (home / "fgmod").exists()
 
 
 def test_uninstall_bundle(plugin, release_assets, home):
