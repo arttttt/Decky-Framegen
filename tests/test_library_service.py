@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import io
 import json
+import shutil
 import zipfile
 from pathlib import Path
 
 import pytest
 
 import main
-from conftest import FAKE_7Z, install_tools, run, sha256, write
+from conftest import FAKE_7Z, REPO_ROOT, install_tools, run, sha256, write
 from framegen.application.library import Library
 from framegen.domain import library
 from framegen.infrastructure import archive, github_releases
@@ -97,6 +98,7 @@ def world(home, tmp_path, github_api):
         fgmod = home / "fgmod"
         seven_zip = install_tools(tmp_path / "plugin" / "tools", {"7zzs": FAKE_7Z}) / "7zzs"
         reports: list = []
+        refreshes: list = []
 
         def publish(self, archive_bytes: bytes) -> None:
             listing = json.loads((FIXTURES / "optiscaler_nightly.json").read_text())
@@ -109,6 +111,7 @@ def world(home, tmp_path, github_api):
             return Library(
                 self.fgmod, self.seven_zip, github_releases.list_releases,
                 download or FakeDownload(self.archive), lambda *args: self.reports.append(args),
+                lambda: self.refreshes.append("core"),
             )
 
         def tree(self) -> list[str]:
@@ -130,6 +133,7 @@ def test_installing_adds_the_unpacked_version_and_makes_the_first_one_default(wo
     assert entry["id"] == NEWEST and entry["family"] == "10"
     assert not (world.fgmod / "library" / ".partial").exists()
     assert world.reports[-1] == (NEWEST, len(world.archive), len(world.archive))
+    assert world.refreshes == ["core"]
 
     listed = world.library().versions(library.NIGHTLY)
     assert listed["versions"][0] | {"size": 0} == {
@@ -165,6 +169,7 @@ def test_a_failed_install_leaves_the_library_as_it_was(world, case, message):
     assert result["status"] == "error"
     assert message in result["message"]
     assert world.tree() == []
+    assert world.refreshes == []
 
 
 def test_an_install_without_room_is_refused_before_downloading(world, monkeypatch):
@@ -224,11 +229,15 @@ def test_the_plugin_installs_with_progress_events(plugin, world, tmp_path, monke
 
     monkeypatch.setattr(main.decky, "emit", emit, raising=False)
     assert (tmp_path / "plugin" / archive.SEVEN_ZIP).exists()  # the fake decky's DECKY_PLUGIN_DIR
+    shutil.copytree(REPO_ROOT / "defaults" / "assets", tmp_path / "plugin" / "assets")
 
     result = run(plugin.library_install(library.NIGHTLY, NEWEST))
 
     assert result["status"] == "success"
     assert ("library_download", NEWEST, len(world.archive), len(world.archive)) in events
+    # Installing also brings the plugin's core and launch scripts into ~/fgmod.
+    assert (world.fgmod / "framegen" / "__main__.py").is_file()
+    assert (world.fgmod / "fgmod").stat().st_mode & 0o100
     assert run(plugin.library_versions(library.NIGHTLY))["versions"][0]["state"] == "installed"
 
 

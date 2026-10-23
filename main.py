@@ -14,7 +14,7 @@ from framegen.application.installer import Installer
 from framegen.application.library import Library
 from framegen.application.patcher import Patcher
 from framegen.domain import bundle
-from framegen.infrastructure import archive, github_releases
+from framegen.infrastructure import archive, fgmod_home, github_releases
 
 
 def _decky_events(event: str):
@@ -110,6 +110,7 @@ class Plugin:
             github_releases.list_releases,
             github_releases.download,
             report,
+            lambda: fgmod_home.refresh_core(self._home_path() / "fgmod", Path(decky.DECKY_PLUGIN_DIR) / "assets"),
         )
 
     async def library_versions(self, channel: str) -> dict:

@@ -33,12 +33,15 @@ class Library:
         list_releases: ListReleases,
         download: Download,
         report: Report,
+        refresh_core: Callable[[], None],
     ):
         self.store = LibraryStore(fgmod_path / "library")
         self.seven_zip = seven_zip
         self.list_releases = list_releases
         self.download = download
         self.report = report
+        self.refresh_core = refresh_core
+        """Puts the plugin's core and launch scripts into ~/fgmod; every install does it until the patching mechanism settles."""
 
     def _published(self, channel: str) -> list[library.Available]:
         return library.available(channel, self.list_releases(library.CHANNELS[channel].repository))
@@ -101,6 +104,7 @@ class Library:
                 return _error(f"The {version_id} archive lacks {', '.join(sorted(missing))}; not added.")
             installed = library.entry(version, datetime.now(timezone.utc).isoformat())
             self.store.commit(stage, installed)
+            self.refresh_core()
         except (ReleasesUnavailable, RuntimeError, OSError) as exc:
             log.error(f"Installing {version_id} failed: {exc}")
             return _error(f"Installing {version_id} failed: {exc}")
