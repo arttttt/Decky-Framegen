@@ -282,3 +282,25 @@ def variant_renamed_proxy_path(fgmod_path: Path, fsr4_variant: str | None, dll_n
     if not variant_injector(fsr4_variant):
         return None
     return variant_dir(fgmod_path, fsr4_variant) / "renames" / dll_name
+
+
+def detect_variant(upscaler_sha256: str | None, file_sha256: dict[str, str]) -> str | None:
+    """Which FSR4 variant a patched directory carries, from the hashes of its files.
+
+    `file_sha256` maps the variant extra-file names present in the directory to
+    their hashes. Variants with extra files must match the upscaler and every
+    extra file; otherwise the upscaler alone identifies the variant.
+    """
+    if not upscaler_sha256:
+        return None
+    upscaler = upscaler_sha256.lower()
+    for variant_id, variant in FSR4_VARIANTS.items():
+        extra_files = variant.get("extra_files") or []
+        if not extra_files or str(variant.get("sha256") or "").lower() != upscaler:
+            continue
+        if all(file_sha256.get(extra["name"], "").lower() == extra["sha256"].lower() for extra in extra_files):
+            return variant_id
+    for variant_id, variant in FSR4_VARIANTS.items():
+        if not variant.get("extra_files") and str(variant.get("sha256") or "").lower() == upscaler:
+            return variant_id
+    return None
