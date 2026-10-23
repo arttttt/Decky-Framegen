@@ -62,9 +62,14 @@ class Patcher:
         if not self.fgmod_path.exists():
             return _error(NOT_INSTALLED)
         previous_variant = str(files.read_json(directory / bundle.MARKER_FILENAME).get("fsr4_variant") or "").strip()
+        carried_over: frozenset[str] = frozenset()
         if (directory / bundle.MARKER_FILENAME).exists():
-            # A repatch first undoes the previous patch, exactly as its marker records it.
-            undone = self.unpatch_directory(directory)
+            # A repatch first undoes the previous patch, exactly as its marker records it, keeping
+            # the OptiScaler.ini it placed (the user's settings) unless asked to reset it.
+            previous = patch_record.parse(files.read_json(directory / bundle.MARKER_FILENAME))
+            if previous is not None and not reset_ini and plan.INI_FILENAME in {p.path for p in previous.placed}:
+                carried_over = frozenset({plan.INI_FILENAME})
+            undone = self.unpatch_directory(directory, keep=carried_over)
             if undone["status"] != "success":
                 return undone
         variant = bundle_store.selected_variant(self.fgmod_path, fsr4_variant)
@@ -76,7 +81,10 @@ class Patcher:
             upscaler_sha256 = files.sha256(self.fgmod_path / patch.upscaler_source)
             log.info(f"Patching {directory} with {dll_name} and FSR4 variant {variant} ({label})")
             recorded = patch_record.record(
-                patch.operations, game.entries, game_directory.bundle_hashes(self.fgmod_path, patch.operations)
+                patch.operations,
+                game.entries,
+                game_directory.bundle_hashes(self.fgmod_path, patch.operations),
+                carried_over & game.entries,
             )
             optiscaler_version = bundle_store.optiscaler_version(self.fgmod_path)
             details = marker.build(
@@ -115,8 +123,11 @@ class Patcher:
         """Whether `directory` is ~/fgmod or inside it: never a game, never to be unpatched or reset."""
         return directory.resolve().is_relative_to(self.fgmod_path.resolve())
 
-    def unpatch_directory(self, directory: Path) -> dict:
-        """Undo the patch recorded in the directory's marker. The marker goes last, so a failure keeps it."""
+    def unpatch_directory(self, directory: Path, keep: frozenset[str] = frozenset()) -> dict:
+        """Undo the patch recorded in the directory's marker. The marker goes last, so a failure keeps it.
+
+        `keep` names placed files a repatch carries over instead of removing.
+        """
         if self._is_bundle(directory):
             return _error(BUNDLE_IS_NOT_A_GAME)
         marker_path = directory / bundle.MARKER_FILENAME
@@ -126,7 +137,7 @@ class Patcher:
         if recorded is None:
             return _error(PATCHED_BY_AN_OLDER_VERSION)
         try:
-            operations = patch_record.plan_unpatch(recorded, game_directory.current_state(directory, recorded))
+            operations = patch_record.plan_unpatch(recorded, game_directory.current_state(directory, recorded), keep)
             game_directory.execute(operations, directory, self.fgmod_path)
         except PermissionError as exc:
             log.error(f"Unpatch permission error: {exc}")

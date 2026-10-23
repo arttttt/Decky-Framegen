@@ -195,3 +195,20 @@ def test_a_steam_game_patched_by_an_older_version_says_so_and_keeps_its_launch_o
     assert status["patched"] is True and "older version of the plugin" in status["message"]
     assert result["status"] == "error" and "launch_options" not in result
     assert snapshot(root) == before
+
+
+@pytest.mark.parametrize("reset_ini", [False, True])
+def test_a_repatch_keeps_the_users_ini_settings_unless_asked_to_reset_them(plugin, fgmod, tmp_path, reset_ini):
+    from framegen.application.patcher import Patcher
+
+    game = make_game_dir(tmp_path / "games" / "Game")
+    patcher = Patcher(tmp_path / "home")
+    patcher.patch_directory(game, "dxgi.dll", "rdna23-int8")
+    write(game / "OptiScaler.ini", (game / "OptiScaler.ini").read_bytes() + b"\n[Mine]\nKeep=1\n")
+
+    assert patcher.patch_directory(game, "dxgi.dll", "rdna23-int8", reset_ini=reset_ini)["status"] == "success"
+
+    assert (b"Keep=1" in (game / "OptiScaler.ini").read_bytes()) is not reset_ini
+    # Either way the ini is the patch's, and unpatching removes it.
+    assert patcher.unpatch_directory(game)["status"] == "success"
+    assert sorted(p.name for p in game.iterdir()) == ["Game.exe"]

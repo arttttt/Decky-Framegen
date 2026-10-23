@@ -157,12 +157,12 @@
         "original_launch_options": "",
         "placed": [
           {
-            "path": "dxgi.dll",
-            "sha256": "fbb716b26a09f4534f6ccc494c19ab847feb4862e001b406263329282d2d54d3"
-          },
-          {
             "path": "OptiScaler.ini",
             "sha256": null
+          },
+          {
+            "path": "dxgi.dll",
+            "sha256": "fbb716b26a09f4534f6ccc494c19ab847feb4862e001b406263329282d2d54d3"
           },
           {
             "path": "plugins/OptiPatcher.asi",

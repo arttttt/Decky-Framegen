@@ -52,14 +52,18 @@ class RemoveDirIfEmpty:
 
 
 def record(
-    operations: tuple[Operation, ...], entries: frozenset[str], bundle_hashes: dict[str, str]
+    operations: tuple[Operation, ...],
+    entries: frozenset[str],
+    bundle_hashes: dict[str, str],
+    carried_over: frozenset[str] = frozenset(),
 ) -> PatchRecord:
     """The record of a patch plan, made before it runs.
 
     `entries` is the game directory before the patch; `bundle_hashes` maps every bundle file the
-    plan copies (directories expanded to their files) to its sha256.
+    plan copies (directories expanded to their files) to its sha256. `carried_over` names files a
+    previous patch placed that this one keeps as they are (the user's OptiScaler.ini settings).
     """
-    placed: dict[str, Placed] = {}
+    placed: dict[str, Placed] = {path: Placed(path, None) for path in sorted(carried_over)}
     backups: list[Backup] = []
     for operation in operations:
         match operation:
@@ -108,12 +112,17 @@ def parse(marker: dict) -> PatchRecord | None:
         return None
 
 
-def plan_unpatch(patch: PatchRecord, current: dict[str, str | None]) -> tuple[Operation | RemoveDirIfEmpty, ...]:
-    """Undo a recorded patch. `current` maps every placed path and backup still present to its sha256 now."""
+def plan_unpatch(
+    patch: PatchRecord, current: dict[str, str | None], keep: frozenset[str] = frozenset()
+) -> tuple[Operation | RemoveDirIfEmpty, ...]:
+    """Undo a recorded patch. `current` maps every placed path and backup still present to its sha256 now.
+
+    `keep` names placed files to leave where they are, for a repatch that carries them over.
+    """
     operations: list[Operation | RemoveDirIfEmpty] = []
     replaced_by_game: set[str] = set()
     for item in patch.placed:
-        if item.path not in current:
+        if item.path not in current or item.path in keep:
             continue
         if item.sha256 is not None and current[item.path] != item.sha256:
             replaced_by_game.add(item.path)
