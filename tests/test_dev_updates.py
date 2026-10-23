@@ -245,3 +245,15 @@ def test_an_unreachable_github_is_reported(plugin_dir, monkeypatch):
 
 def test_the_plugin_answers_for_a_release_build(plugin):
     assert run(plugin.get_dev_build()) == {"is_dev_build": False}
+
+
+def test_the_plugin_lists_builds_for_a_development_build(plugin, home, tmp_path, github):
+    plugin_dir = tmp_path / "plugin"  # the fake decky's DECKY_PLUGIN_DIR
+    plugin_dir.mkdir()
+    (plugin_dir / "plugin.json").write_text(json.dumps({"name": PLUGIN}))
+    stamp(plugin_dir)
+
+    result = run(plugin.list_dev_builds())
+
+    assert result["status"] == "success"
+    assert [b["channel"] for b in result["builds"]] == ["dev", "pr-12", "pr-9"]

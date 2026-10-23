@@ -4,6 +4,7 @@ Each method resolves Decky's paths and delegates to a service in
 py_modules/framegen; no decisions are made here.
 """
 
+import asyncio
 from pathlib import Path
 
 import decky
@@ -85,7 +86,8 @@ class Plugin:
         return self._dev_updates().build()
 
     async def list_dev_builds(self) -> dict:
-        return self._dev_updates().available_builds()
+        # The request to GitHub can take seconds; keep it off Decky's event loop.
+        return await asyncio.to_thread(self._dev_updates().available_builds)
 
     # ── Misc ──────────────────────────────────────────────────────────────────
 
