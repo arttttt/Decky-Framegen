@@ -13,12 +13,15 @@ for the hashes of those blobs so variant detection behaves as on a device.
 
 from __future__ import annotations
 
-import copy
 import hashlib
 import json
 import logging
+import os
+import shutil
+import stat
 import sys
 import types
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -31,14 +34,30 @@ _decky.HOME = ""
 _decky.DECKY_PLUGIN_DIR = ""
 _decky.logger = logging.getLogger("decky")
 sys.modules["decky"] = _decky
-sys.path.insert(0, str(REPO_ROOT))
+# Decky puts the plugin's py_modules on sys.path; the repo root holds main.py.
+sys.path[:0] = [str(REPO_ROOT / "py_modules"), str(REPO_ROOT)]
 
 import main  # noqa: E402
+from framegen.domain import bundle  # noqa: E402
+
+
+# sha256 → label of every placeholder handed out, so snapshots can name content.
+KNOWN_CONTENT: dict[str, str] = {}
+
+
+def _labelled(label: str, data: bytes) -> bytes:
+    KNOWN_CONTENT[hashlib.sha256(data).hexdigest()] = label
+    return data
 
 
 def blob(name: str) -> bytes:
     """Deterministic, unique placeholder content for a bundle file."""
-    return f"decky-framegen test blob: {name}\n".encode()
+    return _labelled(f"bundle:{name}", f"decky-framegen test blob: {name}\n".encode())
+
+
+def game_file(name: str) -> bytes:
+    """Deterministic content for a file the game itself ships."""
+    return _labelled(f"game:{name}", f"file shipped by the game: {name}\n".encode())
 
 
 def sha256(data: bytes) -> str:
@@ -73,17 +92,15 @@ EXTRA_FILE_BLOBS = {
 
 @pytest.fixture
 def fake_variants(monkeypatch) -> dict:
-    """FSR4_VARIANTS with hashes rewritten to match the placeholder blobs."""
-    variants = copy.deepcopy(main.FSR4_VARIANTS)
-    for variant_id, variant in variants.items():
+    """The FSR4 variant table with hashes pointed at the placeholder blobs (edited in place, undone after the test)."""
+    for variant_id, variant in bundle.FSR4_VARIANTS.items():
         upscaler = NATIVE_UPSCALER if variant["uses_archive_native"] else INT8_UPSCALER
-        variant["sha256"] = sha256(blob(upscaler))
+        monkeypatch.setitem(variant, "sha256", sha256(blob(upscaler)))
         for extra in variant.get("extra_files", []):
-            extra["sha256"] = sha256(blob(EXTRA_FILE_BLOBS[(variant_id, extra["name"])]))
+            monkeypatch.setitem(extra, "sha256", sha256(blob(EXTRA_FILE_BLOBS[(variant_id, extra["name"])])))
         if variant.get("injector"):
-            variant["injector"]["sha256"] = sha256(blob(PRE10_INJECTOR))
-    monkeypatch.setattr(main, "FSR4_VARIANTS", variants)
-    return variants
+            monkeypatch.setitem(variant["injector"], "sha256", sha256(blob(PRE10_INJECTOR)))
+    return bundle.FSR4_VARIANTS
 
 
 @pytest.fixture
@@ -110,9 +127,9 @@ def fgmod(home, fake_variants) -> Path:
     root = home / "fgmod"
     write(root / "OptiScaler.dll", blob("OptiScaler.dll"))
     write(root / "OptiScaler.ini", b"[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n")
-    for name in main.PROXY_DLL_BACKUPS:
+    for name in bundle.PROXY_DLL_BACKUPS:
         write(root / "renames" / name, blob("OptiScaler.dll"))
-    for name in main.SUPPORT_FILES:
+    for name in bundle.SUPPORT_FILES:
         write(root / name, blob(name))
     write(root / "D3D12_Optiscaler" / "D3D12Core.dll", blob("D3D12Core.dll"))
     write(root / "plugins" / "OptiPatcher.asi", blob("OptiPatcher.asi"))
@@ -122,27 +139,27 @@ def fgmod(home, fake_variants) -> Path:
     for variant_id, variant in fake_variants.items():
         variant_dir = root / variant["dir_name"]
         upscaler = NATIVE_UPSCALER if variant["uses_archive_native"] else INT8_UPSCALER
-        write(variant_dir / main.FSR4_UPSCALER_FILENAME, blob(upscaler))
+        write(variant_dir / bundle.FSR4_UPSCALER_FILENAME, blob(upscaler))
         for extra in variant.get("extra_files", []):
             write(variant_dir / extra["name"], blob(EXTRA_FILE_BLOBS[(variant_id, extra["name"])]))
         if variant.get("injector"):
             write(variant_dir / variant["injector"]["name"], blob(PRE10_INJECTOR))
-            for name in main.PROXY_DLL_BACKUPS:
+            for name in bundle.PROXY_DLL_BACKUPS:
                 write(variant_dir / "renames" / name, blob(PRE10_INJECTOR))
 
-    write(root / main.FSR4_UPSCALER_FILENAME, blob(INT8_UPSCALER))
+    write(root / bundle.FSR4_UPSCALER_FILENAME, blob(INT8_UPSCALER))
     manifest = {
         "schema_version": 1,
         "optiscaler": {"version": "test-0.9.4"},
-        "selected_default_variant": main.DEFAULT_FSR4_VARIANT,
+        "selected_default_variant": bundle.DEFAULT_FSR4_VARIANT,
     }
-    write(root / main.INSTALL_MANIFEST_FILENAME, json.dumps(manifest).encode())
+    write(root / bundle.INSTALL_MANIFEST_FILENAME, json.dumps(manifest).encode())
     return root
 
 
 def make_game_dir(path: Path, files: dict[str, bytes] | None = None) -> Path:
     """A game directory holding an executable plus any game-shipped files given."""
-    write(path / "Game.exe", b"MZ fake game executable\n")
+    write(path / "Game.exe", game_file("Game.exe"))
     for rel, data in (files or {}).items():
         write(path / rel, data)
     return path
@@ -181,3 +198,71 @@ def steam_library(home) -> SteamLibrary:
     steamapps = home / ".local" / "share" / "Steam" / "steamapps"
     steamapps.mkdir(parents=True)
     return SteamLibrary(steamapps=steamapps)
+
+
+# ── Installer world ──────────────────────────────────────────────────────────
+
+FAKE_7Z = f"""#!{sys.executable}
+import sys, zipfile
+args = sys.argv[1:]
+assert args[:2] == ["x", "-y"], args
+out_dir = args[2][len("-o"):]
+archive, members = args[3], args[4:]
+with zipfile.ZipFile(archive) as zf:
+    zf.extractall(out_dir, members or None)
+"""
+
+ARCHIVE_INI = (
+    "[FrameGen]\nEnabled=auto\nFGInput=auto\nFGOutput=auto\n\n"
+    "[FSR]\nFsr4Update=auto\n\n[Plugins]\nLoadAsiPlugins=auto\n\n[Menu]\nUseHQFont=auto\n"
+)
+
+# Bundled asset table entry → placeholder blob it is staged as.
+ASSET_BLOBS = {
+    "FSR4_INT8_ASSET": INT8_UPSCALER,
+    "FSR4_OFFICIAL_411_ASSET": "official amdxcffx64.dll",
+    "FSR4_VALVE_411_ASSET": "valve amdxcffx64.dll",
+    "AMDXC64_RDNA2_ASSET": "valve amdxc64.dll",
+    "OPTISCALER_PRE10_ASSET": PRE10_INJECTOR,
+    "OPTIPATCHER_ASSET": "OptiPatcher.asi",
+}
+
+
+@pytest.fixture
+def release_assets(home, fake_variants, tmp_path, monkeypatch) -> Path:
+    """The plugin directory as Decky installs it: bin/ with every bundled asset, assets/ with scripts.
+
+    The installer verifies assets by sha256 and unpacks the OptiScaler archive
+    with the `7z` CLI, so the asset table is pointed at the placeholders' hashes
+    and a stand-in `7z` that unpacks a zip with the same CLI goes on PATH.
+    """
+    plugin_dir = tmp_path / "plugin"
+    bin_dir = plugin_dir / "bin"
+
+    archive = bin_dir / bundle.OPTISCALER_ARCHIVE_ASSET["name"]
+    archive.parent.mkdir(parents=True)
+    members = {
+        "OptiScaler.dll": blob("OptiScaler.dll"),
+        "OptiScaler.ini": ARCHIVE_INI.encode(),
+        **{name: blob(name) for name in bundle.SUPPORT_FILES},
+        bundle.FSR4_UPSCALER_FILENAME: blob(NATIVE_UPSCALER),
+        "D3D12_Optiscaler/D3D12Core.dll": blob("D3D12Core.dll"),
+    }
+    with zipfile.ZipFile(archive, "w") as zf:
+        for name, data in members.items():
+            # A fixed timestamp keeps the archive, and so its hash, identical across runs.
+            zf.writestr(zipfile.ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0)), data)
+    monkeypatch.setitem(bundle.OPTISCALER_ARCHIVE_ASSET, "sha256", sha256(archive.read_bytes()))
+
+    for table_name, blob_name in ASSET_BLOBS.items():
+        asset = getattr(bundle, table_name)
+        write(bin_dir / asset["name"], blob(blob_name))
+        monkeypatch.setitem(asset, "sha256", sha256(blob(blob_name)))
+
+    shutil.copytree(REPO_ROOT / "defaults" / "assets", plugin_dir / "assets")
+
+    tools = tmp_path / "tools"
+    seven_zip = write(tools / "7z", FAKE_7Z.encode())
+    seven_zip.chmod(seven_zip.stat().st_mode | stat.S_IEXEC)
+    monkeypatch.setenv("PATH", f"{tools}:{os.environ['PATH']}")
+    return plugin_dir
