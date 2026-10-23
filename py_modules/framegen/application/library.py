@@ -1,0 +1,141 @@
+"""The OptiScaler library: list, install, remove and choose OptiScaler versions on the device."""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import Callable
+from datetime import datetime, timezone
+from pathlib import Path
+
+from framegen.domain import library
+from framegen.infrastructure import archive
+from framegen.infrastructure.files import sha256
+from framegen.infrastructure.github_releases import ReleasesUnavailable
+from framegen.infrastructure.library_store import LibraryStore
+
+log = logging.getLogger(__name__)
+
+ListReleases = Callable[[str], list]
+Download = Callable[[str, Path, Callable[[int, int | None], None]], None]
+Report = Callable[[str, int, int | None], None]
+"""Tells the frontend how a download goes: version id, bytes received, total bytes if known."""
+
+
+def _error(message: str) -> dict:
+    return {"status": "error", "message": message}
+
+
+class Library:
+    def __init__(
+        self,
+        fgmod_path: Path,
+        seven_zip: Path,
+        list_releases: ListReleases,
+        download: Download,
+        report: Report,
+        refresh_core: Callable[[], None],
+    ):
+        self.store = LibraryStore(fgmod_path / "library")
+        self.seven_zip = seven_zip
+        self.list_releases = list_releases
+        self.download = download
+        self.report = report
+        self.refresh_core = refresh_core
+        """Puts the plugin's core and launch scripts into ~/fgmod; every install does it until the patching mechanism settles."""
+
+    def _published(self, channel: str) -> list[library.Available]:
+        return library.available(channel, self.list_releases(library.CHANNELS[channel].repository))
+
+    def versions(self, channel: str) -> dict:
+        """A channel's versions: installed ones (also those upstream no longer lists), then the rest."""
+        if channel not in library.CHANNELS:
+            return _error(f"Unknown channel: {channel}")
+        installed = self.store.installed()
+        sizes = {entry.id: self.store.size(entry.id) for entry in installed}
+        try:
+            published = self._published(channel)
+            listing_error = None
+        except ReleasesUnavailable as exc:
+            log.error(f"Listing OptiScaler {channel} releases failed: {exc}")
+            published, listing_error = [], str(exc)
+        rows = library.catalog(
+            [entry for entry in installed if entry.channel == channel], published, self.store.default_version(), sizes
+        )
+        return {
+            "status": "success",
+            "versions": [row.__dict__ for row in rows],
+            "listing_error": listing_error,
+            "installed_bytes": sum(sizes.values()),
+        }
+
+    def install(self, channel: str, version_id: str) -> dict:
+        """Download, verify, unpack and check a version, then add it to the library in one step.
+
+        Anything that goes wrong leaves the library as it was.
+        """
+        if channel not in library.CHANNELS:
+            return _error(f"Unknown channel: {channel}")
+        if any(entry.id == version_id for entry in self.store.installed()):
+            return _error(f"{version_id} is already in the library.")
+        try:
+            version = next((v for v in self._published(channel) if v.id == version_id), None)
+        except ReleasesUnavailable as exc:
+            return _error(str(exc))
+        if version is None:
+            return _error(f"{version_id} is no longer published. Check again.")
+        if version.unsupported:
+            return _error(f"{version_id} can't be installed: {version.unsupported}.")
+        if self.store.free_bytes() < library.space_needed(version.size):
+            needed = library.space_needed(version.size) // 1_000_000
+            return _error(f"Not enough free space: installing {version_id} needs about {needed} MB.")
+
+        self.store.clear_partial()
+        try:
+            stage = self.store.staging(version_id)
+            archive_path = stage.parent / f"{version_id}.7z"
+            self.download(version.url, archive_path, lambda got, total: self.report(version_id, got, total))
+            if sha256(archive_path) != version.sha256:
+                return _error(f"The {version_id} download did not match its checksum. Try again.")
+            files = stage / library.FILES_DIRNAME
+            archive.extract_7z(self.seven_zip, archive_path, files)
+            family = library.family_of(version.version)
+            missing = library.missing_files(family, self.store.files_in(files)) if family else {"a known layout"}
+            if missing:
+                return _error(f"The {version_id} archive lacks {', '.join(sorted(missing))}; not added.")
+            installed = library.entry(version, datetime.now(timezone.utc).isoformat())
+            self.store.commit(stage, installed)
+        except (ReleasesUnavailable, RuntimeError, OSError) as exc:
+            log.error(f"Installing {version_id} failed: {exc}")
+            return _error(f"Installing {version_id} failed: {exc}")
+        finally:
+            self.store.clear_partial()
+        if self.store.default_version() is None:
+            self.store.set_default_version(version_id)
+        log.info(f"Installed OptiScaler {version_id}")
+        message = f"OptiScaler {version.version} is installed."
+        try:
+            self.refresh_core()
+        except OSError as exc:
+            # The version is in the library either way; only the launch scripts may be stale.
+            log.warning(f"Refreshing the core in ~/fgmod after installing {version_id} failed: {exc}")
+            message += f" Updating the launch scripts in ~/fgmod failed: {exc}"
+        return {"status": "success", "id": version_id, "message": message}
+
+    def remove(self, version_id: str) -> dict:
+        default = self.store.default_version()
+        refused = library.removal_refused(version_id, {entry.id for entry in self.store.installed()}, default)
+        if refused:
+            return _error(refused)
+        try:
+            self.store.remove(version_id)
+        except OSError as exc:
+            return _error(f"Removing {version_id} failed: {exc}")
+        if default == version_id:
+            self.store.set_default_version(None)
+        return {"status": "success", "message": f"{version_id} is removed."}
+
+    def set_default(self, version_id: str) -> dict:
+        if not any(entry.id == version_id for entry in self.store.installed()):
+            return _error(f"{version_id} is not in the library.")
+        self.store.set_default_version(version_id)
+        return {"status": "success", "default": version_id}

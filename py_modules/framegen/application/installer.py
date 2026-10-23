@@ -8,13 +8,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from framegen.domain import bundle, ini
-from framegen.infrastructure import archive, bundle_store, files, game_directory
+from framegen.infrastructure import archive, bundle_store, files, fgmod_home, game_directory
 
 log = logging.getLogger(__name__)
 
 # The framegen package this module belongs to.
-CORE_SOURCE = Path(__file__).resolve().parents[1]
-
 
 class AssetError(RuntimeError):
     """A bundled asset is missing or does not match its expected hash."""
@@ -83,10 +81,7 @@ class Installer:
             archive.extract_7z(self.seven_zip, self.bin_path / bundle.OPTISCALER_ARCHIVE_ASSET["name"], fgmod)
 
             self._create_renamed_copies(fgmod / "OptiScaler.dll", fgmod / "renames")
-            self._install_launcher_scripts()
-            shutil.copytree(
-                CORE_SOURCE, fgmod / bundle.CORE_PACKAGE, ignore=shutil.ignore_patterns("__pycache__", "*.pyc")
-            )
+            fgmod_home.refresh_core(fgmod, self.assets_path)
             optipatcher_sha256 = _copy_verified(
                 self.bin_path / bundle.OPTIPATCHER_ASSET["name"],
                 self._mkdir_parent(fgmod / bundle.OPTIPATCHER_TARGET),
@@ -140,14 +135,6 @@ class Installer:
         renames_dir.mkdir(exist_ok=True)
         for name in bundle.PROXY_DLL_BACKUPS:
             shutil.copy2(source, renames_dir / name)
-
-    def _install_launcher_scripts(self) -> None:
-        for installed_name, source_name in bundle.LAUNCHER_SCRIPTS.items():
-            source = self.assets_path / source_name
-            if source.exists():
-                destination = self.fgmod_path / installed_name
-                shutil.copy2(source, destination)
-                destination.chmod(0o755)
 
     def _prepare_variant(self, variant_id: str, native_upscaler: Path) -> None:
         """Lay out one variant's directory: its upscaler, extra driver DLLs and own injector."""

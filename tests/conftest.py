@@ -15,11 +15,13 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import http.server
 import json
 import logging
 import os
 import shutil
 import sys
+import threading
 import types
 import zipfile
 from dataclasses import dataclass, field
@@ -289,3 +291,30 @@ def release_assets(home, fake_variants, tmp_path, monkeypatch) -> Path:
 
     install_tools(plugin_dir / "tools", {"7zzs": FAKE_7Z})
     return plugin_dir
+
+
+# ── GitHub ───────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def github_api(monkeypatch):
+    """A local stand-in for api.github.com: every GET answers `.status` and `.body` (a JSON list by default)."""
+    from framegen.infrastructure import github_releases
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            server.requests.append(self.path)
+            self.send_response(server.status)
+            self.end_headers()
+            self.wfile.write(server.body)
+
+        def log_message(self, *args):
+            pass
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    server.status, server.body, server.requests = 200, b"[]", []
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    monkeypatch.setattr(github_releases, "API_ROOT", f"http://127.0.0.1:{server.server_port}")
+    yield server
+    server.shutdown()
+    server.server_close()

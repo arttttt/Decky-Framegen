@@ -178,3 +178,105 @@ def _version(channel: Channel, release: dict) -> Available:
 def missing_files(family: Family, extracted: frozenset[str]) -> frozenset[str]:
     """Required files of the family an extracted archive lacks (paths relative to its root, with '/')."""
     return family.required - extracted
+
+
+# ── The library on the device ────────────────────────────────────────────────
+
+ENTRY_FILENAME = "entry.json"
+FILES_DIRNAME = "files"
+"""versions/<id>/files holds the unpacked archive as is; versions/<id>/entry.json describes it."""
+
+SPACE_FACTOR = 5
+"""Free space an install needs, as a multiple of the archive: the archive plus the unpacked files
+(OptiScaler archives unpack to about four times their size)."""
+
+
+def space_needed(archive_size: int) -> int:
+    return archive_size * SPACE_FACTOR
+
+
+@dataclass(frozen=True)
+class Installed:
+    """A version in the library, as its entry.json records it."""
+
+    id: str
+    channel: str
+    version: str
+    date: str
+    family: str
+    source_url: str
+    sha256: str
+    installed_at: str
+
+
+def entry(version: Available, installed_at: str) -> Installed:
+    if version.family is None:
+        raise ValueError(f"{version.id} has no layout family")
+    return Installed(
+        version.id, version.channel, version.version, version.date, version.family, version.url, version.sha256,
+        installed_at,
+    )
+
+
+def entry_json(installed: Installed) -> dict:
+    return dict(installed.__dict__)
+
+
+def parse_entry(data: object) -> Installed | None:
+    """An entry.json's version, or None when the file isn't one (the directory is then not in the library)."""
+    if not isinstance(data, dict):
+        return None
+    try:
+        installed = Installed(**{name: str(data[name]) for name in Installed.__dataclass_fields__})
+    except KeyError:
+        return None
+    return installed if installed.family in FAMILIES and installed.channel in CHANNELS else None
+
+
+INSTALLED = "installed"
+AVAILABLE = "available"
+UNSUPPORTED = "unsupported"
+
+
+@dataclass(frozen=True)
+class Row:
+    """One version as the library section lists it."""
+
+    id: str
+    version: str
+    date: str
+    family: str | None
+    state: str
+    reason: str | None
+    size: int
+    default: bool
+
+
+def catalog(
+    installed: list[Installed], published: list[Available], default: str | None, sizes: dict[str, int]
+) -> list[Row]:
+    """A channel's versions, newest first: every installed one (also those upstream no longer lists)
+    as installed, then what upstream publishes, downloadable or not. `sizes` holds installed sizes."""
+    installed_ids = {entry.id for entry in installed}
+    rows = [
+        Row(entry.id, entry.version, entry.date, entry.family, INSTALLED, None, sizes.get(entry.id, 0), entry.id == default)
+        for entry in installed
+    ]
+    rows += [
+        Row(
+            version.id, version.version, version.date, version.family,
+            UNSUPPORTED if version.unsupported else AVAILABLE, version.unsupported, version.size, False,
+        )
+        for version in published
+        if version.id not in installed_ids
+    ]
+    return sorted(rows, key=lambda row: row.date, reverse=True)
+
+
+def removal_refused(version_id: str, installed_ids: set[str], default: str | None) -> str | None:
+    """Why a version can't be removed, or None. The default goes only when it is the last version left."""
+    if version_id not in installed_ids:
+        return f"{version_id} is not in the library."
+    if version_id == default and len(installed_ids) > 1:
+        return "This is the default version. Choose another default before removing it."
+    return None
