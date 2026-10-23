@@ -204,7 +204,8 @@ def _preserving(operations: tuple[Operation, ...], entries: frozenset[str]) -> t
 
     A repatch undoes the previous patch first, so whatever is in the directory now is not the
     patch's. The backup tables above name the usual cases; this makes it hold for every file.
-    A file that already has a backup beside it keeps the old behaviour (the backup is the original).
+    A file that already has a backup beside it keeps the old behaviour (the backup is the original),
+    and a backup itself is never deleted.
     """
     present = set(entries)
     kept: list[Operation] = []
@@ -213,6 +214,8 @@ def _preserving(operations: tuple[Operation, ...], entries: frozenset[str]) -> t
             case Move(source, destination):
                 present.discard(source)
                 present.add(destination)
+            case DeleteFile(name) if name.endswith(BACKUP_SUFFIX):
+                continue  # a backup holds someone's original; it is never deleted
             case DeleteFile(name) if name in present and f"{name}{BACKUP_SUFFIX}" not in present:
                 kept.append(Move(name, f"{name}{BACKUP_SUFFIX}"))
                 present.discard(name)

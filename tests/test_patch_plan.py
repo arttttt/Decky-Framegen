@@ -62,6 +62,12 @@ def test_stale_injectors_and_logs_are_kept_as_backups_not_deleted():
     assert not ops_of(result, DeleteFile)
 
 
+def test_a_backup_left_in_the_directory_is_never_deleted():
+    result = patch({"nvapi64.dll.b"})
+
+    assert not [op for op in result.operations if "nvapi64.dll.b" in str(op)]
+
+
 def test_any_file_a_copy_would_overwrite_is_backed_up_first_even_outside_the_tables():
     # E.g. a Nukem DLL the user put there by hand.
     result = patch({"dlssg_to_fsr3_amd_is_better.dll"})
