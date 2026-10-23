@@ -51,7 +51,7 @@ class Plugin:
     async def manual_patch_directory(
         self,
         directory: str,
-        dll_name: str = "dxgi.dll",
+        dll_name: str = bundle.DEFAULT_PROXY_DLL,
         fsr4_variant: str = bundle.DEFAULT_FSR4_VARIANT,
     ) -> dict:
         return self._patcher().patch_user_directory(directory, dll_name, fsr4_variant)
@@ -65,7 +65,7 @@ class Plugin:
     async def patch_game(
         self,
         appid: str,
-        dll_name: str = "dxgi.dll",
+        dll_name: str = bundle.DEFAULT_PROXY_DLL,
         current_launch_options: str = "",
         fsr4_variant: str = bundle.DEFAULT_FSR4_VARIANT,
     ) -> dict:

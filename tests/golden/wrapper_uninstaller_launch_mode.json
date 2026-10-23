@@ -2,7 +2,7 @@
   {
     "exit_code": 0,
     "game_launched_with": [
-      "WINEDLLOVERRIDES=,dxgi=n,b",
+      "WINEDLLOVERRIDES=<unset>",
       "SteamDeck=0",
       "arg=<root>/games/Uninstall Game/Game.exe",
       "arg=-dx12"

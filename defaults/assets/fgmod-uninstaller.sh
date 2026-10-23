@@ -31,9 +31,9 @@ fi
 echo " fgmod removed from this game successfully!"
 logger -t fgmod-uninstaller "fgmod removed from $exe_folder_path"
 
+# The game no longer carries a proxy DLL, so it starts without any override of ours.
 if [[ $# -gt 1 ]]; then
   export SteamDeck=0
-  export WINEDLLOVERRIDES="${WINEDLLOVERRIDES},dxgi=n,b"
   exec >/dev/null 2>&1
   exec "$@"
 fi

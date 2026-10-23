@@ -2,7 +2,7 @@
   {
     "exit_code": 0,
     "game_launched_with": [
-      "WINEDLLOVERRIDES=d3d11=n,winmm=n,b",
+      "WINEDLLOVERRIDES=d3d11=n;winmm=n,b",
       "SteamDeck=0",
       "arg=<root>/games/Launch Game/Game.exe",
       "arg=-dx12"

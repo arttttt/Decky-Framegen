@@ -197,7 +197,7 @@ class Patcher:
             return {**unpatched, "name": game.name, "install_found": True, "message": "Not patched."}
 
         metadata = files.read_json(marker_path)
-        dll_name = metadata.get("dll_name", "dxgi.dll")
+        dll_name = metadata.get("dll_name", bundle.DEFAULT_PROXY_DLL)
         target_dir = Path(metadata.get("target_dir", str(marker_path.parent)))
         dll_present = (target_dir / dll_name).exists()
         upscaler_path = target_dir / bundle.FSR4_UPSCALER_FILENAME

@@ -33,3 +33,16 @@ def test_user_options_are_not_managed(options):
 def test_asi_options_are_not_recognised_as_managed():
     # Current behaviour: the ASI proxy writes no override, so its options look like the user's own.
     assert not launch_options.is_managed(launch_options.managed("OptiScaler.asi"))
+
+
+@pytest.mark.parametrize(
+    ("current", "dll_name", "expected"),
+    [
+        ("", "dxgi.dll", "dxgi=n,b"),
+        ("d3d11=n", "winmm.dll", "d3d11=n;winmm=n,b"),
+        ("d3d11,dxgi=n;xinput1_3=b", "version.dll", "d3d11,dxgi=n;xinput1_3=b;version=n,b"),
+        ("d3d11=n", "OptiScaler.asi", "d3d11=n"),
+    ],
+)
+def test_wine_dll_overrides_append_our_entry_with_wines_separator(current, dll_name, expected):
+    assert launch_options.wine_dll_overrides(current, dll_name) == expected

@@ -2,7 +2,7 @@
   {
     "exit_code": 0,
     "game_launched_with": [
-      "WINEDLLOVERRIDES=,dxgi=n,b",
+      "WINEDLLOVERRIDES=dxgi=n,b",
       "SteamDeck=0",
       "arg=run"
     ],

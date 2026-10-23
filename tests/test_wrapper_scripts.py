@@ -282,9 +282,8 @@ def test_a_missing_python_is_reported_instead_of_guessed_around(wrapper, tmp_pat
     # Only bash, tee and the zenity/logger stubs: no python anywhere on PATH.
     bare = tmp_path / "bare-bin"
     bare.mkdir()
-    for tool in ("bash", "tee"):
-        (bare / tool).symlink_to(shutil.which(tool))
-    for stub in ("zenity", "logger"):
+    (bare / "bash").symlink_to(shutil.which("bash"))
+    for stub in ("tee", "zenity", "logger"):
         (bare / stub).symlink_to(wrapper.tools / stub)
     game = make_game_dir(tmp_path / "games" / "No Python Game")
 
