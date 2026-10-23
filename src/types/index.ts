@@ -16,11 +16,3 @@ export interface LaunchOptions {
   arguments?: string[];
 }
 
-export interface ModInstallationConfig {
-  files: string[];
-  paths: {
-    fgmod: string;
-    assets: string;
-    bin: string;
-  };
-}
