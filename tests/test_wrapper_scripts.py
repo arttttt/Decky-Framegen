@@ -5,14 +5,16 @@ starts it; `fgmod-uninstaller.sh` unpatches and starts it. Both are bash for
 SteamOS-like Linux (bash 5, GNU coreutils), so these tests run on Linux only —
 CI runs them on every PR.
 
-Each scenario runs the real scripts against the fake ~/fgmod with stubs for
-zenity, logger and python on PATH. In launch mode the "game" is a recorder that
+Each scenario runs the real scripts against the fake ~/fgmod (which carries
+the plugin's Python core, as an install does) with stubs for zenity, logger and
+python on PATH. In launch mode the "game" is a recorder that
 writes the environment and arguments the wrapper started it with. Results are
 compared with golden files, like the Python patch scenarios.
 """
 
 from __future__ import annotations
 
+import asyncio
 import shutil
 import subprocess
 import sys
@@ -20,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import REPO_ROOT, game_file, make_game_dir, write
+from conftest import REPO_ROOT, game_file, install_tools, make_game_dir, write
 from golden import assert_golden, describe_tree, normalize_result
 
 pytestmark = pytest.mark.skipif(sys.platform != "linux", reason="the wrappers target Linux (bash 5, GNU sed)")
@@ -40,18 +42,14 @@ def tools(tmp_path) -> Path:
 
     The tee stand-in sends the scripts' log (meant for /tmp) into the test's own directory.
     """
-    bin_dir = tmp_path / "tools"
-    stubs = {
+    return install_tools(tmp_path / "tools", {
         "tee": f'#!/usr/bin/env bash\nexec "{shutil.which("tee")}" -a "{tmp_path / "wrapper.log"}"\n',
         "zenity": "#!/usr/bin/env bash\nexit 0\n",
         "logger": "#!/usr/bin/env bash\nexit 0\n",
         "python": f'#!/usr/bin/env bash\nexec "{sys.executable}" "$@"\n',
         "python3": f'#!/usr/bin/env bash\nexec "{sys.executable}" "$@"\n',
         "launch-recorder": RECORDER,
-    }
-    for name, body in stubs.items():
-        write(bin_dir / name, body.encode()).chmod(0o755)
-    return bin_dir
+    })
 
 
 @pytest.fixture
@@ -264,3 +262,39 @@ def test_uninstaller_launch_mode_starts_the_game(wrapper, tmp_path):
     launched = wrapper.launch("fgmod-uninstaller.sh", game / "Game.exe")
 
     scenario("wrapper_uninstaller_launch_mode", game, [("launch", launched)])
+
+
+# ── one implementation behind both entry points ──────────────────────────────
+
+
+def test_the_wrapper_and_the_plugin_patch_a_game_identically(wrapper, plugin, tmp_path):
+    shipped = {"version.dll": game_file("version.dll"), "libxess.dll": game_file("libxess.dll")}
+    by_wrapper = make_game_dir(tmp_path / "games" / "A" / "Game", shipped)
+    by_plugin = make_game_dir(tmp_path / "games" / "B" / "Game", shipped)
+
+    wrapper.run("fgmod", str(by_wrapper / "Game.exe"), env={"DLL": "winmm.dll", "FGMOD_FSR4_VARIANT": "rdna4-native"})
+    asyncio.run(plugin.manual_patch_directory(str(by_plugin), "winmm.dll", "rdna4-native"))
+
+    assert describe_tree(by_wrapper) == describe_tree(by_plugin)
+
+
+def test_a_missing_python_is_reported_instead_of_guessed_around(wrapper, tmp_path):
+    # Only bash, tee and the zenity/logger stubs: no python anywhere on PATH.
+    bare = tmp_path / "bare-bin"
+    bare.mkdir()
+    (bare / "bash").symlink_to(shutil.which("bash"))
+    for stub in ("tee", "zenity", "logger"):
+        (bare / stub).symlink_to(wrapper.tools / stub)
+    game = make_game_dir(tmp_path / "games" / "No Python Game")
+
+    result = subprocess.run(
+        [shutil.which("bash"), str(wrapper.fgmod / "fgmod"), str(game / "Game.exe")],
+        env={"HOME": str(wrapper.home), "PATH": str(bare)},
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
+    assert result.returncode == 1
+    assert "Python 3 is required" in result.stdout
+    assert sorted(p.name for p in game.iterdir()) == ["Game.exe"]

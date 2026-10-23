@@ -44,15 +44,23 @@ class Patcher:
         return target
 
     def patch_directory(
-        self, directory: Path, dll_name: str, fsr4_variant: str | None, steam_game: marker.SteamGame | None = None
+        self,
+        directory: Path,
+        dll_name: str,
+        fsr4_variant: str | None,
+        *,
+        reset_ini: bool = False,
+        steam_game: marker.SteamGame | None = None,
     ) -> dict:
         """Patch a directory and leave our marker in it, which later proves which files are ours."""
+        if dll_name not in bundle.VALID_DLL_NAMES:
+            return _error(f"Invalid proxy DLL name: {dll_name}")
         if not self.fgmod_path.exists():
             return _error(NOT_INSTALLED)
         previous_variant = str(files.read_json(directory / bundle.MARKER_FILENAME).get("fsr4_variant") or "").strip()
         variant = bundle_store.selected_variant(self.fgmod_path, fsr4_variant)
         label = bundle.FSR4_VARIANTS[variant]["label"]
-        request = plan.PatchRequest(dll_name, variant)
+        request = plan.PatchRequest(dll_name, variant, reset_ini)
         try:
             game = game_directory.read(directory, self.fgmod_path, previous_variant)
             patch = plan.plan_patch(game, game_directory.bundle_files(self.fgmod_path), request)
@@ -107,8 +115,6 @@ class Patcher:
         return {"status": "success", "message": f"OptiScaler files removed from {directory}"}
 
     def patch_user_directory(self, directory: str, dll_name: str, fsr4_variant: str) -> dict:
-        if dll_name not in bundle.VALID_DLL_NAMES:
-            return _error(f"Invalid proxy DLL name: {dll_name}")
         try:
             target = self.resolve_directory(directory)
         except (FileNotFoundError, NotADirectoryError, PermissionError) as exc:
@@ -191,7 +197,7 @@ class Patcher:
             return {**unpatched, "name": game.name, "install_found": True, "message": "Not patched."}
 
         metadata = files.read_json(marker_path)
-        dll_name = metadata.get("dll_name", "dxgi.dll")
+        dll_name = metadata.get("dll_name", bundle.DEFAULT_PROXY_DLL)
         target_dir = Path(metadata.get("target_dir", str(marker_path.parent)))
         dll_present = (target_dir / dll_name).exists()
         upscaler_path = target_dir / bundle.FSR4_UPSCALER_FILENAME
@@ -234,8 +240,6 @@ class Patcher:
             return _error(str(exc))
 
     def _patch_game(self, appid: str, dll_name: str, current_launch_options: str, fsr4_variant: str) -> dict:
-        if dll_name not in bundle.VALID_DLL_NAMES:
-            return _error(f"Invalid proxy DLL name: {dll_name}")
         game = steam_library.find_game(self.home, str(appid))
         if game is None:
             return _error("Game not found in Steam library.")
@@ -255,7 +259,7 @@ class Patcher:
         target_dir, target_exe = self._patch_target(game)
         log.info(f"[Framegen] patch_game: appid={appid} dll={dll_name} target={target_dir} exe={target_exe}")
         result = self.patch_directory(
-            target_dir, dll_name, fsr4_variant, marker.SteamGame(str(appid), game.name, original_options)
+            target_dir, dll_name, fsr4_variant, steam_game=marker.SteamGame(str(appid), game.name, original_options)
         )
         if result["status"] != "success":
             return result

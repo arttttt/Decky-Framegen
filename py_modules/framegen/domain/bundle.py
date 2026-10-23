@@ -145,6 +145,7 @@ PROXY_DLL_BACKUPS = [
 ]
 
 VALID_DLL_NAMES = set(PROXY_DLL_BACKUPS)
+DEFAULT_PROXY_DLL = "dxgi.dll"
 
 INJECTOR_FILENAMES = [
     *PROXY_DLL_BACKUPS,
@@ -325,6 +326,9 @@ LAUNCHER_SCRIPTS = {
 
 OPTIPATCHER_TARGET = "plugins/OptiPatcher.asi"
 
+# The plugin's Python core, copied into ~/fgmod so the launch wrappers can run it.
+CORE_PACKAGE = "framegen"
+
 
 def required_install_paths() -> list[str]:
     """Paths (relative to ~/fgmod) a complete install must contain."""
@@ -336,6 +340,7 @@ def required_install_paths() -> list[str]:
         *LAUNCHER_SCRIPTS,
         INSTALL_MANIFEST_FILENAME,
         OPTIPATCHER_TARGET,
+        f"{CORE_PACKAGE}/__main__.py",
     ]
     for variant in FSR4_VARIANTS.values():
         variant_dir = variant["dir_name"]
