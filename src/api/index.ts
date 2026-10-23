@@ -1,44 +1,6 @@
 import { callable } from "@decky/api";
 
-export const runInstallFGMod = callable<
-  [selected_default_variant?: string],
-  {
-    status: string;
-    message?: string;
-    output?: string;
-    version?: string;
-    selected_default_variant?: string;
-    selected_default_variant_label?: string;
-  }
->("run_install_fgmod");
-
-export const runUninstallFGMod = callable<
-  [],
-  { status: string; message?: string; output?: string }
->("run_uninstall_fgmod");
-
-export const setDefaultFsr4Variant = callable<
-  [selected_default_variant?: string],
-  {
-    status: string;
-    message?: string;
-    output?: string;
-    version?: string;
-    selected_default_variant?: string;
-    selected_default_variant_label?: string;
-  }
->("set_default_fsr4_variant");
-
-export const checkFGModPath = callable<
-  [],
-  {
-    exists: boolean;
-    version?: string | null;
-    selected_fsr4_variant?: string | null;
-    selected_fsr4_variant_label?: string | null;
-    install_manifest_present?: boolean;
-  }
->("check_fgmod_path");
+export const checkFGModPath = callable<[], { exists: boolean; version: string | null }>("check_fgmod_path");
 
 export const listInstalledGames = callable<
   [],
@@ -60,7 +22,6 @@ export const runManualPatch = callable<
     output?: string;
     fsr4_variant?: string;
     fsr4_variant_label?: string;
-    fsr4_upscaler_sha256?: string;
     optiscaler_version?: string | null;
   }
 >("manual_patch_directory");
@@ -85,7 +46,6 @@ export const getGameStatus = callable<
     optiscaler_version?: string | null;
     fsr4_variant?: string | null;
     fsr4_variant_label?: string | null;
-    fsr4_upscaler_sha256?: string | null;
   }
 >("get_game_status");
 
@@ -103,7 +63,6 @@ export const patchGame = callable<
     optiscaler_version?: string | null;
     fsr4_variant?: string;
     fsr4_variant_label?: string;
-    fsr4_upscaler_sha256?: string;
   }
 >("patch_game");
 

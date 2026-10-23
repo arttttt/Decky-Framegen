@@ -7,13 +7,7 @@ import { checkFGModPath } from "./api";
 import { safeAsyncOperation } from "./utils";
 import { TIMEOUTS } from "./utils/constants";
 
-type FgmodInfo = {
-  exists: boolean;
-  version?: string | null;
-  selected_fsr4_variant?: string | null;
-  selected_fsr4_variant_label?: string | null;
-  install_manifest_present?: boolean;
-};
+type FgmodInfo = { exists: boolean; version: string | null };
 
 function MainContent() {
   const [pathExists, setPathExists] = useState<boolean | null>(null);
@@ -38,11 +32,7 @@ function MainContent() {
 
   return (
     <>
-      <OptiScalerControls
-        pathExists={pathExists}
-        setPathExists={setPathExists}
-        fgmodInfo={fgmodInfo}
-      />
+      <OptiScalerControls pathExists={pathExists} fgmodInfo={fgmodInfo} />
       {pathExists === true ? (
         <>
           {/* <InstalledGamesSection /> */}
