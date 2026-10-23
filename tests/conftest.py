@@ -4,11 +4,11 @@
 module is registered before `main` is imported; each test then points its
 paths at a private temporary directory.
 
-The fixtures build a fake world on disk: an installed `~/fgmod` bundle, game
-directories and a Steam library. Bundle files are small placeholder blobs —
-the plugin tells its own files apart from foreign ones by content and hash,
-so size does not matter. Variant hashes in `main.FSR4_VARIANTS` are swapped
-for the hashes of those blobs so variant detection behaves as on a device.
+The fixtures build a fake world on disk: a `~/fgmod` with an OptiScaler library
+(a 0.9 stable version as the default and a 10 nightly one, laid out as their real
+archives are), game directories and a Steam library. Version files are small
+placeholder blobs — the plugin records and compares them by hash, so size does
+not matter.
 """
 
 from __future__ import annotations
