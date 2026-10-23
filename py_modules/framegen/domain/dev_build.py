@@ -11,6 +11,8 @@ import json
 import re
 from dataclasses import dataclass, field, replace
 
+from . import release_assets
+
 BUILD_INFO_FILENAME = "build-info.json"
 MAIN_CHANNEL = "dev"
 """The channel built from the main branch; every pull request has its own `pr-<N>`."""
@@ -98,7 +100,6 @@ DECKY_INSTALL_UPDATE = 2
 INSTALLED = "installed"
 AVAILABLE = "available"
 
-_SHA256_DIGEST = re.compile(r"^sha256:([0-9a-f]{64})$")
 
 
 @dataclass(frozen=True)
@@ -135,7 +136,7 @@ def _release(entry: object, current: BuildInfo, plugin_name: str) -> DevRelease 
     asset = next((a for a in entry.get("assets") or [] if isinstance(a, dict) and a.get("name") == name), None)
     if asset is None or asset.get("state") != "uploaded":
         return None
-    digest = _SHA256_DIGEST.match(str(asset.get("digest", "")))
+    digest = release_assets.sha256(asset)
     url = str(asset.get("browser_download_url", ""))
     if digest is None or url != download_url(info, name):
         return None
@@ -144,7 +145,7 @@ def _release(entry: object, current: BuildInfo, plugin_name: str) -> DevRelease 
         title=str(entry.get("name") or info.channel),
         published_at=str(entry.get("published_at") or ""),
         url=url,
-        sha256=digest.group(1),
+        sha256=digest,
     )
 
 
