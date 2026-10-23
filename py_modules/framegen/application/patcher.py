@@ -19,6 +19,7 @@ from framegen.infrastructure import steam as steam_library
 log = logging.getLogger(__name__)
 
 NOT_INSTALLED = "OptiScaler bundle not installed. Run Install first."
+BUNDLE_IS_NOT_A_GAME = "The target directory is the OptiScaler bundle itself. Aborting to prevent accidental deletion."
 
 
 def _error(message: str) -> dict:
@@ -102,7 +103,13 @@ class Patcher:
             "optiscaler_version": optiscaler_version,
         }
 
+    def _is_bundle(self, directory: Path) -> bool:
+        """Whether `directory` is ~/fgmod or inside it: never a game, never to be unpatched or reset."""
+        return directory.resolve().is_relative_to(self.fgmod_path.resolve())
+
     def unpatch_directory(self, directory: Path) -> dict:
+        if self._is_bundle(directory):
+            return _error(BUNDLE_IS_NOT_A_GAME)
         try:
             entries, plugin_entries = game_directory.listing(directory)
             game_directory.execute(plan.plan_unpatch(entries, plugin_entries), directory, self.fgmod_path)
@@ -345,6 +352,8 @@ class Patcher:
         self, directory: Path, marker_path: Path | None, current_launch_options: str | None
     ) -> tuple[dict, tuple[plan.Operation, ...]]:
         """What resetting `directory` does, as the frontend shows it, and the operations that do it."""
+        if self._is_bundle(directory):
+            return _error(BUNDLE_IS_NOT_A_GAME), ()
         entries, plugin_entries = game_directory.listing(directory)
         marked_elsewhere = marker_path is not None and marker_path.parent != directory
         reset = stock_reset.plan(entries, plugin_entries, marked_elsewhere)

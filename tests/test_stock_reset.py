@@ -153,3 +153,15 @@ def test_a_directory_with_an_old_versions_backups_is_reset(plugin, tmp_path):
         "Game.exe", "libxess.dll", "plugins", "plugins/OtherMod.asi"
     ]
     assert (game / "libxess.dll").read_bytes() == game_file("libxess.dll")
+
+
+@pytest.mark.parametrize("inside", ["", "renames"])
+def test_the_bundle_itself_is_never_reset(plugin, fgmod, inside):
+    before = snapshot(fgmod)
+
+    preview = run(plugin.preview_reset_directory(str(fgmod / inside)))
+    result = run(plugin.reset_directory(str(fgmod / inside)))
+
+    assert preview["status"] == result["status"] == "error"
+    assert "OptiScaler bundle itself" in result["message"]
+    assert snapshot(fgmod) == before

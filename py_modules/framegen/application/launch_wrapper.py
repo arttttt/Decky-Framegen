@@ -53,8 +53,6 @@ class LaunchWrapper:
 
     def unpatch(self, command: list[str]) -> Path:
         directory = self.locate(command)
-        if directory.resolve() == self.patcher.fgmod_path.resolve():
-            raise WrapperError("The target directory is the OptiScaler bundle itself. Aborting to prevent accidental deletion.")
         result = self.patcher.unpatch_directory(directory)
         if result["status"] != "success":
             raise WrapperError(result["message"])
