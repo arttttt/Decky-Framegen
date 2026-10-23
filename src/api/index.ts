@@ -144,3 +144,27 @@ export type DevBuildList =
 export const getDevBuild = callable<[], DevBuild>("get_dev_build");
 
 export const listDevBuilds = callable<[], DevBuildList>("list_dev_builds");
+
+// ── Reset to stock ───────────────────────────────────────────────────────────
+
+export type ResetPreview =
+  | {
+      status: "success";
+      target_dir: string;
+      evidence: "marker" | "backups" | "leftovers";
+      remove: string[];
+      restore: string[];
+      unrecoverable: string[];
+      /** The launch options to set afterwards; null leaves them as they are. */
+      launch_options: string | null;
+      name?: string;
+      message?: string;
+    }
+  | { status: "error"; message: string };
+
+export const previewResetGame = callable<[appid: string, current_launch_options: string], ResetPreview>(
+  "preview_reset_game"
+);
+export const resetGame = callable<[appid: string, current_launch_options: string], ResetPreview>("reset_game");
+export const previewResetDirectory = callable<[directory: string], ResetPreview>("preview_reset_directory");
+export const resetDirectory = callable<[directory: string], ResetPreview>("reset_directory");

@@ -2,42 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ButtonItem, DropdownItem, Field, PanelSectionRow } from "@decky/ui";
 import { toaster } from "@decky/api";
 import { listInstalledGames, getGameStatus, patchGame, unpatchGame } from "../api";
+import { getAppLaunchOptions, setAppLaunchOptions } from "../api/steamClient";
+import { ResetToStock } from "./ResetToStock";
 import { FSR4_VARIANT_OPTIONS } from "../utils/constants";
-
-// ─── SteamClient helpers ─────────────────────────────────────────────────────
-
-const getAppLaunchOptions = (appId: number): Promise<string> =>
-  new Promise((resolve, reject) => {
-    if (typeof SteamClient === "undefined" || !SteamClient?.Apps?.RegisterForAppDetails) {
-      resolve("");
-      return;
-    }
-    let settled = false;
-    let unregister = () => {};
-    const timeout = window.setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      unregister();
-      reject(new Error("Timed out reading launch options."));
-    }, 5000);
-    const registration = SteamClient.Apps.RegisterForAppDetails(
-      appId,
-      (details: { strLaunchOptions?: string }) => {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(timeout);
-        unregister();
-        resolve(details?.strLaunchOptions ?? "");
-      }
-    );
-    unregister = registration.unregister;
-  });
-
-const setAppLaunchOptions = (appId: number, options: string): void => {
-  if (typeof SteamClient !== "undefined" && SteamClient?.Apps?.SetAppLaunchOptions) {
-    SteamClient.Apps.SetAppLaunchOptions(appId, options);
-  }
-};
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -294,6 +261,11 @@ export function SteamGamePatcher({ dllName, fsr4Variant }: SteamGamePatcherProps
               </ButtonItem>
             </PanelSectionRow>
           )}
+
+          <ResetToStock
+            target={{ kind: "game", appid: selectedGame.appid, name: selectedGame.name }}
+            onDone={() => void loadStatus(selectedGame.appid)}
+          />
 
           <PanelSectionRow>
             <ButtonItem

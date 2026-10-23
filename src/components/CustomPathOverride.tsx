@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ButtonItem, Field, PanelSectionRow, ToggleField } from "@decky/ui";
 import { FileSelectionType, openFilePicker } from "@decky/api";
 import { getPathDefaults, runManualPatch, runManualUnpatch } from "../api";
+import { ResetToStock } from "./ResetToStock";
 import type { ApiResponse } from "../types/index";
 import { SmartClipboardButton } from "./SmartClipboardButton";
 
@@ -288,6 +289,8 @@ export const ManualPatchControls = ({ isAvailable, onManualModeChange, dllName, 
                   {isUnpatching ? "Reverting..." : "Unpatch directory"}
                 </ButtonItem>
               </PanelSectionRow>
+
+              <ResetToStock target={{ kind: "directory", path: selectedPath }} onDone={() => undefined} />
             </>
           )}
 
