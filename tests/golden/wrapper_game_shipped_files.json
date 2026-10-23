@@ -63,6 +63,8 @@
       "amd_fidelityfx_dx12.dll": "game:amd_fidelityfx_dx12.dll",
       "d3dcompiler_47.dll": "game:d3dcompiler_47.dll",
       "libxess.dll": "game:libxess.dll",
+      "plugins": "<dir>",
+      "plugins/OtherMod.asi": "game:OtherMod.asi",
       "version.dll": "game:version.dll"
     }
   }
