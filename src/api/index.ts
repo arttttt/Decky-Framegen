@@ -134,7 +134,6 @@ export type AvailableDevBuild = {
   title: string;
   published_at: string;
   state: "installed" | "available";
-  install_request: DeckyInstallRequest;
 };
 
 export type DevBuildList =
@@ -144,6 +143,12 @@ export type DevBuildList =
 export const getDevBuild = callable<[], DevBuild>("get_dev_build");
 
 export const listDevBuilds = callable<[], DevBuildList>("list_dev_builds");
+
+/** Asked at install time: a channel's build is replaced on every push and the old download is gone. */
+export const devInstallRequest = callable<
+  [channel: string],
+  { status: "success"; install_request: DeckyInstallRequest } | { status: "error"; message: string }
+>("dev_install_request");
 
 // ── Reset to stock ───────────────────────────────────────────────────────────
 
