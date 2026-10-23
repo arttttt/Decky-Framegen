@@ -38,9 +38,17 @@ def test_a_game_shipped_proxy_dll_is_backed_up_before_ours_is_copied():
     assert Move("version.dll", "version.dll.b") in result.operations
 
 
-def test_proxy_dlls_are_not_backed_up_in_an_already_patched_directory_or_when_they_are_ours():
-    assert not ops_of(patch({"version.dll", "OptiScaler.ini"}), Move)
+def test_proxy_dlls_are_not_backed_up_where_we_patched_or_when_they_are_a_copy_of_ours():
+    assert not ops_of(patch({"version.dll", "FRAMEGEN_PATCH"}), Move)
     assert not ops_of(patch({"dxgi.dll"}, bundled_proxy_copies=frozenset({"dxgi.dll"})), Move)
+
+
+def test_a_proxy_next_to_a_manual_optiscaler_install_is_backed_up_not_deleted():
+    # An OptiScaler.ini proves nothing about the game's version.dll (often a mod loader).
+    result = patch({"version.dll", "OptiScaler.ini"})
+
+    assert Move("version.dll", "version.dll.b") in result.operations
+    assert DeleteFile("version.dll") not in result.operations
 
 
 def test_an_existing_backup_is_never_overwritten():

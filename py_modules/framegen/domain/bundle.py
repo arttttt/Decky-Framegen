@@ -168,15 +168,6 @@ PATCH_CLEANUP_FILES = [
     "dlssg_to_fsr3_amd_is_better-3.0.dll",
 ]
 
-PATCH_FINGERPRINT_FILES = [
-    "FRAMEGEN_PATCH",
-    "OptiScaler.ini",
-    "fakenvapi.dll",
-    "fakenvapi.ini",
-    "dlssg_to_fsr3_amd_is_better.dll",
-    "D3D12_Optiscaler",
-]
-
 ORIGINAL_DLL_BACKUPS = [
     "d3dcompiler_47.dll",
     "amd_fidelityfx_dx12.dll",

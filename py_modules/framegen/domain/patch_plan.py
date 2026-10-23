@@ -101,10 +101,6 @@ class PatchPlan:
 # ── patch ────────────────────────────────────────────────────────────────────
 
 
-def has_patch_fingerprint(entries: frozenset[str]) -> bool:
-    return any(name in entries for name in bundle.PATCH_FINGERPRINT_FILES)
-
-
 def managed_support_candidates(filename: str) -> list[str]:
     """Bundle paths whose content counts as the plugin's own copy of `filename`."""
     candidates = [filename]
@@ -170,13 +166,17 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
         operations.append(DeleteFile(name))
         present.discard(name)
 
-    # 1. Proxy-named DLLs the game shipped are kept as backups — unless the
-    #    directory already carries a patch, or the file is our own copy.
-    already_patched = has_patch_fingerprint(game.entries)
+    # Only our marker proves that files in the directory are ours. Other traces
+    # (an OptiScaler.ini from a manual install) do not: deleting a game's own
+    # file would lose it, while backing up one of ours merely keeps a copy.
+    patched_by_us = bundle.MARKER_FILENAME in game.entries
+
+    # 1. Proxy-named DLLs the game shipped are kept as backups — unless we
+    #    patched this directory, or the file is a copy of our own proxy.
     for name in bundle.PROXY_DLL_BACKUPS:
         if name not in present or name + BACKUP_SUFFIX in present:
             continue
-        if already_patched or name in game.bundled_proxy_copies:
+        if patched_by_us or name in game.bundled_proxy_copies:
             continue
         move(name, name + BACKUP_SUFFIX)
 
@@ -186,10 +186,6 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
             delete(name)
 
     # 3. Back up game DLLs the bundle replaces; drop our own copies on a repatch.
-    #    Only our marker proves a file identical to the bundle's is ours: other
-    #    traces (an OptiScaler.ini from a manual install) do not, and deleting a
-    #    game's own file would lose it — backing up ours merely keeps a copy.
-    patched_by_us = bundle.MARKER_FILENAME in game.entries
     for name in bundle.ORIGINAL_DLL_BACKUPS:
         if name not in present or name + BACKUP_SUFFIX in present:
             continue

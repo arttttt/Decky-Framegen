@@ -22,7 +22,9 @@
       "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
       "FRAMEGEN_PATCH": {
         "appid": "",
-        "backed_up_files": [],
+        "backed_up_files": [
+          "dxgi.dll"
+        ],
         "dll_name": "dxgi.dll",
         "fsr4_upscaler_sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
         "fsr4_variant": "rdna23-int8",
@@ -48,6 +50,7 @@
       "amd_fidelityfx_vk.dll": "bundle:amd_fidelityfx_vk.dll",
       "dlssg_to_fsr3_amd_is_better.dll": "bundle:dlssg_to_fsr3_amd_is_better.dll",
       "dxgi.dll": "bundle:OptiScaler.dll",
+      "dxgi.dll.b": "game:dxgi.dll",
       "fakenvapi.dll": "bundle:fakenvapi.dll",
       "fakenvapi.ini": "bundle:fakenvapi.ini",
       "libxell.dll": "bundle:libxell.dll",
@@ -65,7 +68,8 @@
     },
     "step": "unpatch",
     "tree": {
-      "Game.exe": "game:Game.exe"
+      "Game.exe": "game:Game.exe",
+      "dxgi.dll": "game:dxgi.dll"
     }
   }
 ]
