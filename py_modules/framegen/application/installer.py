@@ -43,6 +43,8 @@ class Installer:
     def install(self, selected_variant: str) -> dict:
         variant = bundle.normalize_variant(selected_variant)
         log.info("Starting OptiScaler installation from static bundle")
+        if not self.bin_path.exists():
+            return {"status": "error", "message": "This plugin build does not include OptiScaler."}
         try:
             extracted = self._extract(variant)
         except Exception as exc:
@@ -67,8 +69,6 @@ class Installer:
     def _extract(self, variant: str) -> dict:
         """Prepare ~/fgmod with every bundled FSR4 runtime variant and activate `variant`."""
         try:
-            if not self.bin_path.exists():
-                return {"status": "error", "message": "This plugin build does not include OptiScaler."}
             for asset in bundle.RELEASE_ASSETS:
                 source = self.bin_path / asset["name"]
                 if not source.exists():
