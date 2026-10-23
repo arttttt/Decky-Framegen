@@ -72,6 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write  # publishes development builds as prereleases
+      pull-requests: read  # checks the pull request is still open after publishing
     env:
       DECKY_CLI_VERSION: "0.0.8"
       DECKY_CLI_SHA256: "6777e356508c1ce887f8e61b0fa4954bb48b32e6d97341eef68ea4e0d6ead9a0"
@@ -140,6 +141,7 @@ jobs:
           ASSET: ${{ steps.stamp.outputs.asset }}
           TITLE: ${{ steps.stamp.outputs.title }}
           VERSION: ${{ steps.stamp.outputs.version }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
         run: |
           plugin_zip="$(ls out/*.zip)"
           cp "$plugin_zip" "$RUNNER_TEMP/$ASSET"
@@ -149,6 +151,11 @@ jobs:
           gh release create "$CHANNEL" "$RUNNER_TEMP/$ASSET" --target "$COMMIT" \
             --prerelease --latest=false --title "$TITLE" \
             --notes "Development build $VERSION of $COMMIT. Installable from the plugin's Developer section."
+          # Closing the pull request while this ran may have let its cleanup finish first;
+          # then this release would outlive it, so it goes now.
+          if [[ -n "$PULL_REQUEST" && "$(gh pr view "$PULL_REQUEST" --json state --jq .state)" != "OPEN" ]]; then
+            gh release delete "$CHANNEL" --cleanup-tag --yes
+          fi
 
       - uses: actions/upload-artifact@v7
         with:
