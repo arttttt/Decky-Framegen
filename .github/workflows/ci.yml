@@ -59,3 +59,44 @@ jobs:
 
       - name: Run shellcheck
         run: shellcheck defaults/assets/*.sh
+
+  package:
+    name: Plugin package (Decky CLI)
+    runs-on: ubuntu-latest
+    env:
+      DECKY_CLI_VERSION: "0.0.8"
+      DECKY_CLI_SHA256: "6777e356508c1ce887f8e61b0fa4954bb48b32e6d97341eef68ea4e0d6ead9a0"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install Decky CLI
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/decky" \
+            "https://github.com/SteamDeckHomebrew/cli/releases/download/${DECKY_CLI_VERSION}/decky-linux-x86_64"
+          echo "${DECKY_CLI_SHA256}  $RUNNER_TEMP/decky" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/decky"
+
+      # The same build a release uses: frontend in Decky's builder image,
+      # remote binaries downloaded and hash-checked, py_modules bundled.
+      - name: Build plugin
+        run: |
+          "$RUNNER_TEMP/decky" plugin build . --output-path out
+          ls -l out
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      # A separate assignment fails the step when no zip was built (bash -e), and a
+      # non-empty PLUGIN_ZIP means the package tests run instead of being skipped.
+      - name: Check the package
+        run: |
+          python -m pip install -r requirements-dev.txt
+          plugin_zip="$(ls out/*.zip)"
+          PLUGIN_ZIP="$plugin_zip" python -m pytest tests/test_package.py -v -rs
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: plugin-zip
+          path: out/*.zip
+          if-no-files-found: error
