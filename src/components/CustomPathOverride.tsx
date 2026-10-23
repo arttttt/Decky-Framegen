@@ -3,6 +3,7 @@ import { ButtonItem, Field, PanelSectionRow, ToggleField } from "@decky/ui";
 import { FileSelectionType, openFilePicker } from "@decky/api";
 import { getPathDefaults, runManualPatch, runManualUnpatch } from "../api";
 import { ResetToStock } from "./ResetToStock";
+import { patchButton } from "../presentation/patching";
 import type { ApiResponse } from "../types/index";
 import { SmartClipboardButton } from "./SmartClipboardButton";
 
@@ -36,6 +37,7 @@ const ensureDirectory = (value: string) => {
 
 interface ManualPatchControlsProps {
   isAvailable: boolean;
+  bundleInstalled: boolean;
   onManualModeChange?: (enabled: boolean) => void;
   dllName: string;
   fsr4Variant: string;
@@ -59,7 +61,13 @@ const formatResultMessage = (result: ApiResponse | null) => {
   return result.message || result.output || "Operation failed.";
 };
 
-export const ManualPatchControls = ({ isAvailable, onManualModeChange, dllName, fsr4Variant }: ManualPatchControlsProps) => {
+export const ManualPatchControls = ({
+  isAvailable,
+  bundleInstalled,
+  onManualModeChange,
+  dllName,
+  fsr4Variant,
+}: ManualPatchControlsProps) => {
   const [isEnabled, setEnabled] = useState(false);
   const [defaults, setDefaults] = useState<PathDefaults>(INITIAL_DEFAULTS);
   const [pickerState, setPickerState] = useState<PickerState>(INITIAL_PICKER_STATE);
@@ -106,6 +114,7 @@ export const ManualPatchControls = ({ isAvailable, onManualModeChange, dllName, 
   }, [isAvailable, onManualModeChange]);
 
   const canInteract = isAvailable && isEnabled;
+  const patchAction = patchButton(bundleInstalled, isPatching ? "Patching..." : "Patch directory");
   const selectedPath = pickerState.selectedPath;
   const statusMessage = useMemo(() => formatResultMessage(operationResult), [operationResult]);
   const wasSuccessful = operationResult?.status === "success";
@@ -273,10 +282,10 @@ export const ManualPatchControls = ({ isAvailable, onManualModeChange, dllName, 
               <PanelSectionRow>
                 <ButtonItem
                   layout="below"
-                  disabled={busy}
+                  disabled={busy || !patchAction.enabled}
                   onClick={() => runOperation("patch")}
                 >
-                  {isPatching ? "Patching..." : "Patch directory"}
+                  {patchAction.label}
                 </ButtonItem>
               </PanelSectionRow>
 

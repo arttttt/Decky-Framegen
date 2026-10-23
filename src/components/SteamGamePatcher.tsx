@@ -4,6 +4,7 @@ import { toaster } from "@decky/api";
 import { listInstalledGames, getGameStatus, patchGame, unpatchGame } from "../api";
 import { getAppLaunchOptions, setAppLaunchOptions } from "../api/steamClient";
 import { ResetToStock } from "./ResetToStock";
+import { patchButton } from "../presentation/patching";
 import { FSR4_VARIANT_OPTIONS } from "../utils/constants";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -33,9 +34,10 @@ let lastSelectedAppId = "";
 interface SteamGamePatcherProps {
   dllName: string;
   fsr4Variant: string;
+  bundleInstalled: boolean;
 }
 
-export function SteamGamePatcher({ dllName, fsr4Variant }: SteamGamePatcherProps) {
+export function SteamGamePatcher({ dllName, fsr4Variant, bundleInstalled }: SteamGamePatcherProps) {
   const [games, setGames] = useState<GameEntry[]>([]);
   const [gamesLoading, setGamesLoading] = useState(true);
   const [selectedAppId, setSelectedAppId] = useState<string>(() => lastSelectedAppId);
@@ -129,6 +131,7 @@ export function SteamGamePatcher({ dllName, fsr4Variant }: SteamGamePatcherProps
     if (gameStatus?.patched) return `Reinstall (${dllName})`;
     return `Patch with ${dllName}`;
   }, [busyAction, dllName, gameStatus, isPatchedWithDifferentDll, selectedGame]);
+  const patchAction = patchButton(bundleInstalled, patchButtonLabel);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -245,8 +248,8 @@ export function SteamGamePatcher({ dllName, fsr4Variant }: SteamGamePatcherProps
           </PanelSectionRow>
 
           <PanelSectionRow>
-            <ButtonItem layout="below" disabled={!canPatch} onClick={handlePatch}>
-              {patchButtonLabel}
+            <ButtonItem layout="below" disabled={!canPatch || !patchAction.enabled} onClick={handlePatch}>
+              {patchAction.label}
             </ButtonItem>
           </PanelSectionRow>
 
