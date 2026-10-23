@@ -11,7 +11,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from framegen.domain import bundle, exe_target, launch_options, marker
+from framegen.domain import bundle, exe_target, launch_options, marker, steam
 from framegen.domain import patch_plan as plan
 from framegen.infrastructure import bundle_store, files, game_directory, processes
 from framegen.infrastructure import steam as steam_library
@@ -105,6 +105,11 @@ class Patcher:
             log.error(f"Manual unpatch validation failed: {exc}")
             return _error(str(exc))
         return self.unpatch_directory(target)
+
+    def path_defaults(self) -> dict:
+        """Starting points for the manual directory picker."""
+        native_steam = steam.steam_root_candidates(self.home)[0]
+        return {"home": str(self.home), "steam_common": str(native_steam / "steamapps" / "common")}
 
     # ── Steam games ──────────────────────────────────────────────────────────
 

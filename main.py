@@ -77,11 +77,7 @@ class Plugin:
     # ── Misc ──────────────────────────────────────────────────────────────────
 
     async def get_path_defaults(self) -> dict:
-        home = self._home_path()
-        return {
-            "home": str(home),
-            "steam_common": str(home / ".local" / "share" / "Steam" / "steamapps" / "common"),
-        }
+        return self._patcher().path_defaults()
 
     async def log_error(self, error: str) -> None:
         decky.logger.error(f"FRONTEND: {error}")

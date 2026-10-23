@@ -46,3 +46,12 @@ def test_steam_patch_then_unpatch_restores_game_and_launch_options(plugin, fgmod
     assert unpatched["status"] == "success", unpatched
     assert unpatched["launch_options"] == user_options
     assert snapshot(game_root) == before
+
+
+def test_path_defaults_point_the_picker_at_home_and_the_native_steam_library(plugin, home):
+    defaults = asyncio.run(plugin.get_path_defaults())
+
+    assert defaults == {
+        "home": str(home),
+        "steam_common": str(home / ".local" / "share" / "Steam" / "steamapps" / "common"),
+    }
