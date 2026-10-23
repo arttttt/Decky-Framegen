@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from framegen.domain import bundle
+from framegen.infrastructure import files
 
 
 BAD_EXE_SUBSTRINGS = [
@@ -98,15 +99,10 @@ class Plugin:
             decky.logger.error(f"Failed to copy launcher scripts: {e}")
             return False
     
-    def _files_match(self, file_a: Path, file_b: Path) -> bool:
-        try:
-            return file_a.exists() and file_b.exists() and filecmp.cmp(file_a, file_b, shallow=False)
-        except Exception:
-            return False
 
     def _is_bundled_proxy_copy(self, file_path: Path, fgmod_path: Path) -> bool:
         bundled_copy = fgmod_path / "renames" / file_path.name
-        return self._files_match(file_path, bundled_copy)
+        return files.files_match(file_path, bundled_copy)
 
     def _has_patch_fingerprint(self, directory: Path) -> bool:
         return any((directory / filename).exists() for filename in bundle.PATCH_FINGERPRINT_FILES)
@@ -125,24 +121,8 @@ class Plugin:
             backed_up.append(filename)
         return backed_up
 
-    def _file_sha256(self, path: Path) -> str:
-        digest = hashlib.sha256()
-        with open(path, "rb") as f:
-            for chunk in iter(lambda: f.read(1024 * 1024), b""):
-                digest.update(chunk)
-        return digest.hexdigest()
 
-    def _read_json_file(self, path: Path) -> dict:
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return data if isinstance(data, dict) else {}
-        except Exception:
-            return {}
 
-    def _write_json_file(self, path: Path, payload: dict) -> None:
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(payload, f, indent=2)
 
     def _extract_archive(self, archive_path: Path, output_dir: Path, members: list[str] | None = None) -> None:
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -169,7 +149,7 @@ class Plugin:
             raise RuntimeError(result.stderr or result.stdout or f"Failed to extract {archive_path.name}")
 
     def _verify_bundled_asset(self, path: Path, expected_sha256: str, description: str) -> str:
-        actual_sha256 = self._file_sha256(path)
+        actual_sha256 = files.sha256(path)
         if actual_sha256.lower() != expected_sha256.lower():
             raise RuntimeError(
                 f"{description} hash mismatch: expected {expected_sha256}, got {actual_sha256}"
@@ -180,7 +160,7 @@ class Plugin:
         return fgmod_path / bundle.INSTALL_MANIFEST_FILENAME
 
     def _load_install_manifest(self, fgmod_path: Path) -> dict:
-        return self._read_json_file(self._install_manifest_path(fgmod_path))
+        return files.read_json(self._install_manifest_path(fgmod_path))
 
 
     def _selected_fsr4_variant(self, fgmod_path: Path, requested_variant: str | None = None) -> str:
@@ -306,7 +286,7 @@ class Plugin:
             all_match = True
             for extra_file in extra_files:
                 file_path = directory / extra_file["name"]
-                if not file_path.exists() or self._file_sha256(file_path).lower() != extra_file["sha256"].lower():
+                if not file_path.exists() or files.sha256(file_path).lower() != extra_file["sha256"].lower():
                     all_match = False
                     break
             if all_match:
@@ -360,7 +340,7 @@ class Plugin:
         if not path.exists():
             return False
         for candidate in self._managed_support_candidate_paths(fgmod_path, path.name):
-            if self._files_match(path, candidate):
+            if files.files_match(path, candidate):
                 return True
         return False
 
@@ -628,7 +608,7 @@ class Plugin:
             )
 
             selected_default_variant = self._activate_default_fsr4_variant(extract_path, selected_default_variant)
-            active_upscaler_sha256 = self._file_sha256(extract_path / bundle.FSR4_UPSCALER_FILENAME)
+            active_upscaler_sha256 = files.sha256(extract_path / bundle.FSR4_UPSCALER_FILENAME)
 
             version_file = extract_path / bundle.VERSION_FILENAME
             version_file.write_text(bundle.OPTISCALER_ARCHIVE_ASSET["version"], encoding="utf-8")
@@ -689,7 +669,7 @@ class Plugin:
                     "variant": selected_default_variant,
                 },
             }
-            self._write_json_file(self._install_manifest_path(extract_path), install_manifest)
+            files.write_json(self._install_manifest_path(extract_path), install_manifest)
 
             return {
                 "status": "success",
@@ -742,7 +722,7 @@ class Plugin:
                 return {"status": "error", "message": "Install manifest missing. Reinstall OptiScaler."}
 
             selected_default_variant = self._activate_default_fsr4_variant(fgmod_path, selected_default_variant)
-            active_upscaler_sha256 = self._file_sha256(fgmod_path / bundle.FSR4_UPSCALER_FILENAME)
+            active_upscaler_sha256 = files.sha256(fgmod_path / bundle.FSR4_UPSCALER_FILENAME)
             manifest["selected_default_variant"] = selected_default_variant
             manifest["active_root_upscaler"] = {
                 "path": bundle.FSR4_UPSCALER_FILENAME,
@@ -750,7 +730,7 @@ class Plugin:
                 "variant": selected_default_variant,
             }
             manifest["updated_at"] = datetime.now(timezone.utc).isoformat()
-            self._write_json_file(self._install_manifest_path(fgmod_path), manifest)
+            files.write_json(self._install_manifest_path(fgmod_path), manifest)
             return {
                 "status": "success",
                 "output": f"Default FSR4 runtime switched to {bundle.FSR4_VARIANTS[selected_default_variant]['label']}.",
@@ -888,7 +868,7 @@ class Plugin:
             }
 
         preserve_ini = True
-        previous_marker_metadata = self._read_marker(directory / bundle.MARKER_FILENAME)
+        previous_marker_metadata = files.read_json(directory / bundle.MARKER_FILENAME)
         previous_variant = str(previous_marker_metadata.get("fsr4_variant") or "").strip()
         selected_variant = self._selected_fsr4_variant(fgmod_path, fsr4_variant)
         selected_variant_info = bundle.FSR4_VARIANTS[selected_variant]
@@ -906,7 +886,7 @@ class Plugin:
             }
         selected_extra_files = bundle.variant_extra_files(selected_variant)
         optiscaler_version = self._fgmod_version(fgmod_path)
-        selected_upscaler_sha256 = self._file_sha256(selected_upscaler_src)
+        selected_upscaler_sha256 = files.sha256(selected_upscaler_src)
 
         try:
             decky.logger.info(
@@ -1310,13 +1290,6 @@ class Plugin:
             pass
         return None
 
-    def _read_marker(self, marker_path: Path) -> dict:
-        try:
-            with open(marker_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return data if isinstance(data, dict) else {}
-        except Exception:
-            return {}
 
     def _write_marker(
         self,
@@ -1355,7 +1328,7 @@ class Plugin:
             ],
             "patched_at": datetime.now(timezone.utc).isoformat(),
         }
-        self._write_json_file(marker_path, payload)
+        files.write_json(marker_path, payload)
 
     # ── Launch options helpers ────────────────────────────────────────────────
 
@@ -1486,12 +1459,12 @@ class Plugin:
                     "fsr4_variant_label": None,
                     "message": "Not patched.",
                 }
-            metadata = self._read_marker(marker)
+            metadata = files.read_json(marker)
             dll_name = metadata.get("dll_name", "dxgi.dll")
             target_dir = Path(metadata.get("target_dir", str(marker.parent)))
             dll_present = (target_dir / dll_name).exists()
             upscaler_path = target_dir / bundle.FSR4_UPSCALER_FILENAME
-            upscaler_sha256 = self._file_sha256(upscaler_path) if upscaler_path.exists() else None
+            upscaler_sha256 = files.sha256(upscaler_path) if upscaler_path.exists() else None
             detected_variant = self._detect_fsr4_variant(target_dir, upscaler_sha256)
             stored_variant = str(metadata.get("fsr4_variant") or "").strip() or None
             effective_variant = detected_variant or (stored_variant if stored_variant in bundle.FSR4_VARIANTS else None)
@@ -1544,7 +1517,7 @@ class Plugin:
             # Preserve true original launch options across re-patches
             original_launch_options = current_launch_options or ""
             existing_marker = self._find_marker(install_root)
-            existing_marker_metadata = self._read_marker(existing_marker) if existing_marker else {}
+            existing_marker_metadata = files.read_json(existing_marker) if existing_marker else {}
             existing_marker_target_dir = Path(
                 existing_marker_metadata.get("target_dir", str(existing_marker.parent))
             ) if existing_marker else None
@@ -1640,7 +1613,7 @@ class Plugin:
                     "launch_options": "",
                     "message": "No Framegen patch found for this game.",
                 }
-            metadata = self._read_marker(marker)
+            metadata = files.read_json(marker)
             target_dir = Path(metadata.get("target_dir", str(marker.parent)))
             original_launch_options = str(metadata.get("original_launch_options") or "")
             self._manual_unpatch_directory_impl(target_dir)
