@@ -36,9 +36,23 @@ sys.path.insert(0, str(REPO_ROOT))
 import main  # noqa: E402
 
 
+# sha256 → label of every placeholder handed out, so snapshots can name content.
+KNOWN_CONTENT: dict[str, str] = {}
+
+
+def _labelled(label: str, data: bytes) -> bytes:
+    KNOWN_CONTENT[hashlib.sha256(data).hexdigest()] = label
+    return data
+
+
 def blob(name: str) -> bytes:
     """Deterministic, unique placeholder content for a bundle file."""
-    return f"decky-framegen test blob: {name}\n".encode()
+    return _labelled(f"bundle:{name}", f"decky-framegen test blob: {name}\n".encode())
+
+
+def game_file(name: str) -> bytes:
+    """Deterministic content for a file the game itself ships."""
+    return _labelled(f"game:{name}", f"file shipped by the game: {name}\n".encode())
 
 
 def sha256(data: bytes) -> str:
@@ -142,7 +156,7 @@ def fgmod(home, fake_variants) -> Path:
 
 def make_game_dir(path: Path, files: dict[str, bytes] | None = None) -> Path:
     """A game directory holding an executable plus any game-shipped files given."""
-    write(path / "Game.exe", b"MZ fake game executable\n")
+    write(path / "Game.exe", game_file("Game.exe"))
     for rel, data in (files or {}).items():
         write(path / rel, data)
     return path

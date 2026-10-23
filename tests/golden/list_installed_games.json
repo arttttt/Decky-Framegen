@@ -1,0 +1,15 @@
+{
+  "games": [
+    {
+      "appid": "501",
+      "install_found": true,
+      "name": "alpha game"
+    },
+    {
+      "appid": "500",
+      "install_found": true,
+      "name": "Zeta Game"
+    }
+  ],
+  "status": "success"
+}

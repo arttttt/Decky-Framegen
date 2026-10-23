@@ -1,0 +1,51 @@
+[
+  {
+    "step": "initial",
+    "tree": {
+      "Game.exe": "game:Game.exe",
+      "amdxc64.dll": "game:amdxc64.dll",
+      "amdxcffx64.dll": "game:amdxcffx64.dll"
+    }
+  },
+  {
+    "result": {
+      "fsr4_upscaler_sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
+      "fsr4_variant": "rdna23-int8",
+      "fsr4_variant_label": "4.0.2c / RDNA2-3 compatibility",
+      "message": "OptiScaler files copied to <root>/games/Game using 4.0.2c / RDNA2-3 compatibility",
+      "optiscaler_version": "test-0.9.4",
+      "status": "success"
+    },
+    "step": "patch dxgi.dll rdna23-int8",
+    "tree": {
+      "D3D12_Optiscaler": "<dir>",
+      "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
+      "Game.exe": "game:Game.exe",
+      "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n",
+      "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",
+      "amd_fidelityfx_framegeneration_dx12.dll": "bundle:amd_fidelityfx_framegeneration_dx12.dll",
+      "amd_fidelityfx_upscaler_dx12.dll": "bundle:int8 amd_fidelityfx_upscaler_dx12.dll",
+      "amd_fidelityfx_vk.dll": "bundle:amd_fidelityfx_vk.dll",
+      "dlssg_to_fsr3_amd_is_better.dll": "bundle:dlssg_to_fsr3_amd_is_better.dll",
+      "dxgi.dll": "bundle:OptiScaler.dll",
+      "fakenvapi.dll": "bundle:fakenvapi.dll",
+      "fakenvapi.ini": "bundle:fakenvapi.ini",
+      "libxell.dll": "bundle:libxell.dll",
+      "libxess.dll": "bundle:libxess.dll",
+      "libxess_dx11.dll": "bundle:libxess_dx11.dll",
+      "libxess_fg.dll": "bundle:libxess_fg.dll",
+      "plugins": "<dir>",
+      "plugins/OptiPatcher.asi": "bundle:OptiPatcher.asi"
+    }
+  },
+  {
+    "result": {
+      "message": "OptiScaler files removed from <root>/games/Game",
+      "status": "success"
+    },
+    "step": "unpatch",
+    "tree": {
+      "Game.exe": "game:Game.exe"
+    }
+  }
+]

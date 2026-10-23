@@ -1,0 +1,50 @@
+[
+  {
+    "manifest selection": "rdna2-valve-411-pre10",
+    "result": {
+      "output": "Default FSR4 runtime switched to 4.1.1 Valve RDNA2 compatibility.",
+      "selected_default_variant": "rdna2-valve-411-pre10",
+      "selected_default_variant_label": "4.1.1 Valve RDNA2 compatibility",
+      "status": "success",
+      "version": "0.9.4-final.20260718"
+    },
+    "root files": {
+      "amd_fidelityfx_upscaler_dx12.dll": "bundle:native amd_fidelityfx_upscaler_dx12.dll",
+      "amdxc64.dll": "bundle:valve amdxc64.dll",
+      "amdxcffx64.dll": "bundle:valve amdxcffx64.dll"
+    },
+    "switch to": "rdna2-valve-411-pre10"
+  },
+  {
+    "manifest selection": "rdna34-official-411",
+    "result": {
+      "output": "Default FSR4 runtime switched to 4.1.1 driver override / RDNA3-4.",
+      "selected_default_variant": "rdna34-official-411",
+      "selected_default_variant_label": "4.1.1 driver override / RDNA3-4",
+      "status": "success",
+      "version": "0.9.4-final.20260718"
+    },
+    "root files": {
+      "amd_fidelityfx_upscaler_dx12.dll": "bundle:native amd_fidelityfx_upscaler_dx12.dll",
+      "amdxc64.dll": null,
+      "amdxcffx64.dll": "bundle:official amdxcffx64.dll"
+    },
+    "switch to": "rdna34-official-411"
+  },
+  {
+    "manifest selection": "rdna23-int8",
+    "result": {
+      "output": "Default FSR4 runtime switched to 4.0.2c / RDNA2-3 compatibility.",
+      "selected_default_variant": "rdna23-int8",
+      "selected_default_variant_label": "4.0.2c / RDNA2-3 compatibility",
+      "status": "success",
+      "version": "0.9.4-final.20260718"
+    },
+    "root files": {
+      "amd_fidelityfx_upscaler_dx12.dll": "bundle:int8 amd_fidelityfx_upscaler_dx12.dll",
+      "amdxc64.dll": null,
+      "amdxcffx64.dll": null
+    },
+    "switch to": "not-a-variant"
+  }
+]

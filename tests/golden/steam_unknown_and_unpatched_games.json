@@ -1,0 +1,32 @@
+{
+  "patch invalid dll": {
+    "message": "Invalid proxy DLL name: d3d11.dll",
+    "status": "error"
+  },
+  "patch unknown": {
+    "message": "Game not found in Steam library.",
+    "status": "error"
+  },
+  "status unknown": {
+    "appid": "999",
+    "dll_name": null,
+    "fsr4_variant": null,
+    "fsr4_variant_label": null,
+    "install_found": false,
+    "message": "Game not found in Steam library.",
+    "patched": false,
+    "status": "success",
+    "target_dir": null
+  },
+  "unpatch never patched": {
+    "appid": "400",
+    "launch_options": "",
+    "message": "No Framegen patch found for this game.",
+    "name": "Untouched Game",
+    "status": "success"
+  },
+  "unpatch unknown": {
+    "message": "Game not found in Steam library.",
+    "status": "error"
+  }
+}

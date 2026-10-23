@@ -1,0 +1,129 @@
+[
+  {
+    "result": {
+      "appid": "200",
+      "dll_name": "dxgi.dll",
+      "fsr4_upscaler_sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
+      "fsr4_variant": "rdna23-int8",
+      "fsr4_variant_label": "4.0.2c / RDNA2-3 compatibility",
+      "launch_options": "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%",
+      "message": "Patched Options Game using dxgi.dll with 4.0.2c / RDNA2-3 compatibility.",
+      "name": "Options Game",
+      "optiscaler_version": "test-0.9.4",
+      "original_launch_options": "gamemoderun %command% -dx12",
+      "status": "success",
+      "target_dir": "<root>/home/.local/share/Steam/steamapps/common/OptionsGame"
+    },
+    "step": "patch",
+    "tree": {
+      "D3D12_Optiscaler": "<dir>",
+      "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
+      "FRAMEGEN_PATCH": {
+        "appid": "200",
+        "backed_up_files": [],
+        "dll_name": "dxgi.dll",
+        "fsr4_upscaler_sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
+        "fsr4_variant": "rdna23-int8",
+        "fsr4_variant_label": "4.0.2c / RDNA2-3 compatibility",
+        "game_name": "Options Game",
+        "managed_files": [
+          {
+            "kind": "fsr4-upscaler",
+            "path": "<root>/amd_fidelityfx_upscaler_dx12.dll",
+            "sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
+            "variant": "rdna23-int8"
+          }
+        ],
+        "optiscaler_version": "test-0.9.4",
+        "original_launch_options": "gamemoderun %command% -dx12",
+        "target_dir": "<root>"
+      },
+      "Game.exe": "game:Game.exe",
+      "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n",
+      "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",
+      "amd_fidelityfx_framegeneration_dx12.dll": "bundle:amd_fidelityfx_framegeneration_dx12.dll",
+      "amd_fidelityfx_upscaler_dx12.dll": "bundle:int8 amd_fidelityfx_upscaler_dx12.dll",
+      "amd_fidelityfx_vk.dll": "bundle:amd_fidelityfx_vk.dll",
+      "dlssg_to_fsr3_amd_is_better.dll": "bundle:dlssg_to_fsr3_amd_is_better.dll",
+      "dxgi.dll": "bundle:OptiScaler.dll",
+      "fakenvapi.dll": "bundle:fakenvapi.dll",
+      "fakenvapi.ini": "bundle:fakenvapi.ini",
+      "libxell.dll": "bundle:libxell.dll",
+      "libxess.dll": "bundle:libxess.dll",
+      "libxess_dx11.dll": "bundle:libxess_dx11.dll",
+      "libxess_fg.dll": "bundle:libxess_fg.dll",
+      "plugins": "<dir>",
+      "plugins/OptiPatcher.asi": "bundle:OptiPatcher.asi"
+    }
+  },
+  {
+    "result": {
+      "appid": "200",
+      "dll_name": "winmm.dll",
+      "fsr4_upscaler_sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
+      "fsr4_variant": "rdna23-int8",
+      "fsr4_variant_label": "4.0.2c / RDNA2-3 compatibility",
+      "launch_options": "WINEDLLOVERRIDES=winmm=n,b SteamDeck=0 %command%",
+      "message": "Patched Options Game using winmm.dll with 4.0.2c / RDNA2-3 compatibility.",
+      "name": "Options Game",
+      "optiscaler_version": "test-0.9.4",
+      "original_launch_options": "gamemoderun %command% -dx12",
+      "status": "success",
+      "target_dir": "<root>/home/.local/share/Steam/steamapps/common/OptionsGame"
+    },
+    "step": "repatch with winmm",
+    "tree": {
+      "D3D12_Optiscaler": "<dir>",
+      "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
+      "FRAMEGEN_PATCH": {
+        "appid": "200",
+        "backed_up_files": [],
+        "dll_name": "winmm.dll",
+        "fsr4_upscaler_sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
+        "fsr4_variant": "rdna23-int8",
+        "fsr4_variant_label": "4.0.2c / RDNA2-3 compatibility",
+        "game_name": "Options Game",
+        "managed_files": [
+          {
+            "kind": "fsr4-upscaler",
+            "path": "<root>/amd_fidelityfx_upscaler_dx12.dll",
+            "sha256": "b3e90fce31b797bd7316e561d069290ef924f1d3e7e1e6b6736e8224fa15f982",
+            "variant": "rdna23-int8"
+          }
+        ],
+        "optiscaler_version": "test-0.9.4",
+        "original_launch_options": "gamemoderun %command% -dx12",
+        "target_dir": "<root>"
+      },
+      "Game.exe": "game:Game.exe",
+      "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n",
+      "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",
+      "amd_fidelityfx_framegeneration_dx12.dll": "bundle:amd_fidelityfx_framegeneration_dx12.dll",
+      "amd_fidelityfx_upscaler_dx12.dll": "bundle:int8 amd_fidelityfx_upscaler_dx12.dll",
+      "amd_fidelityfx_vk.dll": "bundle:amd_fidelityfx_vk.dll",
+      "dlssg_to_fsr3_amd_is_better.dll": "bundle:dlssg_to_fsr3_amd_is_better.dll",
+      "fakenvapi.dll": "bundle:fakenvapi.dll",
+      "fakenvapi.ini": "bundle:fakenvapi.ini",
+      "libxell.dll": "bundle:libxell.dll",
+      "libxess.dll": "bundle:libxess.dll",
+      "libxess_dx11.dll": "bundle:libxess_dx11.dll",
+      "libxess_fg.dll": "bundle:libxess_fg.dll",
+      "plugins": "<dir>",
+      "plugins/OptiPatcher.asi": "bundle:OptiPatcher.asi",
+      "winmm.dll": "bundle:OptiScaler.dll"
+    }
+  },
+  {
+    "result": {
+      "appid": "200",
+      "launch_options": "gamemoderun %command% -dx12",
+      "message": "Unpatched Options Game.",
+      "name": "Options Game",
+      "status": "success"
+    },
+    "step": "unpatch",
+    "tree": {
+      "Game.exe": "game:Game.exe"
+    }
+  }
+]
