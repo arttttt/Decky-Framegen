@@ -6,7 +6,7 @@ import logging
 import shutil
 from pathlib import Path
 
-from framegen.domain import bundle, patch_record
+from framegen.domain import patch_record
 from framegen.domain import patch_plan as plan
 from framegen.infrastructure import files
 
@@ -20,24 +20,9 @@ def bundle_files(fgmod_path: Path) -> frozenset[str]:
     return frozenset(path.relative_to(fgmod_path).as_posix() for path in fgmod_path.rglob("*"))
 
 
-def read(directory: Path, fgmod_path: Path, previous_variant: str = "") -> plan.GameDirectory:
-    """The facts the planner needs: what is there, and which files are the plugin's own copies."""
-    entries = frozenset(entry.name for entry in directory.iterdir())
-    proxies = frozenset(
-        name
-        for name in bundle.PROXY_DLL_BACKUPS
-        if name in entries and files.files_match(directory / name, fgmod_path / "renames" / name)
-    )
-    managed = frozenset(
-        name
-        for name in bundle.ORIGINAL_DLL_BACKUPS
-        if name in entries
-        and any(
-            files.files_match(directory / name, fgmod_path / candidate)
-            for candidate in plan.managed_support_candidates(name)
-        )
-    )
-    return plan.GameDirectory(entries, proxies, managed, previous_variant)
+def read(directory: Path, previous_variant: str = "") -> plan.GameDirectory:
+    """The facts the planner needs: what is in the directory."""
+    return plan.GameDirectory(frozenset(entry.name for entry in directory.iterdir()), previous_variant)
 
 
 def bundle_hashes(fgmod_path: Path, operations: tuple[plan.Operation, ...]) -> dict[str, str]:

@@ -71,7 +71,7 @@ class Patcher:
         label = bundle.FSR4_VARIANTS[variant]["label"]
         request = plan.PatchRequest(dll_name, variant, reset_ini)
         try:
-            game = game_directory.read(directory, self.fgmod_path, previous_variant)
+            game = game_directory.read(directory, previous_variant)
             patch = plan.plan_patch(game, game_directory.bundle_files(self.fgmod_path), request)
             upscaler_sha256 = files.sha256(self.fgmod_path / patch.upscaler_source)
             log.info(f"Patching {directory} with {dll_name} and FSR4 variant {variant} ({label})")

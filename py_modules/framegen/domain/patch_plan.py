@@ -74,11 +74,8 @@ class GameDirectory:
     """What the planner needs to know about a game directory before it changes anything."""
 
     entries: frozenset[str]
-    """Names present at the top level of the directory."""
-    bundled_proxy_copies: frozenset[str] = frozenset()
-    """Proxy-named files identical to the bundle's renamed OptiScaler copy."""
-    managed_support_files: frozenset[str] = frozenset()
-    """Support DLLs identical to a copy the bundle ships (so the plugin put them there)."""
+    """Names present at the top level of the directory. None of them is the patch's: a repatch
+    undoes the previous patch before planning."""
     previous_variant: str = ""
     """FSR4 variant recorded by the patch marker in this directory, if any."""
 
@@ -103,21 +100,6 @@ class PatchPlan:
 
 
 # ── patch ────────────────────────────────────────────────────────────────────
-
-
-def managed_support_candidates(filename: str) -> list[str]:
-    """Bundle paths whose content counts as the plugin's own copy of `filename`."""
-    candidates = [filename]
-    for variant_id in bundle.FSR4_VARIANTS:
-        if filename == bundle.FSR4_UPSCALER_FILENAME:
-            candidates.append(f"{bundle.variant_info(variant_id)['dir_name']}/{filename}")
-        else:
-            candidates.extend(
-                f"{bundle.variant_info(variant_id)['dir_name']}/{filename}"
-                for extra in bundle.variant_extra_files(variant_id)
-                if extra["name"] == filename
-            )
-    return list(dict.fromkeys(candidates))
 
 
 def injector_candidates(variant: str, dll_name: str) -> list[str]:
@@ -170,32 +152,19 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
         operations.append(DeleteFile(name))
         present.discard(name)
 
-    # Only our marker proves that files in the directory are ours. Other traces
-    # (an OptiScaler.ini from a manual install) do not: deleting a game's own
-    # file would lose it, while backing up one of ours merely keeps a copy.
-    patched_by_us = bundle.MARKER_FILENAME in game.entries
-
-    # 1. Proxy-named DLLs the game shipped are kept as backups — unless we
-    #    patched this directory, or the file is a copy of our own proxy.
+    # 1. Proxy-named DLLs the game shipped are kept as backups.
     for name in bundle.PROXY_DLL_BACKUPS:
-        if name not in present or name + BACKUP_SUFFIX in present:
-            continue
-        if patched_by_us or name in game.bundled_proxy_copies:
-            continue
-        move(name, name + BACKUP_SUFFIX)
+        if name in present and name + BACKUP_SUFFIX not in present:
+            move(name, name + BACKUP_SUFFIX)
 
     # 2. Remove injectors and leftovers of earlier patches.
     for name in dict.fromkeys(bundle.PATCH_CLEANUP_FILES):
         if name in present:
             delete(name)
 
-    # 3. Back up game DLLs the bundle replaces; drop our own copies on a repatch.
+    # 3. Back up game DLLs the bundle replaces.
     for name in bundle.ORIGINAL_DLL_BACKUPS:
-        if name not in present or name + BACKUP_SUFFIX in present:
-            continue
-        if patched_by_us and name in game.managed_support_files:
-            delete(name)
-        else:
+        if name in present and name + BACKUP_SUFFIX not in present:
             move(name, name + BACKUP_SUFFIX)
 
     # 4. The proxy DLL.
@@ -227,7 +196,35 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
         if source in bundle_files:
             operations.append(CopyFromBundle(source, extra["name"]))
 
-    return PatchPlan(tuple(operations), upscaler)
+    return PatchPlan(_preserving(tuple(operations), game.entries), upscaler)
+
+
+def _preserving(operations: tuple[Operation, ...], entries: frozenset[str]) -> tuple[Operation, ...]:
+    """The plan with every file that was in the directory kept as a backup before it is removed or overwritten.
+
+    A repatch undoes the previous patch first, so whatever is in the directory now is not the
+    patch's. The backup tables above name the usual cases; this makes it hold for every file.
+    A file that already has a backup beside it keeps the old behaviour (the backup is the original).
+    """
+    present = set(entries)
+    kept: list[Operation] = []
+    for operation in operations:
+        match operation:
+            case Move(source, destination):
+                present.discard(source)
+                present.add(destination)
+            case DeleteFile(name) if name in present and f"{name}{BACKUP_SUFFIX}" not in present:
+                kept.append(Move(name, f"{name}{BACKUP_SUFFIX}"))
+                present.discard(name)
+                present.add(f"{name}{BACKUP_SUFFIX}")
+                continue
+            case DeleteFile(name):
+                present.discard(name)
+            case CopyFromBundle(_, destination) if destination in present and f"{destination}{BACKUP_SUFFIX}" not in present:
+                kept.append(Move(destination, f"{destination}{BACKUP_SUFFIX}"))
+                present.add(f"{destination}{BACKUP_SUFFIX}")
+        kept.append(operation)
+    return tuple(kept)
 
 
 # ── unpatch ──────────────────────────────────────────────────────────────────

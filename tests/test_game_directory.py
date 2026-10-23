@@ -1,24 +1,18 @@
 """Integration: reading a real game directory for the planner and executing plans on disk."""
 
-from conftest import blob, game_file, write
+from conftest import game_file, write
 from framegen.domain import patch_plan as plan
 from framegen.infrastructure import game_directory
 
 
-def test_read_tells_the_plugins_own_copies_from_the_games_files(fgmod, tmp_path):
+def test_read_lists_what_is_in_the_directory(tmp_path):
     game = tmp_path / "Game"
-    write(game / "dxgi.dll", blob("OptiScaler.dll"))  # identical to the bundle's renamed copy
-    write(game / "version.dll", game_file("version.dll"))
-    write(game / "libxess.dll", game_file("libxess.dll"))
-    write(game / "amd_fidelityfx_dx12.dll", blob("amd_fidelityfx_dx12.dll"))  # identical to the bundle's
+    write(game / "dxgi.dll", game_file("dxgi.dll"))
     (game / "plugins").mkdir()
 
-    facts = game_directory.read(game, fgmod, previous_variant="rdna4-native")
+    facts = game_directory.read(game, previous_variant="rdna4-native")
 
-    assert facts.entries == {"dxgi.dll", "version.dll", "libxess.dll", "amd_fidelityfx_dx12.dll", "plugins"}
-    assert facts.bundled_proxy_copies == {"dxgi.dll"}
-    assert facts.managed_support_files == {"amd_fidelityfx_dx12.dll"}
-    assert facts.previous_variant == "rdna4-native"
+    assert facts == plan.GameDirectory(frozenset({"dxgi.dll", "plugins"}), "rdna4-native")
 
 
 def test_bundle_files_lists_files_and_directories_relative_to_the_bundle(fgmod, tmp_path):

@@ -7,8 +7,15 @@
       "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
       "FRAMEGEN_PATCH": {
         "appid": "",
-        "backed_up_files": [],
-        "backups": [],
+        "backed_up_files": [
+          "dxgi.dll"
+        ],
+        "backups": [
+          {
+            "backup": "dxgi.dll.b",
+            "original": "dxgi.dll"
+          }
+        ],
         "complete": true,
         "created_dirs": [
           "D3D12_Optiscaler",
@@ -102,6 +109,7 @@
       "amd_fidelityfx_vk.dll": "bundle:amd_fidelityfx_vk.dll",
       "dlssg_to_fsr3_amd_is_better.dll": "bundle:dlssg_to_fsr3_amd_is_better.dll",
       "dxgi.dll": "bundle:OptiScaler.dll",
+      "dxgi.dll.b": "bundle:OptiScaler.dll",
       "fakenvapi.dll": "bundle:fakenvapi.dll",
       "fakenvapi.ini": "bundle:fakenvapi.ini",
       "libxell.dll": "bundle:libxell.dll",
@@ -122,8 +130,15 @@
       "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
       "FRAMEGEN_PATCH": {
         "appid": "",
-        "backed_up_files": [],
-        "backups": [],
+        "backed_up_files": [
+          "dxgi.dll"
+        ],
+        "backups": [
+          {
+            "backup": "dxgi.dll.b",
+            "original": "dxgi.dll"
+          }
+        ],
         "complete": true,
         "created_dirs": [
           "D3D12_Optiscaler",
@@ -222,6 +237,7 @@
       "amdxcffx64.dll": "bundle:official amdxcffx64.dll",
       "dlssg_to_fsr3_amd_is_better.dll": "bundle:dlssg_to_fsr3_amd_is_better.dll",
       "dxgi.dll": "bundle:OptiScaler.dll",
+      "dxgi.dll.b": "bundle:OptiScaler.dll",
       "fakenvapi.dll": "bundle:fakenvapi.dll",
       "fakenvapi.ini": "bundle:fakenvapi.ini",
       "libxell.dll": "bundle:libxell.dll",

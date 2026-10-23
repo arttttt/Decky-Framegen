@@ -14,8 +14,15 @@
       "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
       "FRAMEGEN_PATCH": {
         "appid": "",
-        "backed_up_files": [],
-        "backups": [],
+        "backed_up_files": [
+          "OptiScaler.ini"
+        ],
+        "backups": [
+          {
+            "backup": "OptiScaler.ini.b",
+            "original": "OptiScaler.ini"
+          }
+        ],
         "complete": true,
         "created_dirs": [
           "D3D12_Optiscaler",
@@ -103,6 +110,7 @@
       },
       "Game.exe": "game:Game.exe",
       "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n",
+      "OptiScaler.ini.b": "sha256:76935896b53037d1",
       "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",
       "amd_fidelityfx_framegeneration_dx12.dll": "bundle:amd_fidelityfx_framegeneration_dx12.dll",
       "amd_fidelityfx_upscaler_dx12.dll": "bundle:int8 amd_fidelityfx_upscaler_dx12.dll",
