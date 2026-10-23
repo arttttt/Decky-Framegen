@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { addEventListener, removeEventListener } from "@decky/api";
 import { devInstallRequest, getDevBuild, listDevBuilds } from "../api";
 import { canInstallThroughDecky, installThroughDecky } from "../api/deckyInstaller";
 import {
@@ -23,12 +24,21 @@ export const useDeveloperSection = (): {
     checking: false,
     selectedChannel: null,
     install: "idle",
+    download: null,
     installError: null,
     deckyInstallerAvailable: canInstallThroughDecky(),
   });
 
   const settleTimer = useRef<number | undefined>(undefined);
   useEffect(() => () => window.clearTimeout(settleTimer.current), []);
+
+  // The backend reports the download of the build being installed (main.py dev_install_request).
+  useEffect(() => {
+    const onProgress = (_channel: string, received: number, total: number | null) =>
+      setState((s) => (s.install === "downloading" ? { ...s, download: { received, total } } : s));
+    const listener = addEventListener<[string, number, number | null]>("dev_build_download", onProgress);
+    return () => removeEventListener("dev_build_download", listener);
+  }, []);
 
   useEffect(() => {
     void safeAsyncOperation(getDevBuild, "DeveloperSection -> getDevBuild").then((build) => {
@@ -52,7 +62,7 @@ export const useDeveloperSection = (): {
   const onInstall = () => {
     const build = selectedBuild(state);
     if (!build) return;
-    setState((s) => ({ ...s, install: "started", installError: null }));
+    setState((s) => ({ ...s, install: "downloading", download: null, installError: null }));
     window.clearTimeout(settleTimer.current);
     void safeAsyncOperation(() => devInstallRequest(build.channel), "DeveloperSection -> devInstallRequest").then(
       (answer) => {
@@ -61,6 +71,7 @@ export const useDeveloperSection = (): {
           setState((s) => ({ ...s, install: "idle", installError: message }));
           return;
         }
+        setState((s) => ({ ...s, install: "started" }));
         settleTimer.current = window.setTimeout(
           () => setState((s) => ({ ...s, install: "unconfirmed" })),
           INSTALL_SETTLE_MS,

@@ -21,6 +21,7 @@ const state = (overrides: Partial<DeveloperSectionState> = {}): DeveloperSection
   checking: false,
   selectedChannel: null,
   install: "idle",
+  download: null,
   installError: null,
   deckyInstallerAvailable: true,
   ...overrides,
@@ -86,7 +87,23 @@ describe("developer section", () => {
 
     expect(view.installEnabled).toBe(false);
     expect(view.checkEnabled).toBe(true);
-    expect(view.message).toBe("Decky asks to confirm, then reloads the plugin with the new build.");
+    expect(view.message).toBe("Downloaded. Decky asks to confirm, then reloads the plugin with the new build.");
+  });
+
+  it("shows the download of the build being installed and blocks starting another", () => {
+    const waiting = visible(state({ selectedChannel: "pr-12", install: "downloading" }));
+    const halfway = visible(
+      state({ selectedChannel: "pr-12", install: "downloading", download: { received: 525_000, total: 1_050_000 } }),
+    );
+    const unknownSize = visible(
+      state({ selectedChannel: "pr-12", install: "downloading", download: { received: 300_000, total: null } }),
+    );
+
+    expect(waiting.message).toBe("Downloading PR #12: Developer section…");
+    expect(halfway.message).toBe("Downloading PR #12: Developer section: 50% (0.5 of 1.1 MB)");
+    expect(unknownSize.message).toBe("Downloading PR #12: Developer section: 0.3 MB");
+    expect(halfway.installEnabled).toBe(false);
+    expect(halfway.checkEnabled).toBe(false);
   });
 
   it("offers to install again when the plugin is still running after the install (cancelled in Decky)", () => {
