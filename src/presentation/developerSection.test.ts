@@ -21,7 +21,7 @@ const state = (overrides: Partial<DeveloperSectionState> = {}): DeveloperSection
   list: { status: "success", builds: listed },
   checking: false,
   selectedChannel: null,
-  installStarted: false,
+  install: "idle",
   deckyInstallerAvailable: true,
   ...overrides,
 });
@@ -81,12 +81,20 @@ describe("developer section", () => {
     expect(selectedBuild(state({ list: onlyPr, selectedChannel: "pr-99" }))?.channel).toBe("pr-12");
   });
 
-  it("installs once: after the start everything waits for Decky to reload the plugin", () => {
-    const view = visible(state({ selectedChannel: "pr-12", installStarted: true }));
+  it("installs once while Decky asks; checking stays available", () => {
+    const view = visible(state({ selectedChannel: "pr-12", install: "started" }));
 
     expect(view.installEnabled).toBe(false);
-    expect(view.checkEnabled).toBe(false);
+    expect(view.checkEnabled).toBe(true);
     expect(view.message).toBe("Decky asks to confirm, then reloads the plugin with the new build.");
+  });
+
+  it("offers to install again when the plugin is still running after the install (cancelled in Decky)", () => {
+    const view = visible(state({ selectedChannel: "pr-12", install: "unconfirmed" }));
+
+    expect(view.installEnabled).toBe(true);
+    expect(view.checkEnabled).toBe(true);
+    expect(view.message).toBe("The plugin was not replaced. If you cancelled in Decky, install again.");
   });
 
   it("blocks checking and installing while a check runs", () => {

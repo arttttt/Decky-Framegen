@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getDevBuild, listDevBuilds } from "../api";
 import { canInstallThroughDecky, installThroughDecky } from "../api/deckyInstaller";
 import {
   DeveloperSectionState,
   DeveloperSectionView,
+  INSTALL_SETTLE_MS,
   developerSectionView,
   selectedBuild,
 } from "../presentation/developerSection";
@@ -21,9 +22,12 @@ export const useDeveloperSection = (): {
     list: null,
     checking: false,
     selectedChannel: null,
-    installStarted: false,
+    install: "idle",
     deckyInstallerAvailable: canInstallThroughDecky(),
   });
+
+  const settleTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(settleTimer.current), []);
 
   useEffect(() => {
     void safeAsyncOperation(getDevBuild, "DeveloperSection -> getDevBuild").then((build) => {
@@ -47,7 +51,12 @@ export const useDeveloperSection = (): {
   const onInstall = () => {
     const build = selectedBuild(state);
     if (!build) return;
-    setState((s) => ({ ...s, installStarted: true }));
+    setState((s) => ({ ...s, install: "started" }));
+    window.clearTimeout(settleTimer.current);
+    settleTimer.current = window.setTimeout(
+      () => setState((s) => ({ ...s, install: "unconfirmed" })),
+      INSTALL_SETTLE_MS,
+    );
     installThroughDecky(build.install_request);
   };
 

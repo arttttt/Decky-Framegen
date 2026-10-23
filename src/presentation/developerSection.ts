@@ -17,12 +17,21 @@ export type DeveloperSectionView =
       message: string | null;
     };
 
+/**
+ * Where an install the user started stands. Decky's installer tells the plugin nothing:
+ * a confirmed install replaces and reloads it, a cancelled one leaves it running.
+ * So after INSTALL_SETTLE_MS a still-running plugin offers to install again.
+ */
+export type InstallPhase = "idle" | "started" | "unconfirmed";
+
+export const INSTALL_SETTLE_MS = 15_000;
+
 export type DeveloperSectionState = {
   build: DevBuild | null;
   list: DevBuildList | null;
   checking: boolean;
   selectedChannel: string | null;
-  installStarted: boolean;
+  install: InstallPhase;
   deckyInstallerAvailable: boolean;
 };
 
@@ -36,8 +45,9 @@ export const selectedBuild = (state: DeveloperSectionState): AvailableDevBuild |
   return builds.find((b) => b.channel === wanted) ?? builds[0] ?? null;
 };
 
-const statusMessage = ({ installStarted, deckyInstallerAvailable, list }: DeveloperSectionState): string | null => {
-  if (installStarted) return "Decky asks to confirm, then reloads the plugin with the new build.";
+const statusMessage = ({ install, deckyInstallerAvailable, list }: DeveloperSectionState): string | null => {
+  if (install === "started") return "Decky asks to confirm, then reloads the plugin with the new build.";
+  if (install === "unconfirmed") return "The plugin was not replaced. If you cancelled in Decky, install again.";
   if (!deckyInstallerAvailable) return "Decky's installer is not reachable from this plugin; install builds by URL instead.";
   if (list?.status === "error") return list.message;
   if (list?.status === "success" && list.builds.length === 0) return "No development builds are published.";
@@ -55,14 +65,14 @@ export const developerSectionView = (state: DeveloperSectionState): DeveloperSec
     visible: true,
     running: `Running ${build.title}`,
     checkLabel: state.checking ? "Checking…" : list ? "Check again" : "Check for builds",
-    checkEnabled: !state.checking && !state.installStarted,
+    checkEnabled: !state.checking,
     pickerVisible: builds.length > 0,
     options: builds.map((b) => ({ data: b.channel, label: b.state === "installed" ? `${b.title} (running)` : b.title })),
     selectedChannel: selected?.channel ?? null,
     details: selected ? `Commit ${selected.short_commit}, published ${formatDate(selected.published_at)}` : null,
     installLabel: selected?.state === "installed" ? "Already running" : "Install",
     installEnabled:
-      selected?.state === "available" && state.deckyInstallerAvailable && !state.installStarted && !state.checking,
+      selected?.state === "available" && state.deckyInstallerAvailable && state.install !== "started" && !state.checking,
     message: statusMessage(state),
   };
 };
