@@ -32,6 +32,8 @@ export type DeveloperSectionState = {
   checking: boolean;
   selectedChannel: string | null;
   install: InstallPhase;
+  /** Why the last Install could not start (the build is gone, GitHub failed); cleared by the next action. */
+  installError: string | null;
   deckyInstallerAvailable: boolean;
 };
 
@@ -45,9 +47,10 @@ export const selectedBuild = (state: DeveloperSectionState): AvailableDevBuild |
   return builds.find((b) => b.channel === wanted) ?? builds[0] ?? null;
 };
 
-const statusMessage = ({ install, deckyInstallerAvailable, list }: DeveloperSectionState): string | null => {
+const statusMessage = ({ install, installError, deckyInstallerAvailable, list }: DeveloperSectionState): string | null => {
   if (install === "started") return "Decky asks to confirm, then reloads the plugin with the new build.";
   if (install === "unconfirmed") return "The plugin was not replaced. If you cancelled in Decky, install again.";
+  if (installError) return installError;
   if (!deckyInstallerAvailable) return "Decky's installer is not reachable from this plugin; install builds by URL instead.";
   if (list?.status === "error") return list.message;
   if (list?.status === "success" && list.builds.length === 0) return "No development builds are published.";

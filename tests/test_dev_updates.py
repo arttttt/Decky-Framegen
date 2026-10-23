@@ -183,7 +183,7 @@ def test_an_unreadable_identity_is_treated_as_a_release_build(plugin_dir, github
     assert DevUpdates(plugin_dir, github_releases.list_releases).build() == {"is_dev_build": False}
 
 
-def test_a_development_build_lists_its_repositorys_builds_ready_to_install(plugin_dir, github):
+def test_a_development_build_lists_its_repositorys_builds(plugin_dir, github):
     stamp(plugin_dir)
     service = DevUpdates(plugin_dir, github_releases.list_releases)
 
@@ -211,14 +211,56 @@ def test_a_development_build_lists_its_repositorys_builds_ready_to_install(plugi
         "title": "PR #12: Add a Developer section",
         "published_at": "2026-10-23T10:00:00Z",
         "state": "available",
+    }
+
+
+def test_installing_asks_github_again_for_the_build_published_now(plugin_dir, github):
+    stamp(plugin_dir)
+    service = DevUpdates(plugin_dir, github_releases.list_releases)
+    service.available_builds()
+    # A push to the pull request replaced its build after the list was shown.
+    replaced = listing()
+    pr = next(entry for entry in replaced if entry["tag_name"] == "pr-12")
+    pr["target_commitish"] = "2" * 40
+    pr["assets"][0]["name"] = "Decky-Framegen-2222222.zip"
+    pr["assets"][0]["browser_download_url"] = (
+        "https://github.com/arttttt/Decky-Framegen/releases/download/pr-12/Decky-Framegen-2222222.zip"
+    )
+    github.body = json.dumps(replaced).encode()
+
+    result = service.install_request("pr-12")
+
+    assert len(github.requests) == 2
+    assert result == {
+        "status": "success",
+        "channel": "pr-12",
+        "commit": "2" * 40,
+        "short_commit": "2222222",
         "install_request": [
-            "https://github.com/arttttt/Decky-Framegen/releases/download/pr-12/Decky-Framegen-1a2b3c4.zip",
+            "https://github.com/arttttt/Decky-Framegen/releases/download/pr-12/Decky-Framegen-2222222.zip",
             PLUGIN,
-            "pr-12-1a2b3c4",
+            "pr-12-2222222",
             "7e00ac50b658c754697f810ff3c91e881552081ddb7743b7f72ef500f1c5ca70",
             2,
         ],
     }
+
+
+def test_installing_a_build_that_is_gone_says_so(plugin_dir, github):
+    stamp(plugin_dir)
+    github.body = json.dumps([entry for entry in listing() if entry["tag_name"] != "pr-12"]).encode()
+
+    result = DevUpdates(plugin_dir, github_releases.list_releases).install_request("pr-12")
+
+    assert result == {"status": "error", "message": "The pr-12 build is no longer published. Check again."}
+
+
+def test_installing_from_a_release_build_is_refused(plugin_dir, github):
+    assert DevUpdates(plugin_dir, github_releases.list_releases).install_request("dev") == {
+        "status": "error",
+        "message": "This is not a development build.",
+    }
+    assert github.requests == []
 
 
 def test_a_fork_build_lists_the_forks_releases(plugin_dir, github):

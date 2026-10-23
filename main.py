@@ -89,6 +89,10 @@ class Plugin:
         # The request to GitHub can take seconds; keep it off Decky's event loop.
         return await asyncio.to_thread(self._dev_updates().available_builds)
 
+    async def dev_install_request(self, channel: str) -> dict:
+        # Asks GitHub again, like list_dev_builds.
+        return await asyncio.to_thread(self._dev_updates().install_request, channel)
+
     # ── Misc ──────────────────────────────────────────────────────────────────
 
     async def get_path_defaults(self) -> dict:

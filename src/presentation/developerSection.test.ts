@@ -11,7 +11,6 @@ const build = (channel: string, state: "installed" | "available", title: string)
   title,
   published_at: "2026-10-23T10:00:05Z",
   state,
-  install_request: [`https://github.com/o/r/releases/download/${channel}/P-1111111.zip`, "P", `${channel}-1111111`, "a".repeat(64), 2],
 });
 
 const listed = [build("dev", "installed", "main @ 9999999"), build("pr-12", "available", "PR #12: Developer section")];
@@ -22,6 +21,7 @@ const state = (overrides: Partial<DeveloperSectionState> = {}): DeveloperSection
   checking: false,
   selectedChannel: null,
   install: "idle",
+  installError: null,
   deckyInstallerAvailable: true,
   ...overrides,
 });
@@ -65,7 +65,7 @@ describe("developer section", () => {
     expect(view.details).toBe("Commit 1111111, published 2026-10-23 10:00 UTC");
     expect(view.installLabel).toBe("Install");
     expect(view.installEnabled).toBe(true);
-    expect(selectedBuild(state({ selectedChannel: "pr-12" }))?.install_request[2]).toBe("pr-12-1111111");
+    expect(selectedBuild(state({ selectedChannel: "pr-12" }))?.channel).toBe("pr-12");
   });
 
   it("starts on the running build's channel even when it is not listed first", () => {
@@ -95,6 +95,13 @@ describe("developer section", () => {
     expect(view.installEnabled).toBe(true);
     expect(view.checkEnabled).toBe(true);
     expect(view.message).toBe("The plugin was not replaced. If you cancelled in Decky, install again.");
+  });
+
+  it("says why an install could not start and lets the user try again", () => {
+    const view = visible(state({ selectedChannel: "pr-12", installError: "The pr-12 build is no longer published. Check again." }));
+
+    expect(view.message).toBe("The pr-12 build is no longer published. Check again.");
+    expect(view.installEnabled).toBe(true);
   });
 
   it("blocks checking and installing while a check runs", () => {

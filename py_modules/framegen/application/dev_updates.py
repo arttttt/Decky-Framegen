@@ -41,8 +41,8 @@ class DevUpdates:
             return {"is_dev_build": False}
         return {"is_dev_build": True, **_describe(current), "title": current.title}
 
-    def available_builds(self) -> dict:
-        """Every installable development build, marked installed or available, with the request that installs it."""
+    def _published(self) -> tuple[dev_build.BuildInfo, str, list[dev_build.DevRelease]] | dict:
+        """The running build, the plugin's name and the development builds published now — or an error answer."""
         current = self._current()
         if current is None:
             return {"status": "error", "message": "This is not a development build."}
@@ -54,6 +54,14 @@ class DevUpdates:
         plugin_name = self._plugin_name()
         if not plugin_name:
             return {"status": "error", "message": "The plugin's plugin.json has no name."}
+        return current, plugin_name, dev_build.releases(listing, current, plugin_name)
+
+    def available_builds(self) -> dict:
+        """Every installable development build, marked installed or available."""
+        published = self._published()
+        if isinstance(published, dict):
+            return published
+        current, _, releases = published
         return {
             "status": "success",
             "builds": [
@@ -62,10 +70,28 @@ class DevUpdates:
                     "title": release.title,
                     "published_at": release.published_at,
                     "state": dev_build.state(current, release),
-                    "install_request": dev_build.install_request(plugin_name, release),
                 }
-                for release in dev_build.releases(listing, current, plugin_name)
+                for release in releases
             ],
+        }
+
+    def install_request(self, channel: str) -> dict:
+        """The request that installs the build published on `channel` right now.
+
+        Asked again at install time: a channel's build is replaced on every push, and the
+        previous one's download is gone, which Decky's installer would only hang on.
+        """
+        published = self._published()
+        if isinstance(published, dict):
+            return published
+        _, plugin_name, releases = published
+        release = next((r for r in releases if r.info.channel == channel), None)
+        if release is None:
+            return {"status": "error", "message": f"The {channel} build is no longer published. Check again."}
+        return {
+            "status": "success",
+            **_describe(release.info),
+            "install_request": dev_build.install_request(plugin_name, release),
         }
 
 
