@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # A manual run builds and checks a release package (no development identity).
+  workflow_dispatch:
 
 jobs:
   frontend:
@@ -66,8 +68,31 @@ jobs:
     env:
       DECKY_CLI_VERSION: "0.0.8"
       DECKY_CLI_SHA256: "6777e356508c1ce887f8e61b0fa4954bb48b32e6d97341eef68ea4e0d6ead9a0"
+      # Pushes to main and pull requests from this repository are development builds;
+      # pull requests from forks are built and checked as release builds.
+      DEV_BUILD: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+      # A pull request is built from its head commit, the one its development build is named after.
+      COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.COMMIT }}
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Stamp the development build
+        id: stamp
+        if: env.DEV_BUILD == 'true'
+        # An explicit bash runs with pipefail, so a refused stamp fails the step instead of
+        # passing through tee and leaving a build that looks like a release.
+        shell: bash
+        env:
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          python scripts/stamp_dev_build.py --repository "$GITHUB_REPOSITORY" --commit "$COMMIT" \
+            ${PULL_REQUEST:+--pull-request "$PULL_REQUEST"} | tee -a "$GITHUB_OUTPUT"
 
       - name: Install Decky CLI
         run: |
@@ -76,20 +101,19 @@ jobs:
           echo "${DECKY_CLI_SHA256}  $RUNNER_TEMP/decky" | sha256sum -c -
           chmod +x "$RUNNER_TEMP/decky"
 
-      # The same build a release uses: frontend in Decky's builder image,
-      # remote binaries downloaded and hash-checked, py_modules bundled.
+      # The same build a release uses: frontend in Decky's builder image, py_modules bundled.
       - name: Build plugin
         run: |
           "$RUNNER_TEMP/decky" plugin build . --output-path out
           ls -l out
 
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.14"
-
       # A separate assignment fails the step when no zip was built (bash -e), and a
       # non-empty PLUGIN_ZIP means the package tests run instead of being skipped.
       - name: Check the package
+        env:
+          BUILD_CHANNEL: ${{ steps.stamp.outputs.channel }}
+          BUILD_COMMIT: ${{ env.COMMIT }}
+          BUILD_VERSION: ${{ steps.stamp.outputs.version }}
         run: |
           python -m pip install -r requirements-dev.txt
           plugin_zip="$(ls out/*.zip)"

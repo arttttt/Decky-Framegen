@@ -34,6 +34,7 @@
     "framegen/domain": "<dir>",
     "framegen/domain/__init__.py": "core:framegen/domain/__init__.py",
     "framegen/domain/bundle.py": "core:framegen/domain/bundle.py",
+    "framegen/domain/dev_build.py": "core:framegen/domain/dev_build.py",
     "framegen/domain/exe_target.py": "core:framegen/domain/exe_target.py",
     "framegen/domain/ini.py": "core:framegen/domain/ini.py",
     "framegen/domain/launch_options.py": "core:framegen/domain/launch_options.py",

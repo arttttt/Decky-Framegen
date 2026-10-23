@@ -1,7 +1,8 @@
 """Checks on the built plugin zip, as Decky Loader would install it.
 
 CI builds the zip with Decky CLI and points PLUGIN_ZIP at it; without the
-variable these tests are skipped.
+variable these tests are skipped. For a development build CI also sets
+BUILD_CHANNEL, BUILD_COMMIT and BUILD_VERSION to what it stamped.
 """
 
 from __future__ import annotations
@@ -15,8 +16,11 @@ from pathlib import Path
 
 import pytest
 
+from framegen.domain import dev_build
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGIN_ZIP = os.environ.get("PLUGIN_ZIP")
+BUILD_CHANNEL = os.environ.get("BUILD_CHANNEL")
 
 pytestmark = pytest.mark.skipif(not PLUGIN_ZIP, reason="set PLUGIN_ZIP to a zip built by `decky plugin build`")
 
@@ -71,6 +75,21 @@ def test_the_package_carries_no_optiscaler(plugin_root):
 
     assert "remote_binary" not in package_json
     assert not (plugin_root / "bin").exists()
+
+
+@pytest.mark.skipif(not BUILD_CHANNEL, reason="a release build")
+def test_a_development_build_carries_its_identity_and_version(plugin_root):
+    info = dev_build.parse((plugin_root / dev_build.BUILD_INFO_FILENAME).read_text())
+    package_json = json.loads((plugin_root / "package.json").read_text())
+
+    assert info == dev_build.build_info(os.environ["GITHUB_REPOSITORY"], BUILD_CHANNEL, os.environ["BUILD_COMMIT"])
+    assert package_json["version"] == os.environ["BUILD_VERSION"]
+
+
+@pytest.mark.skipif(bool(BUILD_CHANNEL), reason="a development build")
+def test_a_release_build_carries_no_build_identity(plugin_root):
+    # The Developer section, which installs unreviewed builds, exists only where this file does.
+    assert not (plugin_root / dev_build.BUILD_INFO_FILENAME).exists()
 
 
 # Runs in an isolated interpreter (-I) so nothing from the repository can be imported:
