@@ -39,6 +39,7 @@
     "framegen/domain/ini.py": "core:framegen/domain/ini.py",
     "framegen/domain/launch_options.py": "core:framegen/domain/launch_options.py",
     "framegen/domain/launch_target.py": "core:framegen/domain/launch_target.py",
+    "framegen/domain/library.py": "core:framegen/domain/library.py",
     "framegen/domain/marker.py": "core:framegen/domain/marker.py",
     "framegen/domain/patch_plan.py": "core:framegen/domain/patch_plan.py",
     "framegen/domain/steam.py": "core:framegen/domain/steam.py",

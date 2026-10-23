@@ -1,0 +1,194 @@
+[
+  {
+    "tag_name": "nightly-20261023",
+    "name": "Nightly Build nightly-20261023",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-23T09:09:56Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261023.7z",
+        "state": "uploaded",
+        "size": 57124610,
+        "digest": "sha256:07ea8c69278f99041bf9d747f9aae9e01f3c64dc57a9eed7d4063f94b93e480a",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261023/OptiScaler_v10.0.0-pre1_20261023.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "nightly-20261022",
+    "name": "Nightly Build nightly-20261022",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-22T09:15:24Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261022.7z",
+        "state": "uploaded",
+        "size": 57129111,
+        "digest": "sha256:7e00ac50b658c754697f810ff3c91e881552081ddb7743b7f72ef500f1c5ca70",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261022/OptiScaler_v10.0.0-pre1_20261022.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "nightly-20261021",
+    "name": "Nightly Build nightly-20261021",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-21T09:12:32Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261021.7z",
+        "state": "uploaded",
+        "size": 57125397,
+        "digest": "sha256:09761c04b34e63040dccf298ec7748682037f7b13fcfbf4a19ea8209da88eaca",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261021/OptiScaler_v10.0.0-pre1_20261021.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "nightly-20261020",
+    "name": "Nightly Build nightly-20261020",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-20T09:12:05Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261020.7z",
+        "state": "uploaded",
+        "size": 57106300,
+        "digest": "sha256:dae01c74f2637d5940e1b5110503e1ed9706cd21ef876ff51099f1b3801ac401",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261020/OptiScaler_v10.0.0-pre1_20261020.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "nightly-20261019",
+    "name": "Nightly Build nightly-20261019",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-19T09:40:37Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261019.7z",
+        "state": "uploaded",
+        "size": 57091413,
+        "digest": "sha256:9c9e7708e7f5eade5b14495fa2d05a7340d2009539801a7605aa47c153de3166",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261019/OptiScaler_v10.0.0-pre1_20261019.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "nightly-20261018",
+    "name": "Nightly Build nightly-20261018",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-18T08:37:48Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261018.7z",
+        "state": "uploaded",
+        "size": 57079796,
+        "digest": "sha256:97b8c5fc4f046fc3d92d5b4ba6b98c3e8e4c43595b742121e724cf96953f126a",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261018/OptiScaler_v10.0.0-pre1_20261018.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "nightly-20261017",
+    "name": "Nightly Build nightly-20261017",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-17T08:19:27Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261017.7z",
+        "state": "uploaded",
+        "size": 57047726,
+        "digest": "sha256:8d07f3e5f8bbbcd6b5976f9e15456315b2ccc0010a268f1906509282bdf2bff3",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261017/OptiScaler_v10.0.0-pre1_20261017.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "nightly-20261016",
+    "name": "Nightly Build nightly-20261016",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-16T08:49:39Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261016.7z",
+        "state": "uploaded",
+        "size": 57027384,
+        "digest": "sha256:09149a5b17514a0594faf612467267c62ed8851dbc1dde0ade6763f1152e600f",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261016/OptiScaler_v10.0.0-pre1_20261016.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "nightly-20261015",
+    "name": "Nightly Build nightly-20261015",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-15T08:56:37Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261015.7z",
+        "state": "uploaded",
+        "size": 57012223,
+        "digest": "sha256:4690a8a68814919d8f7e6252f39d2121a8c878c4f74d2020bb9132dfb546afde",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261015/OptiScaler_v10.0.0-pre1_20261015.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "nightly-20261014",
+    "name": "Nightly Build nightly-20261014",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-14T09:22:03Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261014.7z",
+        "state": "uploaded",
+        "size": 56998912,
+        "digest": "sha256:f32cd2b99825e509622aa72827586cae7300632c61d5f10231e583200b4d3847",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261014/OptiScaler_v10.0.0-pre1_20261014.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "nightly-20261013",
+    "name": "Nightly Build nightly-20261013",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-13T11:31:17Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261013.7z",
+        "state": "uploaded",
+        "size": 57001181,
+        "digest": "sha256:9ac5c0fe2887a0ec9c83e575fa466fa4ca214c1836897f94981a8f4b70652917",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261013/OptiScaler_v10.0.0-pre1_20261013.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "nightly-20261012",
+    "name": "Nightly Build nightly-20261012",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2026-10-12T11:46:01Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v10.0.0-pre1_20261012.7z",
+        "state": "uploaded",
+        "size": 56985977,
+        "digest": "sha256:b264698df7013dc07c6cf3c97c9307bcf01122869c6884dd5b8122cbfa836fb6",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler-nightly/releases/download/nightly-20261012/OptiScaler_v10.0.0-pre1_20261012.7z"
+      }
+    ]
+  }
+]

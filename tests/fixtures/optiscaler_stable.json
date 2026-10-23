@@ -1,0 +1,158 @@
+[
+  {
+    "tag_name": "v0.9.4",
+    "name": "v0.9.4",
+    "prerelease": false,
+    "draft": false,
+    "published_at": "2026-07-18T21:46:07Z",
+    "assets": [
+      {
+        "name": "Optiscaler_0.9.4-final.20260718._MM.7z",
+        "state": "uploaded",
+        "size": 55016448,
+        "digest": "sha256:575cb4df866116093df75af607e37fd70e10f5163e0f23fd5c804142e80ef0ad",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.9.4/Optiscaler_0.9.4-final.20260718._MM.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.9.3",
+    "name": "v0.9.3",
+    "prerelease": false,
+    "draft": false,
+    "published_at": "2026-06-18T21:18:06Z",
+    "assets": [
+      {
+        "name": "Optiscaler_0.9.3-final.20260618.7z",
+        "state": "uploaded",
+        "size": 53356866,
+        "digest": "sha256:e3ac655d60ec11b471ac8cc5f4d3758e4bce9151c86caa339d8f0700c00282e3",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.9.3/Optiscaler_0.9.3-final.20260618.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.9.2",
+    "name": "v0.9.2a",
+    "prerelease": false,
+    "draft": false,
+    "published_at": "2026-05-17T17:04:21Z",
+    "assets": [
+      {
+        "name": "Optiscaler_0.9.2a-final.20260517._Reup.7z",
+        "state": "uploaded",
+        "size": 53388454,
+        "digest": "sha256:6426a16085f6128c810e0de58947029664439afd0567b6a286c0e3ef784a92a1",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.9.2/Optiscaler_0.9.2a-final.20260517._Reup.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.9.1",
+    "name": "v0.9.1",
+    "prerelease": false,
+    "draft": false,
+    "published_at": "2026-04-27T22:30:01Z",
+    "assets": [
+      {
+        "name": "Optiscaler_0.9.1-final.20260427._DSB.7z",
+        "state": "uploaded",
+        "size": 53342538,
+        "digest": "sha256:56d1a18e3a32d978c0134844e803ba8cf04134226cfcdb8283f68d180836fab0",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.9.1/Optiscaler_0.9.1-final.20260427._DSB.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.9.0",
+    "name": "v0.9",
+    "prerelease": false,
+    "draft": false,
+    "published_at": "2026-04-01T12:22:38Z",
+    "assets": [
+      {
+        "name": "Optiscaler_0.9.0-final.20260401._AF.7z",
+        "state": "uploaded",
+        "size": 53353132,
+        "digest": "sha256:a988ce2c0a86bba58a6313659d1ed2ab78f994dbdfab246394a2e4293ac68010",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.9.0/Optiscaler_0.9.0-final.20260401._AF.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.7-old_nightly",
+    "name": "0.7 Old Nightly Builds",
+    "prerelease": true,
+    "draft": false,
+    "published_at": "2025-07-05T22:04:04Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v0.7.7-pre13_20250731.7z",
+        "state": "uploaded",
+        "size": 31201498,
+        "digest": "sha256:69eca1ab4c65fd76c42c5214bcf430cce1c7ee515c2fe803e37cdc43ae7e56c1",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.7-old_nightly/OptiScaler_v0.7.7-pre13_20250731.7z"
+      },
+      {
+        "name": "OptiScaler_v0.7.7-pre13_older_20250719.7z",
+        "state": "uploaded",
+        "size": 31192349,
+        "digest": "sha256:d6a232aa68bb18c9b98952258b89276ab755e3e56dd2282a7c72c4ec6a6a6158",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.7-old_nightly/OptiScaler_v0.7.7-pre13_older_20250719.7z"
+      },
+      {
+        "name": "OptiScaler__v0.7.7-pre12_older_20250630.7z",
+        "state": "uploaded",
+        "size": 31157713,
+        "digest": "sha256:8cc661da05721731e4f860c02f904e903cd9cce15dc90e08454b68fdff062aa6",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.7-old_nightly/OptiScaler__v0.7.7-pre12_older_20250630.7z"
+      },
+      {
+        "name": "OptiScaler__v0.7.7-pre12_older_20250705.7z",
+        "state": "uploaded",
+        "size": 31256329,
+        "digest": "sha256:db2512224a0977ec4c1a598ad0c5dd9aef9c7162dd83919e43968d1185cd7d10",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.7-old_nightly/OptiScaler__v0.7.7-pre12_older_20250705.7z"
+      },
+      {
+        "name": "OptiScaler__v0.7.7-pre12_older_20250707.7z",
+        "state": "uploaded",
+        "size": 31256643,
+        "digest": "sha256:8af9c34f086bf8022c2412a2b6c5898618de0afab13e6029f1c3e4edfe3bde3f",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.7-old_nightly/OptiScaler__v0.7.7-pre12_older_20250707.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.7.9",
+    "name": "v0.7.9",
+    "prerelease": false,
+    "draft": false,
+    "published_at": "2025-08-25T17:25:09Z",
+    "assets": [
+      {
+        "name": "OptiScaler_0.7.9.7z",
+        "state": "uploaded",
+        "size": 32581791,
+        "digest": "sha256:70103bf3746140d368179773edeafb02ec9718efa130276b8da833c3156fbfe3",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.7.9/OptiScaler_0.7.9.7z"
+      }
+    ]
+  },
+  {
+    "tag_name": "v0.7.8",
+    "name": "v0.7.8",
+    "prerelease": false,
+    "draft": false,
+    "published_at": "2025-08-16T21:40:06Z",
+    "assets": [
+      {
+        "name": "OptiScaler_v0.7.8_Typeless.7z",
+        "state": "uploaded",
+        "size": 31219678,
+        "digest": "sha256:05c329c24bab20434bbea48d2522bc8694ae2a128d67f1146a780935b7f9f72c",
+        "browser_download_url": "https://github.com/optiscaler/OptiScaler/releases/download/v0.7.8/OptiScaler_v0.7.8_Typeless.7z"
+      }
+    ]
+  }
+]
