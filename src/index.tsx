@@ -1,7 +1,7 @@
 import { definePlugin } from "@decky/api";
 import { MdOutlineAutoAwesomeMotion } from "react-icons/md";
 import { useState, useEffect } from "react";
-import { OptiScalerControls } from "./components";
+import { DeveloperSection, OptiScalerControls } from "./components";
 // import { InstalledGamesSection } from "./components/InstalledGamesSection";
 import { checkFGModPath } from "./api";
 import { safeAsyncOperation } from "./utils";
@@ -48,6 +48,7 @@ function MainContent() {
           {/* <InstalledGamesSection /> */}
         </>
       ) : null}
+      <DeveloperSection />
     </>
   );
 }

@@ -117,3 +117,30 @@ export const unpatchGame = callable<
     launch_options?: string;
   }
 >("unpatch_game");
+
+// ── Development builds ───────────────────────────────────────────────────────
+
+/** The arguments of Decky Loader's `utilities/install_plugin`, prepared by the backend. */
+export type DeckyInstallRequest = [artifact: string, name: string, version: string, hash: string, installType: number];
+
+export type DevBuild =
+  | { is_dev_build: false }
+  | { is_dev_build: true; channel: string; commit: string; short_commit: string; title: string };
+
+export type AvailableDevBuild = {
+  channel: string;
+  commit: string;
+  short_commit: string;
+  title: string;
+  published_at: string;
+  state: "installed" | "available";
+  install_request: DeckyInstallRequest;
+};
+
+export type DevBuildList =
+  | { status: "success"; builds: AvailableDevBuild[] }
+  | { status: "error"; message: string };
+
+export const getDevBuild = callable<[], DevBuild>("get_dev_build");
+
+export const listDevBuilds = callable<[], DevBuildList>("list_dev_builds");

@@ -10,3 +10,4 @@ export { SmartClipboardButton } from './SmartClipboardButton';
 export { ResultDisplay } from './ResultDisplay';
 export { ManualPatchControls } from './CustomPathOverride';
 export { SteamGamePatcher } from './SteamGamePatcher';
+export { DeveloperSection } from './DeveloperSection';
