@@ -1,0 +1,37 @@
+name: Remove a pull request's development build
+
+on:
+  pull_request:
+    types: [closed]
+
+# Shares the pull request's CI group, so a run still publishing for it is cancelled first.
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  remove:
+    name: Delete the pull request's prerelease
+    # Pull requests from forks never get a development build.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # The base branch: a closed pull request's merge ref may already be gone.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Delete the prerelease and its tag
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          channel="$(PYTHONPATH=py_modules python3 -c \
+            'import sys; from framegen.domain import dev_build; print(dev_build.channel(int(sys.argv[1])))' "$PULL_REQUEST")"
+          if gh release view "$channel" >/dev/null 2>&1; then
+            gh release delete "$channel" --cleanup-tag --yes
+          fi

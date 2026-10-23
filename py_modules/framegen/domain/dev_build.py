@@ -69,6 +69,15 @@ def version(base: str, info: BuildInfo) -> str:
     return f"{base}-{info.channel}.{info.short_commit}"
 
 
+def release_title(info: BuildInfo, pull_request_title: str = "") -> str:
+    """The name of the release that publishes a build, shown on the device next to each build."""
+    if info.channel == MAIN_CHANNEL:
+        return f"main @ {info.short_commit}"
+    number = info.channel.removeprefix("pr-")
+    title = " ".join(pull_request_title.split())  # one line, whatever the pull request's title holds
+    return f"PR #{number}: {title}" if title else f"PR #{number}"
+
+
 def asset_name(plugin_name: str, info: BuildInfo) -> str:
     """The release asset's file name; the commit in it keeps a cached download from passing for a newer one."""
     return f"{plugin_name}-{info.short_commit}.zip"

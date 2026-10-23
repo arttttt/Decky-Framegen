@@ -70,6 +70,14 @@ def test_version_and_asset_name_carry_channel_and_short_commit():
     assert dev_build.asset_name("Decky-Framegen", info) == "Decky-Framegen-1a2b3c4.zip"
 
 
+def test_a_release_is_titled_after_main_or_its_pull_request():
+    assert dev_build.release_title(dev_build.build_info(REPOSITORY, "dev", COMMIT)) == "main @ 1a2b3c4"
+    pr = dev_build.build_info(REPOSITORY, "pr-12", COMMIT)
+    assert dev_build.release_title(pr, "Add a Developer section") == "PR #12: Add a Developer section"
+    assert dev_build.release_title(pr, "  Two\nlines\r\n ") == "PR #12: Two lines"
+    assert dev_build.release_title(pr, " ") == "PR #12"
+
+
 # ── integration: the stamping script CI runs ─────────────────────────────────
 
 
@@ -94,7 +102,7 @@ def stamp(root, *args):
 def test_stamping_writes_the_identity_and_the_version_and_reports_both(checkout):
     base = json.loads((checkout / "package.json").read_text())["version"]
 
-    result = stamp(checkout, "--pull-request", "12", "--commit", COMMIT)
+    result = stamp(checkout, "--pull-request", "12", "--pull-request-title", "Add\na section", "--commit", COMMIT)
 
     assert result.returncode == 0, result.stderr
     info = dev_build.parse((checkout / "defaults" / dev_build.BUILD_INFO_FILENAME).read_text())
@@ -105,6 +113,7 @@ def test_stamping_writes_the_identity_and_the_version_and_reports_both(checkout)
         "channel=pr-12",
         f"version={base}-pr-12.1a2b3c4",
         "asset=Decky-Framegen-1a2b3c4.zip",
+        "title=PR #12: Add a section",
     ]
 
 

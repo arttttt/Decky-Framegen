@@ -7,6 +7,11 @@ on:
   # A manual run builds and checks a release package (no development identity).
   workflow_dispatch:
 
+# A new push to a pull request supersedes the run still going for it; runs on main all finish.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   frontend:
     name: Frontend (type-check + build)
@@ -65,6 +70,9 @@ jobs:
   package:
     name: Plugin package (Decky CLI)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # publishes development builds as prereleases
+      pull-requests: read  # checks the pull request is still open after publishing
     env:
       DECKY_CLI_VERSION: "0.0.8"
       DECKY_CLI_SHA256: "6777e356508c1ce887f8e61b0fa4954bb48b32e6d97341eef68ea4e0d6ead9a0"
@@ -90,9 +98,11 @@ jobs:
         shell: bash
         env:
           PULL_REQUEST: ${{ github.event.pull_request.number }}
+          PULL_REQUEST_TITLE: ${{ github.event.pull_request.title }}
         run: |
           python scripts/stamp_dev_build.py --repository "$GITHUB_REPOSITORY" --commit "$COMMIT" \
-            ${PULL_REQUEST:+--pull-request "$PULL_REQUEST"} | tee -a "$GITHUB_OUTPUT"
+            ${PULL_REQUEST:+--pull-request "$PULL_REQUEST" --pull-request-title "$PULL_REQUEST_TITLE"} \
+            | tee -a "$GITHUB_OUTPUT"
 
       - name: Install Decky CLI
         run: |
@@ -118,6 +128,34 @@ jobs:
           python -m pip install -r requirements-dev.txt
           plugin_zip="$(ls out/*.zip)"
           PLUGIN_ZIP="$plugin_zip" python -m pytest tests/test_package.py -v -rs
+
+      # Replaces the channel's prerelease: the tag moves to this commit and the old asset goes.
+      # Never a draft (unauthenticated listings don't show drafts) and never the latest release.
+      - name: Publish the development build
+        if: env.DEV_BUILD == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CHANNEL: ${{ steps.stamp.outputs.channel }}
+          ASSET: ${{ steps.stamp.outputs.asset }}
+          TITLE: ${{ steps.stamp.outputs.title }}
+          VERSION: ${{ steps.stamp.outputs.version }}
+          PULL_REQUEST: ${{ github.event.pull_request.number }}
+        run: |
+          plugin_zip="$(ls out/*.zip)"
+          cp "$plugin_zip" "$RUNNER_TEMP/$ASSET"
+          if gh release view "$CHANNEL" >/dev/null 2>&1; then
+            gh release delete "$CHANNEL" --cleanup-tag --yes
+          fi
+          gh release create "$CHANNEL" "$RUNNER_TEMP/$ASSET" --target "$COMMIT" \
+            --prerelease --latest=false --title "$TITLE" \
+            --notes "Development build $VERSION of $COMMIT. Installable from the plugin's Developer section."
+          # Closing the pull request while this ran may have let its cleanup finish first;
+          # then this release would outlive it, so it goes now.
+          if [[ -n "$PULL_REQUEST" && "$(gh pr view "$PULL_REQUEST" --json state --jq .state)" != "OPEN" ]]; then
+            gh release delete "$CHANNEL" --cleanup-tag --yes
+          fi
 
       - uses: actions/upload-artifact@v7
         with:
