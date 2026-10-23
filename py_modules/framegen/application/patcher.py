@@ -104,8 +104,8 @@ class Patcher:
 
     def unpatch_directory(self, directory: Path) -> dict:
         try:
-            entries = frozenset(entry.name for entry in directory.iterdir())
-            game_directory.execute(plan.plan_unpatch(entries), directory, self.fgmod_path)
+            entries, plugin_entries = game_directory.listing(directory)
+            game_directory.execute(plan.plan_unpatch(entries, plugin_entries), directory, self.fgmod_path)
         except PermissionError as exc:
             log.error(f"Manual unpatch permission error: {exc}")
             return _error(f"Permission error while unpatching: {exc}")

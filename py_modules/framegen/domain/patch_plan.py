@@ -17,6 +17,8 @@ INI_FILENAME = "OptiScaler.ini"
 PLUGINS_DIR = "plugins"
 D3D12_DIR = "D3D12_Optiscaler"
 UNINSTALLER_FILENAME = "fgmod-uninstaller.sh"
+PLUGIN_FILES = frozenset({bundle.OPTIPATCHER_TARGET})
+"""Files a patch has ever placed in the game's plugins/ directory."""
 VALVE_VARIANT = "rdna2-valve-411-pre10"
 
 
@@ -231,14 +233,22 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
 # ── unpatch ──────────────────────────────────────────────────────────────────
 
 
-def plan_unpatch(entries: frozenset[str]) -> tuple[Operation, ...]:
-    """Remove everything a patch may have placed, then restore the backups."""
+def plan_unpatch(entries: frozenset[str], plugin_entries: frozenset[str]) -> tuple[Operation, ...]:
+    """Remove everything a patch may have placed, then restore the backups.
+
+    `plugin_entries` lists the game's `plugins/` directory: only the files a patch puts
+    there are removed, and the directory itself only when nothing else is left in it.
+    A file with a backup is restored from it rather than deleted, whatever its era.
+    """
     present = set(entries)
     operations: list[Operation] = []
 
     def remove(operation: Operation, name: str) -> None:
         operations.append(operation)
         present.discard(name)
+
+    def restorable(name: str) -> bool:
+        return name.endswith(BACKUP_SUFFIX) or f"{name}{BACKUP_SUFFIX}" in present
 
     patch_files = {
         *bundle.INJECTOR_FILENAMES,
@@ -250,14 +260,19 @@ def plan_unpatch(entries: frozenset[str]) -> tuple[Operation, ...]:
         if name in present:
             remove(DeleteFile(name), name)
     for name in bundle.LEGACY_FILES:
-        if name in present:
+        if name in present and not restorable(name):
             remove(RemoveFileOrTree(name), name)
-    for name in (PLUGINS_DIR, D3D12_DIR):
-        if name in present:
-            remove(RemoveTree(name), name)
-    for name in dict.fromkeys(bundle.RESTORABLE_BACKUP_FILES):
+    if PLUGINS_DIR in present:
+        ours = {name for name in plugin_entries if f"{PLUGINS_DIR}/{name}" in PLUGIN_FILES}
+        if ours == set(plugin_entries):
+            remove(RemoveTree(PLUGINS_DIR), PLUGINS_DIR)
+        else:
+            operations.extend(DeleteFile(f"{PLUGINS_DIR}/{name}") for name in sorted(ours))
+    if D3D12_DIR in present:
+        remove(RemoveTree(D3D12_DIR), D3D12_DIR)
+    for name in dict.fromkeys([*bundle.RESTORABLE_BACKUP_FILES, *bundle.LEGACY_FILES]):
         backup = name + BACKUP_SUFFIX
-        if backup not in present:
+        if name.endswith(BACKUP_SUFFIX) or backup not in present:
             continue
         if name in present:
             operations.append(DeleteFile(name))
