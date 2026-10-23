@@ -104,7 +104,6 @@ class Library:
                 return _error(f"The {version_id} archive lacks {', '.join(sorted(missing))}; not added.")
             installed = library.entry(version, datetime.now(timezone.utc).isoformat())
             self.store.commit(stage, installed)
-            self.refresh_core()
         except (ReleasesUnavailable, RuntimeError, OSError) as exc:
             log.error(f"Installing {version_id} failed: {exc}")
             return _error(f"Installing {version_id} failed: {exc}")
@@ -113,7 +112,14 @@ class Library:
         if self.store.default_version() is None:
             self.store.set_default_version(version_id)
         log.info(f"Installed OptiScaler {version_id}")
-        return {"status": "success", "id": version_id, "message": f"OptiScaler {version.version} is installed."}
+        message = f"OptiScaler {version.version} is installed."
+        try:
+            self.refresh_core()
+        except OSError as exc:
+            # The version is in the library either way; only the launch scripts may be stale.
+            log.warning(f"Refreshing the core in ~/fgmod after installing {version_id} failed: {exc}")
+            message += f" Updating the launch scripts in ~/fgmod failed: {exc}"
+        return {"status": "success", "id": version_id, "message": message}
 
     def remove(self, version_id: str) -> dict:
         default = self.store.default_version()

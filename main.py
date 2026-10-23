@@ -122,7 +122,8 @@ class Plugin:
         return await asyncio.to_thread(library.install, channel, version_id)
 
     async def library_remove(self, version_id: str) -> dict:
-        return self._library().remove(version_id)
+        # Deleting an unpacked version (hundreds of MB) takes a moment on handheld storage.
+        return await asyncio.to_thread(self._library().remove, version_id)
 
     async def library_set_default(self, version_id: str) -> dict:
         return self._library().set_default(version_id)

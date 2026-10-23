@@ -251,3 +251,18 @@ def test_a_version_listed_as_unsupported_is_never_downloaded(world, github_api):
 
     assert result["message"] == f"{NEWEST} can't be installed: {library.NO_CHECKSUM}."
     assert download.urls == []
+
+
+def test_a_failed_core_refresh_does_not_turn_an_install_into_a_failure(world):
+    def refresh():
+        raise OSError("No space left on device")
+
+    lib = world.library()
+    lib.refresh_core = refresh
+
+    result = lib.install(library.NIGHTLY, NEWEST)
+
+    assert result["status"] == "success"
+    assert result["message"].endswith("Updating the launch scripts in ~/fgmod failed: No space left on device")
+    assert (world.fgmod / "library" / "versions" / NEWEST / "entry.json").exists()
+    assert not (world.fgmod / "library" / "settings.json.new").exists()

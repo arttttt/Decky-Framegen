@@ -74,5 +74,7 @@ class LibraryStore:
         settings = read_json(self.settings_path)
         settings["default_version"] = version_id
         self.root.mkdir(parents=True, exist_ok=True)
-        write_json(self.settings_path, settings)
+        staged = self.settings_path.with_name(self.settings_path.name + ".new")
+        write_json(staged, settings)
+        staged.replace(self.settings_path)
 
