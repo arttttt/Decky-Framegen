@@ -190,7 +190,13 @@ def test_a_development_build_lists_its_repositorys_builds_ready_to_install(plugi
     build = service.build()
     builds = service.available_builds()
 
-    assert build == {"is_dev_build": True, "channel": "dev", "commit": DEV_COMMIT, "short_commit": "9f2c1a6"}
+    assert build == {
+        "is_dev_build": True,
+        "channel": "dev",
+        "commit": DEV_COMMIT,
+        "short_commit": "9f2c1a6",
+        "title": "main @ 9f2c1a6",
+    }
     assert github.requests == [f"/repos/{REPOSITORY}/releases?per_page=100"]
     assert builds["status"] == "success"
     assert [(b["channel"], b["state"]) for b in builds["builds"]] == [

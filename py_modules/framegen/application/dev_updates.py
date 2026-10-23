@@ -39,7 +39,7 @@ class DevUpdates:
         current = self._current()
         if current is None:
             return {"is_dev_build": False}
-        return {"is_dev_build": True, **_describe(current)}
+        return {"is_dev_build": True, **_describe(current), "title": dev_build.release_title(current)}
 
     def available_builds(self) -> dict:
         """Every installable development build, marked installed or available, with the request that installs it."""
