@@ -304,3 +304,110 @@ def detect_variant(upscaler_sha256: str | None, file_sha256: dict[str, str]) -> 
         if not variant.get("extra_files") and str(variant.get("sha256") or "").lower() == upscaler:
             return variant_id
     return None
+
+
+# ── installing the bundle ────────────────────────────────────────────────────
+
+# Every asset the plugin ships in bin/, verified by hash before installing.
+RELEASE_ASSETS = (
+    OPTISCALER_ARCHIVE_ASSET,
+    FSR4_INT8_ASSET,
+    FSR4_OFFICIAL_411_ASSET,
+    FSR4_VALVE_411_ASSET,
+    AMDXC64_RDNA2_ASSET,
+    OPTISCALER_PRE10_ASSET,
+    OPTIPATCHER_ASSET,
+)
+
+# Scripts from the plugin's assets/ installed into ~/fgmod, by installed name.
+LAUNCHER_SCRIPTS = {
+    "fgmod": "fgmod.sh",
+    "fgmod-uninstaller.sh": "fgmod-uninstaller.sh",
+    "update-optiscaler-config.py": "update-optiscaler-config.py",
+}
+
+OPTIPATCHER_TARGET = "plugins/OptiPatcher.asi"
+
+
+def required_install_paths() -> list[str]:
+    """Paths (relative to ~/fgmod) a complete install must contain."""
+    paths = [
+        "OptiScaler.dll",
+        "OptiScaler.ini",
+        FSR4_UPSCALER_FILENAME,
+        *SUPPORT_FILES,
+        *LAUNCHER_SCRIPTS,
+        INSTALL_MANIFEST_FILENAME,
+        OPTIPATCHER_TARGET,
+    ]
+    for variant in FSR4_VARIANTS.values():
+        variant_dir = variant["dir_name"]
+        paths.append(f"{variant_dir}/{FSR4_UPSCALER_FILENAME}")
+        injector = variant.get("injector")
+        if isinstance(injector, dict):
+            paths.append(f"{variant_dir}/{injector.get('name', 'OptiScaler.dll')}")
+            paths.append(f"{variant_dir}/renames/dxgi.dll")
+        paths.extend(f"{variant_dir}/{extra['name']}" for extra in variant.get("extra_files", []))
+    return paths
+
+
+def install_manifest(
+    *,
+    selected_variant: str,
+    native_upscaler_sha256: str,
+    optipatcher_sha256: str,
+    active_upscaler_sha256: str,
+    installed_at: str,
+) -> dict:
+    """The install-manifest.json written into ~/fgmod."""
+
+    def located(entry: dict, variant_dir: str) -> dict:
+        return {
+            "name": entry["name"],
+            "sha256": entry["sha256"],
+            "source_asset_name": entry["source_asset_name"],
+            "source_version": entry["source_version"],
+            "path": f"{variant_dir}/{entry['name']}",
+        }
+
+    return {
+        "schema_version": 1,
+        "installed_at": installed_at,
+        "optiscaler": {
+            "asset_name": OPTISCALER_ARCHIVE_ASSET["name"],
+            "version": OPTISCALER_ARCHIVE_ASSET["version"],
+            "sha256": OPTISCALER_ARCHIVE_ASSET["sha256"],
+            "native_upscaler_sha256": native_upscaler_sha256,
+        },
+        "optipatcher": {
+            "asset_name": OPTIPATCHER_ASSET["name"],
+            "version": OPTIPATCHER_ASSET["version"],
+            "sha256": optipatcher_sha256,
+            "target_path": OPTIPATCHER_TARGET,
+        },
+        "fsr4_variants": {
+            variant_id: {
+                "label": variant["label"],
+                "dir_name": variant["dir_name"],
+                "path": f"{variant['dir_name']}/{FSR4_UPSCALER_FILENAME}",
+                "sha256": variant["sha256"],
+                "source_asset_name": variant["source_asset_name"],
+                "source_version": variant["source_version"],
+                "uses_archive_native": bool(variant["uses_archive_native"]),
+                "injector": (
+                    located(variant["injector"], variant["dir_name"])
+                    if isinstance(variant.get("injector"), dict)
+                    else None
+                ),
+                "config_overrides": dict(variant.get("config_overrides") or {}),
+                "extra_files": [located(extra, variant["dir_name"]) for extra in variant.get("extra_files", [])],
+            }
+            for variant_id, variant in FSR4_VARIANTS.items()
+        },
+        "selected_default_variant": selected_variant,
+        "active_root_upscaler": {
+            "path": FSR4_UPSCALER_FILENAME,
+            "sha256": active_upscaler_sha256,
+            "variant": selected_variant,
+        },
+    }
