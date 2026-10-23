@@ -1,0 +1,5 @@
+# Decky Loader builds the frontend with pnpm 12, which fails an install whose
+# dependencies have unreviewed build scripts. esbuild (through vitest) needs none:
+# its binary comes from a per-platform package.
+allowBuilds:
+  esbuild: false

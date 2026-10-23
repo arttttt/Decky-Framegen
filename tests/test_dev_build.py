@@ -42,6 +42,20 @@ def test_only_owner_slash_name_is_a_repository(repository):
         dev_build.build_info(repository, "dev", COMMIT)
 
 
+def test_a_build_carries_its_title_but_is_identified_without_it():
+    titled = dev_build.build_info(REPOSITORY, "pr-12", COMMIT, "Add a\nsection")
+
+    assert titled.title == "PR #12: Add a section"
+    assert dev_build.parse(dev_build.to_json(titled)).title == "PR #12: Add a section"
+    assert titled == dev_build.build_info(REPOSITORY, "pr-12", COMMIT)
+
+
+def test_a_file_without_a_title_gets_the_channels_default():
+    text = '{"repository": "%s", "channel": "pr-12", "commit": "%s"}' % (REPOSITORY, COMMIT)
+
+    assert dev_build.parse(text).title == "PR #12"
+
+
 def test_build_info_round_trips_through_its_file():
     info = dev_build.build_info(REPOSITORY, "pr-7", COMMIT)
 
@@ -107,6 +121,7 @@ def test_stamping_writes_the_identity_and_the_version_and_reports_both(checkout)
     assert result.returncode == 0, result.stderr
     info = dev_build.parse((checkout / "defaults" / dev_build.BUILD_INFO_FILENAME).read_text())
     assert info == dev_build.build_info(REPOSITORY, "pr-12", COMMIT)
+    assert info.title == "PR #12: Add a section"
     package = json.loads((checkout / "package.json").read_text())
     assert package["version"] == f"{base}-pr-12.1a2b3c4"
     assert result.stdout.splitlines() == [

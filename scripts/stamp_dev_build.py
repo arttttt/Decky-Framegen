@@ -33,7 +33,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        info = dev_build.build_info(args.repository, dev_build.channel(args.pull_request), args.commit)
+        info = dev_build.build_info(
+            args.repository, dev_build.channel(args.pull_request), args.commit, args.pull_request_title
+        )
     except ValueError as exc:
         parser.error(str(exc))
 
@@ -47,7 +49,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"channel={info.channel}")
     print(f"version={package['version']}")
     print(f"asset={dev_build.asset_name(plugin_name, info)}")
-    print(f"title={dev_build.release_title(info, args.pull_request_title)}")
+    print(f"title={info.title}")
     return 0
 
 
