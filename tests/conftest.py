@@ -13,7 +13,6 @@ for the hashes of those blobs so variant detection behaves as on a device.
 
 from __future__ import annotations
 
-import copy
 import hashlib
 import json
 import logging
@@ -31,9 +30,11 @@ _decky.HOME = ""
 _decky.DECKY_PLUGIN_DIR = ""
 _decky.logger = logging.getLogger("decky")
 sys.modules["decky"] = _decky
-sys.path.insert(0, str(REPO_ROOT))
+# Decky puts the plugin's py_modules on sys.path; the repo root holds main.py.
+sys.path[:0] = [str(REPO_ROOT / "py_modules"), str(REPO_ROOT)]
 
 import main  # noqa: E402
+from framegen import bundle  # noqa: E402
 
 
 # sha256 → label of every placeholder handed out, so snapshots can name content.
@@ -87,17 +88,15 @@ EXTRA_FILE_BLOBS = {
 
 @pytest.fixture
 def fake_variants(monkeypatch) -> dict:
-    """FSR4_VARIANTS with hashes rewritten to match the placeholder blobs."""
-    variants = copy.deepcopy(main.FSR4_VARIANTS)
-    for variant_id, variant in variants.items():
+    """The FSR4 variant table with hashes pointed at the placeholder blobs (edited in place, undone after the test)."""
+    for variant_id, variant in bundle.FSR4_VARIANTS.items():
         upscaler = NATIVE_UPSCALER if variant["uses_archive_native"] else INT8_UPSCALER
-        variant["sha256"] = sha256(blob(upscaler))
+        monkeypatch.setitem(variant, "sha256", sha256(blob(upscaler)))
         for extra in variant.get("extra_files", []):
-            extra["sha256"] = sha256(blob(EXTRA_FILE_BLOBS[(variant_id, extra["name"])]))
+            monkeypatch.setitem(extra, "sha256", sha256(blob(EXTRA_FILE_BLOBS[(variant_id, extra["name"])])))
         if variant.get("injector"):
-            variant["injector"]["sha256"] = sha256(blob(PRE10_INJECTOR))
-    monkeypatch.setattr(main, "FSR4_VARIANTS", variants)
-    return variants
+            monkeypatch.setitem(variant["injector"], "sha256", sha256(blob(PRE10_INJECTOR)))
+    return bundle.FSR4_VARIANTS
 
 
 @pytest.fixture
@@ -124,9 +123,9 @@ def fgmod(home, fake_variants) -> Path:
     root = home / "fgmod"
     write(root / "OptiScaler.dll", blob("OptiScaler.dll"))
     write(root / "OptiScaler.ini", b"[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n")
-    for name in main.PROXY_DLL_BACKUPS:
+    for name in bundle.PROXY_DLL_BACKUPS:
         write(root / "renames" / name, blob("OptiScaler.dll"))
-    for name in main.SUPPORT_FILES:
+    for name in bundle.SUPPORT_FILES:
         write(root / name, blob(name))
     write(root / "D3D12_Optiscaler" / "D3D12Core.dll", blob("D3D12Core.dll"))
     write(root / "plugins" / "OptiPatcher.asi", blob("OptiPatcher.asi"))
@@ -136,21 +135,21 @@ def fgmod(home, fake_variants) -> Path:
     for variant_id, variant in fake_variants.items():
         variant_dir = root / variant["dir_name"]
         upscaler = NATIVE_UPSCALER if variant["uses_archive_native"] else INT8_UPSCALER
-        write(variant_dir / main.FSR4_UPSCALER_FILENAME, blob(upscaler))
+        write(variant_dir / bundle.FSR4_UPSCALER_FILENAME, blob(upscaler))
         for extra in variant.get("extra_files", []):
             write(variant_dir / extra["name"], blob(EXTRA_FILE_BLOBS[(variant_id, extra["name"])]))
         if variant.get("injector"):
             write(variant_dir / variant["injector"]["name"], blob(PRE10_INJECTOR))
-            for name in main.PROXY_DLL_BACKUPS:
+            for name in bundle.PROXY_DLL_BACKUPS:
                 write(variant_dir / "renames" / name, blob(PRE10_INJECTOR))
 
-    write(root / main.FSR4_UPSCALER_FILENAME, blob(INT8_UPSCALER))
+    write(root / bundle.FSR4_UPSCALER_FILENAME, blob(INT8_UPSCALER))
     manifest = {
         "schema_version": 1,
         "optiscaler": {"version": "test-0.9.4"},
-        "selected_default_variant": main.DEFAULT_FSR4_VARIANT,
+        "selected_default_variant": bundle.DEFAULT_FSR4_VARIANT,
     }
-    write(root / main.INSTALL_MANIFEST_FILENAME, json.dumps(manifest).encode())
+    write(root / bundle.INSTALL_MANIFEST_FILENAME, json.dumps(manifest).encode())
     return root
 
 

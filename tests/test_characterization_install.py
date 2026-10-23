@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-import main
+from framegen import bundle
 from conftest import INT8_UPSCALER, NATIVE_UPSCALER, PRE10_INJECTOR, REPO_ROOT, blob, sha256, write
 from golden import assert_golden, describe_tree, normalize_result
 
@@ -56,23 +56,23 @@ def release_assets(home, fake_variants, tmp_path, monkeypatch) -> Path:
     plugin_dir = tmp_path / "plugin"
     bin_dir = plugin_dir / "bin"
 
-    archive = bin_dir / main.OPTISCALER_ARCHIVE_ASSET["name"]
+    archive = bin_dir / bundle.OPTISCALER_ARCHIVE_ASSET["name"]
     archive.parent.mkdir(parents=True)
     members = {
         "OptiScaler.dll": blob("OptiScaler.dll"),
         "OptiScaler.ini": ARCHIVE_INI.encode(),
-        **{name: blob(name) for name in main.SUPPORT_FILES},
-        main.FSR4_UPSCALER_FILENAME: blob(NATIVE_UPSCALER),
+        **{name: blob(name) for name in bundle.SUPPORT_FILES},
+        bundle.FSR4_UPSCALER_FILENAME: blob(NATIVE_UPSCALER),
         "D3D12_Optiscaler/D3D12Core.dll": blob("D3D12Core.dll"),
     }
     with zipfile.ZipFile(archive, "w") as zf:
         for name, data in members.items():
             # A fixed timestamp keeps the archive, and so its hash, identical across runs.
             zf.writestr(zipfile.ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0)), data)
-    monkeypatch.setitem(main.OPTISCALER_ARCHIVE_ASSET, "sha256", sha256(archive.read_bytes()))
+    monkeypatch.setitem(bundle.OPTISCALER_ARCHIVE_ASSET, "sha256", sha256(archive.read_bytes()))
 
     for table_name, blob_name in ASSET_BLOBS.items():
-        asset = getattr(main, table_name)
+        asset = getattr(bundle, table_name)
         write(bin_dir / asset["name"], blob(blob_name))
         monkeypatch.setitem(asset, "sha256", sha256(blob(blob_name)))
 
@@ -89,7 +89,7 @@ def run(coro):
     return asyncio.run(coro)
 
 
-@pytest.mark.parametrize("variant", sorted(main.FSR4_VARIANTS))
+@pytest.mark.parametrize("variant", sorted(bundle.FSR4_VARIANTS))
 def test_install_bundle(variant, plugin, release_assets, home, tmp_path):
     result = run(plugin.run_install_fgmod(variant))
 
@@ -115,10 +115,10 @@ def test_switch_default_variant(plugin, release_assets, home, tmp_path):
                 "result": normalize_result(result, tmp_path),
                 "root files": {
                     name: describe_tree(fgmod).get(name)
-                    for name in (main.FSR4_UPSCALER_FILENAME, *main.VARIANT_EXTRA_FILENAMES)
+                    for name in (bundle.FSR4_UPSCALER_FILENAME, *bundle.VARIANT_EXTRA_FILENAMES)
                 },
                 "manifest selection": json.loads(
-                    (fgmod / main.INSTALL_MANIFEST_FILENAME).read_text()
+                    (fgmod / bundle.INSTALL_MANIFEST_FILENAME).read_text()
                 )["selected_default_variant"],
             }
         )
@@ -129,7 +129,7 @@ def test_switch_default_variant(plugin, release_assets, home, tmp_path):
 def test_install_refuses_tampered_asset_and_keeps_existing_bundle(plugin, release_assets, home, tmp_path):
     run(plugin.run_install_fgmod("rdna23-int8"))
     before = describe_tree(home / "fgmod")
-    write(release_assets / "bin" / main.FSR4_INT8_ASSET["name"], b"tampered")
+    write(release_assets / "bin" / bundle.FSR4_INT8_ASSET["name"], b"tampered")
 
     result = run(plugin.run_install_fgmod("rdna23-int8"))
 
