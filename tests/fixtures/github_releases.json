@@ -1,0 +1,74 @@
+[
+  {
+    "html_url": "https://github.com/arttttt/Decky-Framegen/releases/tag/pr-12",
+    "tag_name": "pr-12",
+    "target_commitish": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
+    "name": "PR #12: Add a Developer section",
+    "draft": false,
+    "prerelease": true,
+    "published_at": "2026-10-23T10:00:00Z",
+    "assets": [
+      {
+        "name": "Decky-Framegen-1a2b3c4.zip",
+        "state": "uploaded",
+        "size": 1048576,
+        "digest": "sha256:7e00ac50b658c754697f810ff3c91e881552081ddb7743b7f72ef500f1c5ca70",
+        "browser_download_url": "https://github.com/arttttt/Decky-Framegen/releases/download/pr-12/Decky-Framegen-1a2b3c4.zip"
+      }
+    ]
+  },
+  {
+    "html_url": "https://github.com/arttttt/Decky-Framegen/releases/tag/v0.17",
+    "tag_name": "v0.17",
+    "target_commitish": "main",
+    "name": "v0.17",
+    "draft": false,
+    "prerelease": false,
+    "published_at": "2026-10-01T10:00:00Z",
+    "assets": [
+      {
+        "name": "Decky-Framegen.zip",
+        "state": "uploaded",
+        "size": 199550246,
+        "digest": "sha256:3300b617e3d979b483d03f995c75c829d6d54beaa4ac8dfae300c2560e4fc60f",
+        "browser_download_url": "https://github.com/arttttt/Decky-Framegen/releases/download/v0.17/Decky-Framegen.zip"
+      }
+    ]
+  },
+  {
+    "html_url": "https://github.com/arttttt/Decky-Framegen/releases/tag/dev",
+    "tag_name": "dev",
+    "target_commitish": "9f2c1a6bd4e8c7a5f3b2d1e0f6a5b4c3d2e1f0a9",
+    "name": "dev @ 9f2c1a6",
+    "draft": false,
+    "prerelease": true,
+    "published_at": "2026-10-23T09:15:24Z",
+    "assets": [
+      {
+        "name": "Decky-Framegen-9f2c1a6.zip",
+        "state": "uploaded",
+        "size": 1048576,
+        "digest": "sha256:aa00ac50b658c754697f810ff3c91e881552081ddb7743b7f72ef500f1c5ca70",
+        "browser_download_url": "https://github.com/arttttt/Decky-Framegen/releases/download/dev/Decky-Framegen-9f2c1a6.zip"
+      }
+    ]
+  },
+  {
+    "html_url": "https://github.com/arttttt/Decky-Framegen/releases/tag/pr-9",
+    "tag_name": "pr-9",
+    "target_commitish": "e25743149e397f752c1e80c5db82dde693ca818e",
+    "name": "PR #9: Ship the plugin without OptiScaler binaries",
+    "draft": false,
+    "prerelease": true,
+    "published_at": "2026-10-23T08:00:00Z",
+    "assets": [
+      {
+        "name": "Decky-Framegen-e257431.zip",
+        "state": "uploaded",
+        "size": 1048576,
+        "digest": "sha256:bb00ac50b658c754697f810ff3c91e881552081ddb7743b7f72ef500f1c5ca70",
+        "browser_download_url": "https://github.com/arttttt/Decky-Framegen/releases/download/pr-9/Decky-Framegen-e257431.zip"
+      }
+    ]
+  }
+]
