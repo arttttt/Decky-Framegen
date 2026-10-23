@@ -44,20 +44,39 @@ class Patcher:
         return target
 
     def patch_directory(
-        self, directory: Path, dll_name: str, fsr4_variant: str | None, allow_managed_support_cleanup: bool
+        self, directory: Path, dll_name: str, fsr4_variant: str | None, steam_game: marker.SteamGame | None = None
     ) -> dict:
+        """Patch a directory and leave our marker in it, which later proves which files are ours."""
         if not self.fgmod_path.exists():
             return _error(NOT_INSTALLED)
         previous_variant = str(files.read_json(directory / bundle.MARKER_FILENAME).get("fsr4_variant") or "").strip()
         variant = bundle_store.selected_variant(self.fgmod_path, fsr4_variant)
         label = bundle.FSR4_VARIANTS[variant]["label"]
-        request = plan.PatchRequest(dll_name, variant, allow_managed_support_cleanup)
+        request = plan.PatchRequest(dll_name, variant)
         try:
             game = game_directory.read(directory, self.fgmod_path, previous_variant)
             patch = plan.plan_patch(game, game_directory.bundle_files(self.fgmod_path), request)
             upscaler_sha256 = files.sha256(self.fgmod_path / patch.upscaler_source)
             log.info(f"Patching {directory} with {dll_name} and FSR4 variant {variant} ({label})")
             game_directory.execute(patch.operations, directory, self.fgmod_path)
+            optiscaler_version = bundle_store.optiscaler_version(self.fgmod_path)
+            files.write_json(
+                directory / bundle.MARKER_FILENAME,
+                marker.build(
+                    dll_name=dll_name,
+                    target_dir=directory,
+                    backed_up_files=[
+                        name
+                        for name in dict.fromkeys(bundle.RESTORABLE_BACKUP_FILES)
+                        if (directory / f"{name}{plan.BACKUP_SUFFIX}").exists()
+                    ],
+                    optiscaler_version=optiscaler_version,
+                    fsr4_variant=variant,
+                    fsr4_upscaler_sha256=upscaler_sha256,
+                    patched_at=datetime.now(timezone.utc).isoformat(),
+                    steam_game=steam_game,
+                ),
+            )
         except plan.PlanError as exc:
             return _error(str(exc))
         except PermissionError as exc:
@@ -72,7 +91,7 @@ class Patcher:
             "fsr4_variant": variant,
             "fsr4_variant_label": label,
             "fsr4_upscaler_sha256": upscaler_sha256,
-            "optiscaler_version": bundle_store.optiscaler_version(self.fgmod_path),
+            "optiscaler_version": optiscaler_version,
         }
 
     def unpatch_directory(self, directory: Path) -> dict:
@@ -95,8 +114,7 @@ class Patcher:
         except (FileNotFoundError, NotADirectoryError, PermissionError) as exc:
             log.error(f"Manual patch validation failed: {exc}")
             return _error(str(exc))
-        allow_cleanup = (target / bundle.MARKER_FILENAME).exists()
-        return self.patch_directory(target, dll_name, fsr4_variant, allow_cleanup)
+        return self.patch_directory(target, dll_name, fsr4_variant)
 
     def unpatch_user_directory(self, directory: str) -> dict:
         try:
@@ -230,41 +248,19 @@ class Patcher:
 
         existing_marker = self._find_marker(game.install_path)
         existing = files.read_json(existing_marker) if existing_marker else {}
-        existing_target = Path(existing.get("target_dir", str(existing_marker.parent))) if existing_marker else None
         original_options = marker.original_launch_options(
             current_launch_options, str(existing.get("original_launch_options") or "")
         )
 
         target_dir, target_exe = self._patch_target(game)
         log.info(f"[Framegen] patch_game: appid={appid} dll={dll_name} target={target_dir} exe={target_exe}")
-        allow_cleanup = (existing_marker is not None and existing_target == target_dir) or (
-            target_dir / bundle.MARKER_FILENAME
-        ).exists()
-        result = self.patch_directory(target_dir, dll_name, fsr4_variant, allow_cleanup)
+        result = self.patch_directory(
+            target_dir, dll_name, fsr4_variant, marker.SteamGame(str(appid), game.name, original_options)
+        )
         if result["status"] != "success":
             return result
 
         marker_path = target_dir / bundle.MARKER_FILENAME
-        backed_up = [
-            name
-            for name in dict.fromkeys(bundle.RESTORABLE_BACKUP_FILES)
-            if (target_dir / f"{name}{plan.BACKUP_SUFFIX}").exists()
-        ]
-        files.write_json(
-            marker_path,
-            marker.build(
-                appid=str(appid),
-                game_name=game.name,
-                dll_name=dll_name,
-                target_dir=target_dir,
-                original_launch_options=original_options,
-                backed_up_files=backed_up,
-                optiscaler_version=result.get("optiscaler_version"),
-                fsr4_variant=result.get("fsr4_variant"),
-                fsr4_upscaler_sha256=result.get("fsr4_upscaler_sha256"),
-                patched_at=datetime.now(timezone.utc).isoformat(),
-            ),
-        )
         if existing_marker and existing_marker != marker_path:
             try:
                 existing_marker.unlink()

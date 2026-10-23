@@ -2,33 +2,41 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from . import bundle
 from .launch_options import is_managed
 
 
+@dataclass(frozen=True)
+class SteamGame:
+    """What a patch made through the Steam game list records about the game."""
+
+    appid: str
+    name: str
+    original_launch_options: str
+
+
 def build(
     *,
-    appid: str,
-    game_name: str,
     dll_name: str,
     target_dir: Path,
-    original_launch_options: str,
     backed_up_files: list[str],
     optiscaler_version: str | None,
     fsr4_variant: str | None,
     fsr4_upscaler_sha256: str | None,
     patched_at: str,
+    steam_game: SteamGame | None = None,
 ) -> dict:
-    """The marker's JSON payload."""
+    """The marker's JSON payload; every patch writes one, a Steam patch also records the game."""
     variant = bundle.normalize_variant(fsr4_variant)
     return {
-        "appid": str(appid),
-        "game_name": game_name,
+        "appid": steam_game.appid if steam_game else "",
+        "game_name": steam_game.name if steam_game else "",
         "dll_name": dll_name,
         "target_dir": str(target_dir),
-        "original_launch_options": original_launch_options,
+        "original_launch_options": steam_game.original_launch_options if steam_game else "",
         "backed_up_files": backed_up_files,
         "optiscaler_version": optiscaler_version,
         "fsr4_variant": variant,

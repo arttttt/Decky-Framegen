@@ -86,7 +86,6 @@ class PatchRequest:
     dll_name: str
     variant: str
     """A known variant id (already selected)."""
-    allow_managed_support_cleanup: bool
 
 
 class PlanError(Exception):
@@ -100,10 +99,6 @@ class PatchPlan:
 
 
 # ── patch ────────────────────────────────────────────────────────────────────
-
-
-def has_patch_fingerprint(entries: frozenset[str]) -> bool:
-    return any(name in entries for name in bundle.PATCH_FINGERPRINT_FILES)
 
 
 def managed_support_candidates(filename: str) -> list[str]:
@@ -171,13 +166,17 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
         operations.append(DeleteFile(name))
         present.discard(name)
 
-    # 1. Proxy-named DLLs the game shipped are kept as backups — unless the
-    #    directory already carries a patch, or the file is our own copy.
-    already_patched = has_patch_fingerprint(game.entries)
+    # Only our marker proves that files in the directory are ours. Other traces
+    # (an OptiScaler.ini from a manual install) do not: deleting a game's own
+    # file would lose it, while backing up one of ours merely keeps a copy.
+    patched_by_us = bundle.MARKER_FILENAME in game.entries
+
+    # 1. Proxy-named DLLs the game shipped are kept as backups — unless we
+    #    patched this directory, or the file is a copy of our own proxy.
     for name in bundle.PROXY_DLL_BACKUPS:
         if name not in present or name + BACKUP_SUFFIX in present:
             continue
-        if already_patched or name in game.bundled_proxy_copies:
+        if patched_by_us or name in game.bundled_proxy_copies:
             continue
         move(name, name + BACKUP_SUFFIX)
 
@@ -190,7 +189,7 @@ def plan_patch(game: GameDirectory, bundle_files: frozenset[str], request: Patch
     for name in bundle.ORIGINAL_DLL_BACKUPS:
         if name not in present or name + BACKUP_SUFFIX in present:
             continue
-        if request.allow_managed_support_cleanup and name in game.managed_support_files:
+        if patched_by_us and name in game.managed_support_files:
             delete(name)
         else:
             move(name, name + BACKUP_SUFFIX)
@@ -263,6 +262,7 @@ def plan_unpatch(entries: frozenset[str]) -> tuple[Operation, ...]:
         operations.append(Move(backup, name))
         present.discard(backup)
         present.add(name)
-    if UNINSTALLER_FILENAME in present:
-        remove(DeleteFile(UNINSTALLER_FILENAME), UNINSTALLER_FILENAME)
+    for name in (UNINSTALLER_FILENAME, bundle.MARKER_FILENAME):
+        if name in present:
+            remove(DeleteFile(name), name)
     return tuple(operations)

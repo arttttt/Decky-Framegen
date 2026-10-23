@@ -20,9 +20,9 @@ BASE_BUNDLE = frozenset(
 )
 
 
-def patch(entries=(), *, bundle_files=BASE_BUNDLE, dll="dxgi.dll", variant="rdna23-int8", allow_cleanup=False, **facts):
+def patch(entries=(), *, bundle_files=BASE_BUNDLE, dll="dxgi.dll", variant="rdna23-int8", **facts):
     game = plan.GameDirectory(frozenset(entries), **facts)
-    return plan.plan_patch(game, bundle_files, plan.PatchRequest(dll, variant, allow_cleanup))
+    return plan.plan_patch(game, bundle_files, plan.PatchRequest(dll, variant))
 
 
 def ops_of(result, kind):
@@ -38,9 +38,17 @@ def test_a_game_shipped_proxy_dll_is_backed_up_before_ours_is_copied():
     assert Move("version.dll", "version.dll.b") in result.operations
 
 
-def test_proxy_dlls_are_not_backed_up_in_an_already_patched_directory_or_when_they_are_ours():
-    assert not ops_of(patch({"version.dll", "OptiScaler.ini"}), Move)
+def test_proxy_dlls_are_not_backed_up_where_we_patched_or_when_they_are_a_copy_of_ours():
+    assert not ops_of(patch({"version.dll", "FRAMEGEN_PATCH"}), Move)
     assert not ops_of(patch({"dxgi.dll"}, bundled_proxy_copies=frozenset({"dxgi.dll"})), Move)
+
+
+def test_a_proxy_next_to_a_manual_optiscaler_install_is_backed_up_not_deleted():
+    # An OptiScaler.ini proves nothing about the game's version.dll (often a mod loader).
+    result = patch({"version.dll", "OptiScaler.ini"})
+
+    assert Move("version.dll", "version.dll.b") in result.operations
+    assert DeleteFile("version.dll") not in result.operations
 
 
 def test_an_existing_backup_is_never_overwritten():
@@ -63,14 +71,28 @@ def test_game_dlls_the_bundle_replaces_are_backed_up():
     assert Move("d3dcompiler_47.dll", "d3dcompiler_47.dll.b") in result.operations
 
 
-def test_on_a_repatch_our_own_support_dlls_are_deleted_not_backed_up():
-    facts = {"managed_support_files": frozenset({"amd_fidelityfx_dx12.dll"})}
+def test_where_our_marker_proves_an_earlier_patch_our_own_support_dlls_are_replaced():
+    result = patch({"amd_fidelityfx_dx12.dll", "FRAMEGEN_PATCH"}, managed_support_files=frozenset({"amd_fidelityfx_dx12.dll"}))
 
-    allowed = patch({"amd_fidelityfx_dx12.dll"}, allow_cleanup=True, **facts)
-    not_allowed = patch({"amd_fidelityfx_dx12.dll"}, allow_cleanup=False, **facts)
+    assert DeleteFile("amd_fidelityfx_dx12.dll") in result.operations
+    assert not ops_of(result, Move)
 
-    assert DeleteFile("amd_fidelityfx_dx12.dll") in allowed.operations
-    assert Move("amd_fidelityfx_dx12.dll", "amd_fidelityfx_dx12.dll.b") in not_allowed.operations
+
+@pytest.mark.parametrize("trace", ["OptiScaler.ini", "fakenvapi.dll", "D3D12_Optiscaler"])
+def test_other_patch_traces_do_not_prove_an_identical_dll_is_ours(trace):
+    # E.g. an OptiScaler.ini left by a manual install next to a game-shipped DLL
+    # that happens to match ours byte for byte: keep it, never delete it.
+    result = patch({"amd_fidelityfx_dx12.dll", trace}, managed_support_files=frozenset({"amd_fidelityfx_dx12.dll"}))
+
+    assert Move("amd_fidelityfx_dx12.dll", "amd_fidelityfx_dx12.dll.b") in result.operations
+    assert DeleteFile("amd_fidelityfx_dx12.dll") not in result.operations
+
+
+def test_in_a_fresh_directory_a_dll_matching_ours_is_still_treated_as_the_games():
+    # Without a trace of an earlier patch, an identical file can only have come with the game.
+    result = patch({"amd_fidelityfx_dx12.dll"}, managed_support_files=frozenset({"amd_fidelityfx_dx12.dll"}))
+
+    assert Move("amd_fidelityfx_dx12.dll", "amd_fidelityfx_dx12.dll.b") in result.operations
 
 
 # ── laying down the bundle ───────────────────────────────────────────────────
@@ -181,6 +203,10 @@ def test_unpatch_removes_legacy_artifacts_whether_file_or_directory():
 
     assert RemoveFileOrTree("nvngx.ini") in operations
     assert RemoveFileOrTree("dlss-enabler.log") in operations
+
+
+def test_unpatch_removes_our_marker():
+    assert plan.plan_unpatch(frozenset({"Game.exe", "FRAMEGEN_PATCH"})) == (DeleteFile("FRAMEGEN_PATCH"),)
 
 
 def test_unpatch_of_a_clean_directory_does_nothing():
