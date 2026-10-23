@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # A manual run builds and checks a release package (no development identity).
+  workflow_dispatch:
 
 jobs:
   frontend:
@@ -83,6 +85,9 @@ jobs:
       - name: Stamp the development build
         id: stamp
         if: env.DEV_BUILD == 'true'
+        # An explicit bash runs with pipefail, so a refused stamp fails the step instead of
+        # passing through tee and leaving a build that looks like a release.
+        shell: bash
         env:
           PULL_REQUEST: ${{ github.event.pull_request.number }}
         run: |
