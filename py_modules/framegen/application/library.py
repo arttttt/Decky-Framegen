@@ -46,11 +46,14 @@ class Library:
     def _published(self, channel: str) -> list[library.Available]:
         return library.available(channel, self.list_releases(library.CHANNELS[channel].repository))
 
-    def status(self) -> dict:
-        """The default version, which new patches use; `exists` is false while there is none."""
+    def installed(self) -> dict:
+        """The versions games can be patched with, newest first, and the default one new patches use."""
+        entries = library.newest_first(self.store.installed())
         default = self.store.default_version()
-        installed = {entry.id for entry in self.store.installed()}
-        return {"exists": default in installed, "version": default if default in installed else None}
+        return {
+            "default": default if any(entry.id == default for entry in entries) else None,
+            "versions": [library.choice_json(entry) for entry in entries],
+        }
 
     def versions(self, channel: str) -> dict:
         """A channel's versions: installed ones (also those upstream no longer lists), then the rest."""

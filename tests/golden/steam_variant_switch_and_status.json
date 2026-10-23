@@ -8,6 +8,7 @@
       "install_found": true,
       "message": "Not patched.",
       "name": "Variant Game",
+      "newer_version": null,
       "patched": false,
       "status": "success",
       "target_dir": null
@@ -93,6 +94,7 @@
       "install_found": true,
       "message": "Patched with OptiScaler nightly-20261023 using dxgi.dll, INT8 (RDNA 3, also integrated).",
       "name": "Variant Game",
+      "newer_version": null,
       "optiscaler_version": "nightly-20261023",
       "patched": true,
       "status": "success",
@@ -227,6 +229,7 @@
       "install_found": true,
       "message": "Patched with OptiScaler nightly-20261023 using dxgi.dll, INT8 Lite (any GPU).",
       "name": "Variant Game",
+      "newer_version": null,
       "optiscaler_version": "nightly-20261023",
       "patched": true,
       "status": "success",

@@ -52,12 +52,6 @@ class Plugin:
             report,
         )
 
-    # ── OptiScaler ────────────────────────────────────────────────────────────
-
-    async def check_fgmod_path(self) -> dict:
-        """Whether games can be patched: a default OptiScaler version is in the library."""
-        return self._library().status()
-
     # ── Game patching ─────────────────────────────────────────────────────────
 
     async def list_installed_games(self) -> dict:
@@ -102,6 +96,9 @@ class Plugin:
             report,
             lambda: fgmod_home.refresh_core(self._home_path() / "fgmod", Path(decky.DECKY_PLUGIN_DIR) / "assets"),
         )
+
+    async def library_installed(self) -> dict:
+        return self._library().installed()
 
     async def library_versions(self, channel: str) -> dict:
         return await asyncio.to_thread(self._library().versions, channel)

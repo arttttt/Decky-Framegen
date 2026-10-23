@@ -228,6 +228,7 @@ class Patcher:
             "target_dir": None,
             "fsr4_variant": None,
             "fsr4_variant_label": None,
+            "newer_version": None,
         }
         if game is None:
             return {**unpatched, "install_found": False, "message": "Game not found in Steam library."}
@@ -264,6 +265,7 @@ class Patcher:
             "optiscaler_version": version,
             "fsr4_variant": metadata.get("fsr4_variant"),
             "fsr4_variant_label": label,
+            "newer_version": library.newer_in_channel(self.library.installed(), version),
             "message": message,
         }
 
