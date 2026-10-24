@@ -1,12 +1,12 @@
-"""The OptiScaler library on disk: ~/fgmod/library/{versions,.partial}."""
+"""The OptiScaler library on disk: ~/deckyscaler/library/{versions,.partial}."""
 
 from __future__ import annotations
 
 import shutil
 from pathlib import Path
 
-from framegen.domain import library
-from framegen.infrastructure.files import read_json, write_json
+from deckyscaler.domain import library
+from deckyscaler.infrastructure.files import read_json, write_json
 
 
 class LibraryStore:

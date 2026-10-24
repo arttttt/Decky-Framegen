@@ -5,12 +5,14 @@ from __future__ import annotations
 from .bundle import DEFAULT_PROXY_DLL, PROXY_DLLS, VALID_DLL_NAMES
 from .fsr4 import UPGRADE_VARIABLE
 
-WRAPPER_PATCH = "~/fgmod/fgmod %command%"
+WRAPPER_PATCH = "~/deckyscaler/patch %command%"
 """Launch options that patch the game through the launch wrapper on every start."""
-WRAPPER_UNPATCH = "~/fgmod/fgmod-uninstaller.sh %command%"
+WRAPPER_UNPATCH = "~/deckyscaler/unpatch %command%"
 """Launch options that unpatch the game through the wrapper on its next start."""
 
 _ASI_PROXY = "OptiScaler.asi"
+_WRAPPERS = ("deckyscaler/patch", "fgmod/fgmod")
+"""The launch wrapper, this plugin's and the original Decky Framegen's."""
 
 
 def override_entry(dll_name: str) -> str | None:
@@ -52,10 +54,11 @@ def setup_json() -> dict:
 
 
 def is_managed(options: str) -> bool:
-    """Whether launch options were written by the plugin (or are the fgmod wrapper)."""
+    """Whether launch options were written by the plugin or by the original Decky Framegen (or are either's
+    launch wrapper)."""
     if not options or not options.strip():
         return False
-    # Earlier versions also wrote the override quoted: WINEDLLOVERRIDES="dxgi=n,b".
+    # Decky Framegen also wrote the override quoted: WINEDLLOVERRIDES="dxgi=n,b".
     normalized = " ".join(options.replace('"', "").replace("'", "").split())
     tokens = (f"WINEDLLOVERRIDES={override_entry(dll)}" for dll in VALID_DLL_NAMES if override_entry(dll))
     if any(token in normalized for token in tokens):
@@ -63,4 +66,4 @@ def is_managed(options: str) -> bool:
     # An .asi proxy's options carry no override: only what the plugin adds marks them.
     if f"{UPGRADE_VARIABLE}=1" in normalized or normalized == "SteamDeck=0 %command%":
         return True
-    return "fgmod/fgmod" in normalized
+    return any(wrapper in normalized for wrapper in _WRAPPERS)

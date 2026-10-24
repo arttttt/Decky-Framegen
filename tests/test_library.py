@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from framegen.domain import library
+from deckyscaler.domain import library
 
 FIXTURES = Path(__file__).parent / "fixtures"
 

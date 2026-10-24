@@ -3,7 +3,7 @@
     "exit_code": 0,
     "step": "patch",
     "tree": {
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "",
         "backed_up_files": [
           "version.dll"

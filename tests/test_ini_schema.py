@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from framegen.domain import ini_schema
-from framegen.domain.ini_schema import BOOL, ENUM, NUMBER, TEXT, Choice
+from deckyscaler.domain import ini_schema
+from deckyscaler.domain.ini_schema import BOOL, ENUM, NUMBER, TEXT, Choice
 
 FIXTURES = Path(__file__).parent / "fixtures" / "optiscaler-ini"
 

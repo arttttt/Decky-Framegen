@@ -5,17 +5,17 @@ import asyncio
 from conftest import NIGHTLY, STABLE, snapshot
 
 
-def test_the_fixture_has_both_optiscaler_families(plugin, fgmod):
+def test_the_fixture_has_both_optiscaler_families(plugin, plugin_home):
     # Guards the harness itself: every other test patches with this library.
     assert [v["id"] for v in asyncio.run(plugin.library_installed())["versions"]] == [NIGHTLY, STABLE]
 
 
-def test_manual_patch_then_unpatch_restores_clean_game_dir(plugin, fgmod, game_dir):
+def test_manual_patch_then_unpatch_restores_clean_game_dir(plugin, plugin_home, game_dir):
     before = snapshot(game_dir)
 
     patched = asyncio.run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", STABLE))
     assert patched["status"] == "success", patched
-    version_files = fgmod / "library" / "versions" / "stable-0.9.4" / "files"
+    version_files = plugin_home / "library" / "versions" / "stable-0.9.4" / "files"
     assert (game_dir / "dxgi.dll").read_bytes() == (version_files / "OptiScaler.dll").read_bytes()
     assert (game_dir / "OptiScaler.ini").exists()
 
@@ -24,7 +24,7 @@ def test_manual_patch_then_unpatch_restores_clean_game_dir(plugin, fgmod, game_d
     assert snapshot(game_dir) == before
 
 
-def test_steam_patch_then_unpatch_restores_game_and_launch_options(plugin, fgmod, steam_library):
+def test_steam_patch_then_unpatch_restores_game_and_launch_options(plugin, plugin_home, steam_library):
     game_root = steam_library.add_game("1234", "Test Game")
     before = snapshot(game_root)
     user_options = "mangohud %command%"
@@ -53,7 +53,7 @@ def test_path_defaults_point_the_picker_at_home_and_the_native_steam_library(plu
     }
 
 
-def test_a_first_patch_without_the_games_launch_options_is_refused_and_changes_nothing(plugin, fgmod, steam_library):
+def test_a_first_patch_without_the_games_launch_options_is_refused_and_changes_nothing(plugin, plugin_home, steam_library):
     root = steam_library.add_game("1234", "Test Game")
     before = snapshot(root)
 
@@ -63,7 +63,7 @@ def test_a_first_patch_without_the_games_launch_options_is_refused_and_changes_n
     assert snapshot(root) == before
 
 
-def test_a_repatch_without_the_games_launch_options_keeps_the_stored_ones(plugin, fgmod, steam_library):
+def test_a_repatch_without_the_games_launch_options_keeps_the_stored_ones(plugin, plugin_home, steam_library):
     steam_library.add_game("1234", "Test Game")
     asyncio.run(plugin.patch_game("1234", "dxgi.dll", "mangohud %command%", STABLE))
 
@@ -77,7 +77,7 @@ def test_a_repatch_without_the_games_launch_options_keeps_the_stored_ones(plugin
 def test_the_plugin_serves_the_launch_setup(plugin):
     setup = asyncio.run(plugin.launch_setup())
 
-    assert setup["default"] == "dxgi.dll" and setup["wrapper"]["patch"] == "~/fgmod/fgmod %command%"
+    assert setup["default"] == "dxgi.dll" and setup["wrapper"]["patch"] == "~/deckyscaler/patch %command%"
 
 
 def test_path_defaults_follow_a_flatpak_steam(plugin, home):

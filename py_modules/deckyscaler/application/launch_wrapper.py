@@ -1,4 +1,4 @@
-"""What the ~/fgmod launch wrappers do before starting a game: find its directory, then patch or unpatch it."""
+"""What the ~/deckyscaler launch wrappers do before starting a game: find its directory, then patch or unpatch it."""
 
 from __future__ import annotations
 
@@ -7,10 +7,10 @@ import os
 from collections.abc import Mapping
 from pathlib import Path
 
-from framegen.application.patcher import Patcher
-from framegen.domain import ini, launch_target
-from framegen.domain.patch_plan import INI_FILENAME
-from framegen.infrastructure import game_directory, game_locator
+from deckyscaler.application.patcher import Patcher
+from deckyscaler.domain import ini, launch_target
+from deckyscaler.domain.patch_plan import INI_FILENAME
+from deckyscaler.infrastructure import game_directory, game_locator
 
 log = logging.getLogger(__name__)
 

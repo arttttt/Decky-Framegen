@@ -10,7 +10,7 @@ import {
 import { FC, useEffect, useRef, useState } from "react";
 import { MdOutlineAutoAwesomeMotion } from "react-icons/md";
 import { routerHook } from "@decky/api";
-import { openGamePage } from "../api/framegenPage";
+import { openGamePage } from "../api/pages";
 import { CHIP_LEFT, GAME_PAGE_BUTTON_LABEL, Overlay, appIdFromLibraryPath, chipTop } from "../presentation/steamGamePage";
 
 const STEAM_GAME_ROUTE = "/library/app/:appid";

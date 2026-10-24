@@ -7,11 +7,11 @@ from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 
-from framegen.domain import library
-from framegen.infrastructure import archive
-from framegen.infrastructure.files import sha256
-from framegen.infrastructure.github_releases import ReleasesUnavailable
-from framegen.infrastructure.library_store import LibraryStore
+from deckyscaler.domain import library
+from deckyscaler.infrastructure import archive
+from deckyscaler.infrastructure.files import sha256
+from deckyscaler.infrastructure.github_releases import ReleasesUnavailable
+from deckyscaler.infrastructure.library_store import LibraryStore
 
 log = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ def _error(message: str) -> dict:
 class Library:
     def __init__(
         self,
-        fgmod_path: Path,
+        plugin_home: Path,
         seven_zip: Path,
         list_releases: ListReleases,
         download: Download,
@@ -37,13 +37,13 @@ class Library:
         games_using: Callable[[str], list[str]] = lambda _version_id: [],
         linked_games: Callable[[str], list[str]] = lambda _version_id: [],
     ):
-        self.store = LibraryStore(fgmod_path / "library")
+        self.store = LibraryStore(plugin_home / "library")
         self.seven_zip = seven_zip
         self.list_releases = list_releases
         self.download = download
         self.report = report
         self.refresh_core = refresh_core
-        """Puts the plugin's core and launch scripts into ~/fgmod; every install does it until the patching mechanism settles."""
+        """Puts the plugin's core and launch scripts into ~/deckyscaler; every install does it until the patching mechanism settles."""
         self.games_using = games_using
         """The games patched with a version."""
         self.linked_games = linked_games
@@ -141,8 +141,8 @@ class Library:
             self.refresh_core()
         except OSError as exc:
             # The version is in the library either way; only the launch scripts may be stale.
-            log.warning(f"Refreshing the core in ~/fgmod after installing {version_id} failed: {exc}")
-            message += f" Updating the launch scripts in ~/fgmod failed: {exc}"
+            log.warning(f"Refreshing the core in ~/deckyscaler after installing {version_id} failed: {exc}")
+            message += f" Updating the launch scripts in ~/deckyscaler failed: {exc}"
         return {"status": "success", "id": version_id, "message": message}
 
     def _removal_refused(self, version_id: str) -> str | None:

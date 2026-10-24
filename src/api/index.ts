@@ -186,7 +186,7 @@ export const PLUGIN_DOWNLOAD_EVENT = "plugin_download";
 
 // ── Unpatching ───────────────────────────────────────────────────────────────
 
-/** What Unpatch will do: undo the patch record (nothing to confirm), or, for an older plugin
+/** What Unpatch will do: undo the patch record (nothing to confirm), or, for a Decky Framegen
  *  version's patch, a reset the user confirms after seeing what it changes. */
 export type UnpatchPreview =
   | { status: "success"; mode: "record"; target_dir: string; name?: string }
@@ -279,7 +279,7 @@ export type PatchedGame = {
   /** A later build of the game's version channel that is in the library. */
   newer_version: string | null;
   patched_at: string | null;
-  record: "ok" | "incomplete" | "older-plugin";
+  record: "ok" | "incomplete" | "upstream";
   own_settings: boolean;
 };
 

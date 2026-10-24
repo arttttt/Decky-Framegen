@@ -9,10 +9,10 @@ import shutil
 from conftest import NIGHTLY, STABLE, game_file, make_game_dir, run, snapshot, write
 
 
-def test_a_linked_patch_points_into_the_library_and_unpatching_restores_the_game(plugin, fgmod, tmp_path):
+def test_a_linked_patch_points_into_the_library_and_unpatching_restores_the_game(plugin, plugin_home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
     before = snapshot(game)
-    files = fgmod / "library" / "versions" / "stable-0.9.4" / "files"
+    files = plugin_home / "library" / "versions" / "stable-0.9.4" / "files"
 
     assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))["status"] == "success"
 
@@ -25,16 +25,16 @@ def test_a_linked_patch_points_into_the_library_and_unpatching_restores_the_game
     assert (files / "OptiScaler.dll").exists()  # unpatching removes the link, never what it points to
 
 
-def test_a_link_left_dangling_is_still_removed_on_unpatch(plugin, fgmod, tmp_path):
+def test_a_link_left_dangling_is_still_removed_on_unpatch(plugin, plugin_home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game")
     run(plugin.manual_patch_directory(str(game), "dxgi.dll", NIGHTLY))
-    shutil.rmtree(fgmod / "library" / "versions" / NIGHTLY)
+    shutil.rmtree(plugin_home / "library" / "versions" / NIGHTLY)
 
     assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"
     assert sorted(p.name for p in game.iterdir()) == ["Game.exe"]
 
 
-def test_a_link_the_game_replaced_with_its_own_file_stays(plugin, fgmod, tmp_path):
+def test_a_link_the_game_replaced_with_its_own_file_stays(plugin, plugin_home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game")
     run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
     (game / "libxess.dll").unlink()
@@ -45,13 +45,13 @@ def test_a_link_the_game_replaced_with_its_own_file_stays(plugin, fgmod, tmp_pat
     assert not (game / "dxgi.dll").exists()
 
 
-def test_a_version_games_are_linked_to_is_not_removed(plugin, fgmod, steam_library, tmp_path):
+def test_a_version_games_are_linked_to_is_not_removed(plugin, plugin_home, steam_library, tmp_path):
     steam_library.add_game("1234", "Linked Game")
     copied = make_game_dir(tmp_path / "games" / "Copied")
     run(plugin.patch_game("1234", "dxgi.dll", "", NIGHTLY))
     run(plugin.manual_patch_directory(str(copied), "dxgi.dll", NIGHTLY))
     # What an earlier plugin version left: the same patch, but with copies. It doesn't hold the version.
-    marker_path = copied / "FRAMEGEN_PATCH"
+    marker_path = copied / "DECKYSCALER_PATCH"
     marker_path.write_text(json.dumps({**json.loads(marker_path.read_text()), "placement": "copy"}))
 
     removal = run(plugin.library_removal(NIGHTLY))

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from conftest import NIGHTLY, STABLE, run
-from framegen.application import settings as settings_module
-from framegen.domain import settings_layers
+from deckyscaler.application import settings as settings_module
+from deckyscaler.domain import settings_layers
 
 
 def setting(answer: dict, section: str, key: str) -> dict:
@@ -12,7 +12,7 @@ def setting(answer: dict, section: str, key: str) -> dict:
     return next(x for x in sec["settings"] if x["key"] == key)
 
 
-def test_global_settings_show_the_newest_versions_keys_with_their_values(plugin, fgmod):
+def test_global_settings_show_the_newest_versions_keys_with_their_values(plugin, plugin_home):
     answer = run(plugin.global_settings())
 
     assert answer["status"] == "success" and answer["version"] == NIGHTLY
@@ -27,7 +27,7 @@ def test_without_a_version_there_is_nothing_to_set(plugin, home):
     assert run(plugin.global_settings())["status"] == "error"
 
 
-def test_a_global_change_reaches_every_patched_game_but_not_a_games_own(plugin, fgmod, steam_library):
+def test_a_global_change_reaches_every_patched_game_but_not_a_games_own(plugin, plugin_home, steam_library):
     first = steam_library.add_game("1", "First")
     second = steam_library.add_game("2", "Second")
     run(plugin.patch_game("1", "dxgi.dll", "", NIGHTLY))
@@ -43,7 +43,7 @@ def test_a_global_change_reaches_every_patched_game_but_not_a_games_own(plugin, 
     assert (setting(game, "FSR", "Fsr4Model")["value"], setting(game, "FSR", "Fsr4Model")["source"]) == ("0", "game")
 
 
-def test_clearing_a_games_value_brings_the_global_one_back(plugin, fgmod, steam_library):
+def test_clearing_a_games_value_brings_the_global_one_back(plugin, plugin_home, steam_library):
     root = steam_library.add_game("1", "Game")
     run(plugin.patch_game("1", "dxgi.dll", "", NIGHTLY))
     run(plugin.set_setting("global", "FSR", "Fsr4Model", "1"))
@@ -55,14 +55,14 @@ def test_clearing_a_games_value_brings_the_global_one_back(plugin, fgmod, steam_
     assert "Fsr4Model=1" in (root / "OptiScaler.ini").read_text()
 
 
-def test_a_value_the_version_doesnt_take_is_refused(plugin, fgmod, steam_library):
+def test_a_value_the_version_doesnt_take_is_refused(plugin, plugin_home, steam_library):
     steam_library.add_game("1", "Game")
 
     assert run(plugin.set_setting("global", "FSR", "Fsr4Model", "7"))["status"] == "error"
     assert run(plugin.set_setting("1", "FSR", "Nope", "1"))["status"] == "error"
 
 
-def test_a_game_running_isnt_written(plugin, fgmod, steam_library, monkeypatch):
+def test_a_game_running_isnt_written(plugin, plugin_home, steam_library, monkeypatch):
     root = steam_library.add_game("1", "Game")
     run(plugin.patch_game("1", "dxgi.dll", "", NIGHTLY))
     monkeypatch.setattr(settings_module.processes, "command_lines", lambda: [f"wine {root / 'Game.exe'}"])
@@ -76,7 +76,7 @@ def test_a_game_running_isnt_written(plugin, fgmod, steam_library, monkeypatch):
     assert run(plugin.game_settings("1"))["running"] is True
 
 
-def test_a_game_not_patched_yet_keeps_its_settings_for_the_patch(plugin, fgmod, steam_library):
+def test_a_game_not_patched_yet_keeps_its_settings_for_the_patch(plugin, plugin_home, steam_library):
     root = steam_library.add_game("1", "Game")
     run(plugin.set_setting("1", "FSR", "Fsr4Model", "1"))
     answer = run(plugin.game_settings("1"))
@@ -87,7 +87,7 @@ def test_a_game_not_patched_yet_keeps_its_settings_for_the_patch(plugin, fgmod, 
     assert "Fsr4Model=1" in (root / "OptiScaler.ini").read_text()
 
 
-def test_resetting_a_game_follows_the_global_settings_again(plugin, fgmod, steam_library):
+def test_resetting_a_game_follows_the_global_settings_again(plugin, plugin_home, steam_library):
     root = steam_library.add_game("1", "Game")
     run(plugin.patch_game("1", "dxgi.dll", "", STABLE))
     run(plugin.set_setting("1", "Menu", "UseHQFont", "true"))
@@ -98,7 +98,7 @@ def test_resetting_a_game_follows_the_global_settings_again(plugin, fgmod, steam
     assert "UseHQFont=false" in (root / "OptiScaler.ini").read_text()
 
 
-def test_a_game_skipped_while_running_gets_the_change_once_it_closes(plugin, fgmod, steam_library, monkeypatch):
+def test_a_game_skipped_while_running_gets_the_change_once_it_closes(plugin, plugin_home, steam_library, monkeypatch):
     root = steam_library.add_game("1", "Game")
     run(plugin.patch_game("1", "dxgi.dll", "", NIGHTLY))
     running = [f"wine {root / 'Game.exe'}"]
@@ -113,7 +113,7 @@ def test_a_game_skipped_while_running_gets_the_change_once_it_closes(plugin, fgm
     assert "Fsr4Model=1" in (root / "OptiScaler.ini").read_text()
 
 
-def test_a_closed_game_thats_not_patched_is_left_alone(plugin, fgmod, steam_library):
+def test_a_closed_game_thats_not_patched_is_left_alone(plugin, plugin_home, steam_library):
     steam_library.add_game("1", "Game")
 
     assert run(plugin.game_closed("1")) == {"status": "success", "applied": False}

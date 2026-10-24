@@ -1,12 +1,12 @@
-"""~/fgmod/settings: the user's global OptiScaler settings and each game's own, as JSON layers."""
+"""~/deckyscaler/settings: the user's global OptiScaler settings and each game's own, as JSON layers."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from framegen.domain import settings_layers
-from framegen.domain.settings_layers import Layer
-from framegen.infrastructure.files import read_json, write_json
+from deckyscaler.domain import settings_layers
+from deckyscaler.domain.settings_layers import Layer
+from deckyscaler.infrastructure.files import read_json, write_json
 
 
 class SettingsStore:

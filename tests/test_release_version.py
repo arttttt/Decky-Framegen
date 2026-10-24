@@ -11,7 +11,7 @@ from datetime import date
 import pytest
 
 from conftest import REPO_ROOT
-from framegen.domain import dev_build, release_version
+from deckyscaler.domain import dev_build, release_version
 
 DAY = date(2026, 10, 4)
 

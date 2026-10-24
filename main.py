@@ -1,7 +1,7 @@
 """Decky entry point: exposes the plugin's backend methods to the frontend.
 
 Each method resolves Decky's paths and delegates to a service in
-py_modules/framegen; no decisions are made here.
+py_modules/deckyscaler; no decisions are made here.
 """
 
 import asyncio
@@ -9,12 +9,12 @@ from pathlib import Path
 
 import decky
 
-from framegen.application.plugin_updates import PluginUpdates, Report
-from framegen.application.library import Library
-from framegen.application.patcher import Patcher
-from framegen.application.settings import Settings
-from framegen.domain import bundle, launch_options
-from framegen.infrastructure import archive, fgmod_home, github_releases
+from deckyscaler.application.plugin_updates import PluginUpdates, Report
+from deckyscaler.application.library import Library
+from deckyscaler.application.patcher import Patcher
+from deckyscaler.application.settings import Settings
+from deckyscaler.domain import bundle, launch_options
+from deckyscaler.infrastructure import archive, core_install, github_releases
 
 
 def _decky_events(event: str):
@@ -124,12 +124,12 @@ class Plugin:
     def _library(self, report=_ignore) -> Library:
         patcher = self._patcher()
         return Library(
-            self._home_path() / "fgmod",
+            self._home_path() / bundle.HOME_DIRNAME,
             Path(decky.DECKY_PLUGIN_DIR) / archive.SEVEN_ZIP,
             github_releases.list_releases,
             github_releases.download,
             report,
-            lambda: fgmod_home.refresh_core(self._home_path() / "fgmod", Path(decky.DECKY_PLUGIN_DIR) / "assets"),
+            lambda: core_install.refresh_core(self._home_path() / bundle.HOME_DIRNAME, Path(decky.DECKY_PLUGIN_DIR) / "assets"),
             patcher.games_using,
             patcher.games_linked_to,
         )

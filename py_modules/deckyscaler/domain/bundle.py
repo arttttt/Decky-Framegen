@@ -1,11 +1,16 @@
-"""File names the plugin works with, and what its earlier versions put into games.
+"""File names the plugin works with, and what the plugin it continues put into games.
 
-The proxy DLL names, the marker, the scripts and core it keeps in ~/fgmod, and the tables of
-files earlier plugin versions placed in game directories, which resetting such a game to stock
-relies on. OptiScaler versions themselves are described by domain/library.py.
+The proxy DLL names, the marker, the plugin's home (~/deckyscaler) with the scripts and core it keeps
+there, and the tables of files the original Decky Framegen (and this plugin before its patch record)
+placed in game directories, which resetting such a game to stock relies on. OptiScaler versions
+themselves are described by domain/library.py.
 """
 
+
 from __future__ import annotations
+
+HOME_DIRNAME = "deckyscaler"
+"""The plugin's home under the user's: the OptiScaler library, settings, patch index, core and scripts."""
 
 FSR4_UPSCALER_FILENAME = "amd_fidelityfx_upscaler_dx12.dll"
 FSR4_DRIVER_OVERRIDE_FILENAME = "amdxcffx64.dll"
@@ -27,7 +32,7 @@ PROXY_DLL_BACKUPS = list(PROXY_DLLS)
 VALID_DLL_NAMES = set(PROXY_DLL_BACKUPS)
 DEFAULT_PROXY_DLL = "dxgi.dll"
 
-# What earlier plugin versions placed, for resetting games they patched.
+# What the original Decky Framegen placed, for resetting games it patched.
 INJECTOR_FILENAMES = [
     *PROXY_DLL_BACKUPS,
     "nvngx.dll",
@@ -71,7 +76,10 @@ SUPPORT_FILES = [
     "fakenvapi.ini",
 ]
 
-MARKER_FILENAME = "FRAMEGEN_PATCH"
+MARKER_FILENAME = "DECKYSCALER_PATCH"
+"""The marker a patch leaves in the directory it patched, holding its record."""
+UPSTREAM_MARKER_FILENAME = "FRAMEGEN_PATCH"
+"""The marker the original Decky Framegen left: a game it patched is reset, not unpatched by a record."""
 
 LEGACY_FILES = [
     "dlssg_to_fsr3.ini",
@@ -92,15 +100,13 @@ LEGACY_FILES = [
 ]
 
 
-# Scripts from the plugin's assets/ installed into ~/fgmod, by installed name.
+# Scripts from the plugin's assets/ installed into ~/deckyscaler, by installed name.
 LAUNCHER_SCRIPTS = {
-    "fgmod": "fgmod.sh",
-    "fgmod-uninstaller.sh": "fgmod-uninstaller.sh",
+    "patch": "patch.sh",
+    "unpatch": "unpatch.sh",
 }
-RETIRED_SCRIPTS = ["update-optiscaler-config.py"]
-"""Scripts earlier versions installed into ~/fgmod that the core does the work of now."""
 
 OPTIPATCHER_TARGET = "plugins/OptiPatcher.asi"
 
-# The plugin's Python core, copied into ~/fgmod so the launch wrappers can run it.
-CORE_PACKAGE = "framegen"
+# The plugin's Python core, copied into ~/deckyscaler so the launch wrappers can run it.
+CORE_PACKAGE = "deckyscaler"

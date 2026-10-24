@@ -33,7 +33,7 @@ python3 -m venv .venv
 .venv/bin/python -m pytest
 ```
 
-The backend tests use a fake `~/fgmod`, fake game directories, a fake Steam library and a local stand-in for the GitHub API, all in temporary directories; no device or Decky Loader is needed.
+The backend tests use a fake `~/deckyscaler`, fake game directories, a fake Steam library and a local stand-in for the GitHub API, all in temporary directories; no device or Decky Loader is needed.
 
 The tests for the bash launch wrappers (`tests/test_wrapper_scripts.py`) run on Linux only (bash 5, GNU coreutils). On macOS, run them in a container:
 
@@ -78,12 +78,12 @@ mode can be turned off.
 
 ### What to know
 
-- Installing replaces the plugin directory only. `~/fgmod`, patched games and their markers are untouched; the plugin must never define an `_uninstall` hook, because Decky runs it on every update (a test enforces this).
+- Installing replaces the plugin directory only. `~/deckyscaler`, patched games and their markers are untouched; the plugin must never define an `_uninstall` hook, because Decky runs it on every update (a test enforces this).
 - Development builds contain no OptiScaler: download a version under **OptiScaler versions** before patching.
 - After each install Decky puts the plugin back at the end of the Quick Access menu.
 - Installing from a URL makes Decky send an install-count request to its store; it does nothing for a plugin that is not in the store.
 - The launch wrapper can't link the FSR 4 driver DLL: it doesn't know the game's Proton prefix. A game the wrapper starts keeps the link the panel's patch placed. But if the wrapper has to patch again (a placed file went missing, another version or proxy), the link goes until the next patch from the panel.
-- Logs: Decky's plugin log at `~/homebrew/logs/DeckyScaler/`, the launch wrappers at `/tmp/fgmod-install.log` and `/tmp/fgmod-uninstaller.log`.
+- Logs: Decky's plugin log at `~/homebrew/logs/DeckyScaler/`, the launch wrappers at `/tmp/deckyscaler-patch.log` and `/tmp/deckyscaler-unpatch.log`.
 
 ### Device checklist for a pull request
 
@@ -91,7 +91,7 @@ Run on the device before merging anything that changes what the device sees:
 
 1. Install the pull request's build from the Developer section; it shows as running after the reload.
 2. Exercise the change itself.
-3. `~/fgmod`, patched games and their `FRAMEGEN_PATCH` markers are unchanged by the install.
+3. `~/deckyscaler`, patched games and their `DECKYSCALER_PATCH` markers are unchanged by the install.
 4. Switch back to `main` from the Developer section.
 5. Gamepad only: every row of the changed sections can be reached and used.
 
@@ -99,7 +99,7 @@ Run on the device before merging anything that changes what the device sees:
 
 Run **Actions → Release → Run workflow** on `main`. Nothing to type: the release is named after the
 day, as a calendar version (`2026.10.24`; a second release that day is `2026.10.24.1`). The workflow
-stamps that version into the build (`scripts/stamp_release.py`, `framegen.domain.release_version`),
+stamps that version into the build (`scripts/stamp_release.py`, `deckyscaler.domain.release_version`),
 writes the build's identity on the stable channel (`build-info.json`, so the release knows which
 repository it updates from), builds it, checks the package, and publishes `DeckyScaler.zip`
 as the GitHub Release tagged with the bare version (`2026.10.24`) on main's current commit, with generated notes.

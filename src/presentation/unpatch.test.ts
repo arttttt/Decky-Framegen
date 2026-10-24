@@ -31,7 +31,7 @@ describe("unpatch step", () => {
       kind: "confirm",
       title: "Unpatch Old Game?",
       lines: [
-        "An older version of the plugin patched this game.",
+        "Decky Framegen patched this game.",
         "In /games/Old Game:",
         "Restore from backup: libxess.dll",
         "Remove: dxgi.dll, OptiScaler.ini",
@@ -44,7 +44,7 @@ describe("unpatch step", () => {
   it("names files without a backup and how to get them back, and says when launch options are cleared or kept", () => {
     const step = unpatchStep(reset({ unrecoverable: ["nvapi64.dll"], launch_options: "", restore: [], evidence: "backups" }), "Old Game");
     expect(step.kind === "confirm" && step.lines).toEqual([
-      "Found backups an older version of the plugin made.",
+      "Found backups Decky Framegen made.",
       "In /games/Old Game:",
       "Remove: dxgi.dll, OptiScaler.ini",
       'No backup exists for nvapi64.dll. If the game shipped them, restore them with Steam\'s "Verify integrity of game files".',
@@ -52,7 +52,7 @@ describe("unpatch step", () => {
     ]);
     const kept = unpatchStep(reset({ launch_options: null, evidence: "leftovers" }), "Old Game");
     expect(kept.kind === "confirm" && kept.lines).toEqual([
-      "Found files only early versions of the plugin left behind.",
+      "Found files only early versions of Decky Framegen left behind.",
       "In /games/Old Game:",
       "Restore from backup: libxess.dll",
       "Remove: dxgi.dll, OptiScaler.ini",

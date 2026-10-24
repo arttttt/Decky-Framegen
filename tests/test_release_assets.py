@@ -1,6 +1,6 @@
 import pytest
 
-from framegen.domain import release_assets
+from deckyscaler.domain import release_assets
 
 HEX = "575cb4df866116093df75af607e37fd70e10f5163e0f23fd5c804142e80ef0ad"
 

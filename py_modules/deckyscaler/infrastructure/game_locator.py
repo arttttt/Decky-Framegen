@@ -9,7 +9,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from framegen.domain import launch_target
+from deckyscaler.domain import launch_target
 
 log = logging.getLogger(__name__)
 

@@ -16,7 +16,8 @@ BACKUP_SUFFIX = ".b"
 INI_FILENAME = "OptiScaler.ini"
 PLUGINS_DIR = "plugins"
 D3D12_DIR = "D3D12_Optiscaler"
-UNINSTALLER_FILENAME = "fgmod-uninstaller.sh"
+UPSTREAM_UNINSTALLER_FILENAME = "fgmod-uninstaller.sh"
+"""A script the original Decky Framegen's oldest versions left in games."""
 PLUGIN_FILES = frozenset({bundle.OPTIPATCHER_TARGET})
 """Files a patch has ever placed in the game's plugins/ directory."""
 
@@ -148,7 +149,7 @@ def plan_unpatch(entries: frozenset[str], plugin_entries: frozenset[str]) -> tup
         operations.append(Move(backup, name))
         present.discard(backup)
         present.add(name)
-    for name in (UNINSTALLER_FILENAME, bundle.MARKER_FILENAME):
+    for name in (UPSTREAM_UNINSTALLER_FILENAME, bundle.MARKER_FILENAME, bundle.UPSTREAM_MARKER_FILENAME):
         if name in present:
             remove(DeleteFile(name), name)
     return tuple(operations)

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Launch wrapper: patches the game with OptiScaler, then starts it.
-#   Steam launch options: ~/fgmod/fgmod %command%
-#   Heroic: add ~/fgmod/fgmod as a wrapper
-# Patching is done by the plugin's Python core (~/fgmod/framegen); this script
+#   Steam launch options: ~/deckyscaler/patch %command%
+#   Heroic: add ~/deckyscaler/patch as a wrapper
+# Patching is done by the plugin's Python core (~/deckyscaler/deckyscaler); this script
 # only launches the game.
 
 set -x
-exec > >(tee -i /tmp/fgmod-install.log) 2>&1
+exec > >(tee -i /tmp/deckyscaler-patch.log) 2>&1
 
 error_exit() {
   echo " $1"
@@ -15,16 +15,16 @@ error_exit() {
   else
     zenity --error --text "$1" || echo "Zenity failed to display error"
   fi
-  logger -t fgmod "ERROR: $1"
+  logger -t deckyscaler "ERROR: $1"
   exit 1
 }
 
-fgmod_path="$HOME/fgmod"
+plugin_home="$HOME/deckyscaler"
 python_bin="$(command -v python3 || command -v python || true)"
 
 # The plugin's core, installed next to this script.
 core() {
-  PYTHONPATH="$fgmod_path" "$python_bin" -m framegen "$@"
+  PYTHONPATH="$plugin_home" "$python_bin" -m deckyscaler "$@"
 }
 
 [[ "$#" -lt 1 ]] && error_exit "Usage: $0 program [program_arguments...]"
@@ -32,13 +32,13 @@ core() {
 
 dll_args=()
 [[ -n "${DLL:-}" ]] && dll_args=(--dll "$DLL")
-# FGMOD_VERSION picks a library version (e.g. nightly-20261023); unset keeps the one the game is patched with, else the newest.
-patch_args=(patch "${dll_args[@]}" --version "${FGMOD_VERSION:-}")
+# DECKYSCALER_VERSION picks a library version (e.g. nightly-20261023); unset keeps the one the game is patched with, else the newest.
+patch_args=(patch "${dll_args[@]}" --version "${DECKYSCALER_VERSION:-}")
 [[ "${PRESERVE_INI:-true}" == "true" ]] || patch_args+=(--reset-ini)
 if ! exe_folder_path="$(core "${patch_args[@]}" -- "$@")"; then
-  error_exit "${exe_folder_path:-Patching failed. See /tmp/fgmod-install.log.}"
+  error_exit "${exe_folder_path:-Patching failed. See /tmp/deckyscaler-patch.log.}"
 fi
-logger -t fgmod "Patched $exe_folder_path"
+logger -t deckyscaler "Patched $exe_folder_path"
 
 if [[ $# -gt 1 ]]; then
   export SteamDeck=0

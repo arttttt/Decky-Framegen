@@ -11,7 +11,7 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from framegen.domain import (
+from deckyscaler.domain import (
     bundle,
     exe_target,
     fsr4,
@@ -26,19 +26,19 @@ from framegen.domain import (
     stock_reset,
     version_placement,
 )
-from framegen.domain import patch_plan as plan
-from framegen.infrastructure import files, game_directory, processes, proton
-from framegen.infrastructure.library_store import LibraryStore
-from framegen.infrastructure.patch_index import PatchIndex
-from framegen.infrastructure.settings_store import SettingsStore
-from framegen.infrastructure import steam as steam_library
+from deckyscaler.domain import patch_plan as plan
+from deckyscaler.infrastructure import files, game_directory, processes, proton
+from deckyscaler.infrastructure.library_store import LibraryStore
+from deckyscaler.infrastructure.patch_index import PatchIndex
+from deckyscaler.infrastructure.settings_store import SettingsStore
+from deckyscaler.infrastructure import steam as steam_library
 
 log = logging.getLogger(__name__)
 
 NO_VERSION = "No OptiScaler version is downloaded. Download one under Open DeckyScaler → OptiScaler first."
 BUNDLE_IS_NOT_A_GAME = "The target directory is the OptiScaler bundle itself. Aborting to prevent accidental deletion."
-PATCHED_BY_AN_OLDER_VERSION = (
-    "This game was patched by an older version of the plugin. Unpatch it first: the plugin shows what that removes."
+PATCHED_BY_DECKY_FRAMEGEN = (
+    "This game was patched by Decky Framegen. Unpatch it first: the plugin shows what that removes."
 )
 LAUNCH_OPTIONS_UNKNOWN = (
     "Steam didn't say what this game's launch options are, so Unpatch couldn't put them back. "
@@ -47,7 +47,13 @@ LAUNCH_OPTIONS_UNKNOWN = (
 RECORD = "record"
 """How a directory is unpatched: by its patch record, exactly as the patch recorded it."""
 RESET = "reset"
-"""How a directory an older plugin version patched is unpatched: by what those versions placed, after the user confirms."""
+"""How a directory Decky Framegen patched is unpatched: by what it placed, after the user confirms."""
+
+
+def _patched_by_upstream(directory: Path) -> bool:
+    """Whether the original Decky Framegen patched a directory (and this plugin didn't since): its patch has
+    no record, so it is reset after the user confirms, never patched over or unpatched by a record."""
+    return (directory / bundle.UPSTREAM_MARKER_FILENAME).is_file() and not (directory / bundle.MARKER_FILENAME).is_file()
 
 
 def _error(message: str) -> dict:
@@ -61,10 +67,10 @@ def _fsr4_json(state: fsr4.State | None) -> dict | None:
 class Patcher:
     def __init__(self, home: Path):
         self.home = home
-        self.fgmod_path = home / "fgmod"
-        self.library = LibraryStore(self.fgmod_path / "library")
-        self.settings = SettingsStore(self.fgmod_path / "settings")
-        self.patches = PatchIndex(self.fgmod_path / "patched.json")
+        self.plugin_home = home / bundle.HOME_DIRNAME
+        self.library = LibraryStore(self.plugin_home / "library")
+        self.settings = SettingsStore(self.plugin_home / "settings")
+        self.patches = PatchIndex(self.plugin_home / "patched.json")
 
     # ── directories ──────────────────────────────────────────────────────────
 
@@ -92,11 +98,13 @@ class Patcher:
         settings_appid: str | None = None,
     ) -> dict:
         """Patch a directory with a library version and record it in a marker. A patch that names no
-        version (the launch wrapper's, unless FGMOD_VERSION is set) keeps the one the directory is
+        version (the launch wrapper's, unless DECKYSCALER_VERSION is set) keeps the one the directory is
         patched with, else takes the newest downloaded. `unless_current` leaves a directory alone when
         it is already patched exactly as this patch would patch it (the wrapper patches on every launch)."""
         if dll_name not in bundle.VALID_DLL_NAMES:
             return _error(f"Invalid proxy DLL name: {dll_name}")
+        if _patched_by_upstream(directory):
+            return _error(PATCHED_BY_DECKY_FRAMEGEN)
         marker_path = directory / bundle.MARKER_FILENAME
         installed = self.library.installed()
         if version_id:
@@ -196,8 +204,8 @@ class Patcher:
         )
 
     def _is_bundle(self, directory: Path) -> bool:
-        """Whether `directory` is ~/fgmod or inside it: never a game, never to be unpatched or reset."""
-        return directory.resolve().is_relative_to(self.fgmod_path.resolve())
+        """Whether `directory` is ~/deckyscaler or inside it: never a game, never to be unpatched or reset."""
+        return directory.resolve().is_relative_to(self.plugin_home.resolve())
 
     def unpatch_directory(self, directory: Path, keep: frozenset[str] = frozenset()) -> dict:
         """Undo the patch recorded in the directory's marker. The marker goes last, so a failure keeps it.
@@ -207,15 +215,17 @@ class Patcher:
         if self._is_bundle(directory):
             return _error(BUNDLE_IS_NOT_A_GAME)
         marker_path = directory / bundle.MARKER_FILENAME
+        if _patched_by_upstream(directory):
+            return _error(PATCHED_BY_DECKY_FRAMEGEN)
         if not marker_path.exists():
             self._forget(directory)
             return {"status": "success", "message": f"No DeckyScaler patch found in {directory}"}
         recorded = patch_record.parse(files.read_json(marker_path))
         if recorded is None:
-            return _error(PATCHED_BY_AN_OLDER_VERSION)
+            return _error(PATCHED_BY_DECKY_FRAMEGEN)
         try:
             operations = patch_record.plan_unpatch(recorded, game_directory.current_state(directory, recorded), keep)
-            game_directory.execute(operations, directory, self.fgmod_path)
+            game_directory.execute(operations, directory, self.plugin_home)
         except PermissionError as exc:
             log.error(f"Unpatch permission error: {exc}")
             return _error(f"Permission error while unpatching: {exc}")
@@ -301,7 +311,7 @@ class Patcher:
         return self.patch_directory(target, dll_name, version_id=version_id)
 
     def unpatch_user_directory(self, directory: str, confirmed_reset: bool = False) -> dict:
-        """Unpatch a directory the user picked: by its record, or — for an older plugin version's
+        """Unpatch a directory the user picked: by its record, or — for a Decky Framegen version's
         patch, once the user confirmed what the preview showed — by resetting it."""
         try:
             target = self.resolve_directory(directory)
@@ -310,7 +320,7 @@ class Patcher:
             return _error(str(exc))
         if confirmed_reset and self._unpatch_mode(target / bundle.MARKER_FILENAME) == RESET:
             return self._reset_directory(target)
-        # An older plugin's marker is refused there: its patch needs the confirmed reset.
+        # Decky Framegen's marker is refused there: its patch needs the confirmed reset.
         return self.unpatch_directory(target)
 
     def preview_unpatch_directory(self, directory: str) -> dict:
@@ -326,7 +336,7 @@ class Patcher:
 
     @staticmethod
     def _unpatch_mode(marker_path: Path | None) -> str:
-        """RECORD when the marker holds a patch record; RESET for anything else (an older plugin's
+        """RECORD when the marker holds a patch record; RESET for anything else (Decky Framegen's
         marker, or no marker — then only the reset's own evidence rules decide whether anything is ours)."""
         if marker_path is not None and marker_path.is_file() and patch_record.parse(files.read_json(marker_path)):
             return RECORD
@@ -378,7 +388,8 @@ class Patcher:
 
     def find_marker(self, install_root: Path) -> Path | None:
         """The game's patch marker: where the patch index says the plugin patched it, else by searching
-        the whole install (a patch by an older plugin version, or a game the plugin never patched)."""
+        the whole install, for the plugin's marker and then the original Decky Framegen's (whose patch is
+        reset, having no record)."""
         if not install_root.exists():
             return None
         for directory in self.patches.directories():
@@ -386,9 +397,13 @@ class Patcher:
             if marker_path.parent.is_relative_to(install_root) and marker_path.is_file():
                 return marker_path
         try:
-            return next((path for path in install_root.rglob(bundle.MARKER_FILENAME) if path.is_file()), None)
+            for name in (bundle.MARKER_FILENAME, bundle.UPSTREAM_MARKER_FILENAME):
+                found = next((path for path in install_root.rglob(name) if path.is_file()), None)
+                if found is not None:
+                    return found
         except OSError:
-            return None
+            pass
+        return None
 
     def game_status(self, appid: str) -> dict:
         try:
@@ -422,7 +437,7 @@ class Patcher:
         if patch_record.parse(metadata) is None:
             return {
                 **unpatched, "name": game.name, "install_found": True, "patched": True,
-                "target_dir": str(marker_path.parent), "message": PATCHED_BY_AN_OLDER_VERSION,
+                "target_dir": str(marker_path.parent), "message": PATCHED_BY_DECKY_FRAMEGEN,
             }
         dll_name = metadata.get("dll_name", bundle.DEFAULT_PROXY_DLL)
         # The marker sits in the directory it patched; the path written into it can go stale.
@@ -509,7 +524,7 @@ class Patcher:
         }
 
     def unpatch_game(self, appid: str, current_launch_options: str = "", confirmed_reset: bool = False) -> dict:
-        """Unpatch a Steam game: by its record, or — for an older plugin version's patch, once the
+        """Unpatch a Steam game: by its record, or — for a Decky Framegen patch, once the
         user confirmed what the preview showed — by resetting it."""
         try:
             return self._unpatch_game(appid, current_launch_options, confirmed_reset)
@@ -532,7 +547,7 @@ class Patcher:
                 return self._reset_game(appid, current_launch_options)
             if marker_path is None:
                 return {**not_patched, "message": "No DeckyScaler patch found for this game."}
-            return _error(PATCHED_BY_AN_OLDER_VERSION)
+            return _error(PATCHED_BY_DECKY_FRAMEGEN)
 
         metadata = files.read_json(marker_path)
         target_dir = marker_path.parent
@@ -548,7 +563,7 @@ class Patcher:
             "message": f"Unpatched {game.name}.",
         }
 
-    # ── unpatching what an older plugin version patched ──────────────────────
+    # ── unpatching what Decky Framegen patched ──────────────────────
     # Such a patch has no record, so Unpatch resets the directory instead: for one game the
     # user picked, shown first (preview), carried out only once the user confirms.
 
@@ -613,7 +628,7 @@ class Patcher:
             preview, operations = self._reset_plan(target, marker_path, current_launch_options)
             if preview["status"] != "success":
                 return preview
-            game_directory.execute(operations, target, self.fgmod_path)
+            game_directory.execute(operations, target, self.plugin_home)
             if marker_path is not None and marker_path.exists():
                 marker_path.unlink()
             self._forget(target)
@@ -628,7 +643,7 @@ class Patcher:
             preview, operations = self._reset_plan(target, None, None)
             if preview["status"] != "success":
                 return preview
-            game_directory.execute(operations, target, self.fgmod_path)
+            game_directory.execute(operations, target, self.plugin_home)
             self._forget(target)
             log.info(f"[DeckyScaler] reset_directory: {target}")
             return {**preview, "message": f"{target} is back to how it shipped."}

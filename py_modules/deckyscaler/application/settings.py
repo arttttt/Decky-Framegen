@@ -5,12 +5,12 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from framegen.application.patcher import NO_VERSION, Patcher
-from framegen.domain import exe_target, ini_schema, library, patch_record, settings_layers
-from framegen.domain import patch_plan as plan
-from framegen.domain.settings_layers import Key
-from framegen.infrastructure import files, processes
-from framegen.infrastructure import steam as steam_library
+from deckyscaler.application.patcher import NO_VERSION, Patcher
+from deckyscaler.domain import exe_target, ini_schema, library, patch_record, settings_layers
+from deckyscaler.domain import patch_plan as plan
+from deckyscaler.domain.settings_layers import Key
+from deckyscaler.infrastructure import files, processes
+from deckyscaler.infrastructure import steam as steam_library
 
 log = logging.getLogger(__name__)
 

@@ -6,7 +6,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 
-from framegen.domain import steam
+from deckyscaler.domain import steam
 
 log = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ def library_paths(home: Path) -> list[Path]:
         try:
             text = library_file.read_text(encoding="utf-8", errors="replace")
         except OSError as exc:
-            log.error(f"[Framegen] failed to parse libraryfolders: {library_file}: {exc}")
+            log.error(f"[DeckyScaler] failed to parse libraryfolders: {library_file}: {exc}")
             continue
         for path in steam.parse_library_folders(text):
             add(Path(path))
@@ -56,7 +56,7 @@ def installed_games(home: Path, appid: str | None = None) -> list[InstalledGame]
             try:
                 manifest = steam.parse_app_manifest(manifest_file.read_text(encoding="utf-8", errors="replace"))
             except OSError as exc:
-                log.error(f"[Framegen] skipping manifest {manifest_file}: {exc}")
+                log.error(f"[DeckyScaler] skipping manifest {manifest_file}: {exc}")
                 continue
             if not steam.is_game(manifest):
                 continue
@@ -79,5 +79,5 @@ def executables(install_root: Path) -> list[Path]:
     try:
         return [exe for exe in install_root.rglob("*.exe") if exe.is_file()]
     except OSError as exc:
-        log.error(f"[Framegen] exe scan failed for {install_root}: {exc}")
+        log.error(f"[DeckyScaler] exe scan failed for {install_root}: {exc}")
         return []

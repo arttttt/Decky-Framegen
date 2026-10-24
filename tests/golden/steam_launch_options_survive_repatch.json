@@ -15,7 +15,7 @@
     "tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "-> <library>/stable-0.9.4/files/D3D12_Optiscaler/D3D12Core.dll",
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "200",
         "backed_up_files": [],
         "backups": [],
@@ -102,7 +102,7 @@
     "tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "-> <library>/stable-0.9.4/files/D3D12_Optiscaler/D3D12Core.dll",
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "200",
         "backed_up_files": [],
         "backups": [],

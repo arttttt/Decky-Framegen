@@ -7,7 +7,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TypeVar
 
-from framegen.domain import fsr4, keyvalues, steam
+from deckyscaler.domain import fsr4, keyvalues, steam
 
 log = logging.getLogger(__name__)
 

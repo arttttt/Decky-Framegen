@@ -1,6 +1,6 @@
 import os
 
-from framegen.infrastructure import files
+from deckyscaler.infrastructure import files
 
 
 def test_read_json_returns_empty_dict_for_missing_malformed_or_non_object(tmp_path):
@@ -39,7 +39,7 @@ def test_files_match_compares_content_and_requires_both_files(tmp_path):
 
 
 def test_rewriting_a_text_file_keeps_its_line_endings(tmp_path):
-    from framegen.infrastructure import files
+    from deckyscaler.infrastructure import files
 
     path = tmp_path / "OptiScaler.ini"
     path.write_bytes(b"[Menu]\r\nUseHQFont=auto\r\n")

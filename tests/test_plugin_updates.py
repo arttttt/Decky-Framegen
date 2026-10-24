@@ -13,9 +13,9 @@ import pytest
 
 import main
 from conftest import run, write
-from framegen.application.plugin_updates import UNKNOWN_BUILD, PluginUpdates
-from framegen.domain import dev_build
-from framegen.infrastructure import github_releases
+from deckyscaler.application.plugin_updates import UNKNOWN_BUILD, PluginUpdates
+from deckyscaler.domain import dev_build
+from deckyscaler.infrastructure import github_releases
 
 FIXTURE = Path(__file__).parent / "fixtures" / "github_releases.json"
 REPOSITORY = "arttttt/DeckyScaler"
@@ -447,7 +447,7 @@ def release_entry(tag: str = "2026.10.25", digest: str = ZIP_SHA256, **changes) 
 
 
 def test_calendar_versions_compare_by_day_then_count_and_a_dev_build_by_its_day():
-    from framegen.domain import release_version
+    from deckyscaler.domain import release_version
 
     assert release_version.key("2026.10.24") < release_version.key("2026.10.24.1") < release_version.key("2026.10.25")
     assert release_version.key("2026.10.24-dev.9f2c1a6") == release_version.key("2026.10.24")

@@ -2,7 +2,7 @@
 
 A Steam Deck plugin that enables DLSS upscaling and Frame Generation on handhelds by utilizing the latest OptiScaler and supporting modification software. This plugin automatically installs and manages all necessary components for FSR-based frame generation in games that support DLSS, or OptiFG for adding FG to games that do not have any existing FG pathway (highly experimental)
 
-> DeckyScaler (formerly Decky Framegen) is a continuation of [xXJSONDeruloXx/Decky-Framegen](https://github.com/xXJSONDeruloXx/Decky-Framegen). Its builds don't include OptiScaler: games are patched from versions in the plugin's OptiScaler library (`~/fgmod/library`), downloaded straight from OptiScaler's releases. Download a version under **OptiScaler versions** → *Download versions…* before patching a game. Report problems in [this repository's issues](https://github.com/arttttt/DeckyScaler/issues).
+> DeckyScaler (formerly Decky Framegen) is a continuation of [xXJSONDeruloXx/Decky-Framegen](https://github.com/xXJSONDeruloXx/Decky-Framegen). Its builds don't include OptiScaler: games are patched from versions in the plugin's OptiScaler library (`~/deckyscaler/library`), downloaded straight from OptiScaler's releases. Download a version under **OptiScaler versions** → *Download versions…* before patching a game. Report problems in [this repository's issues](https://github.com/arttttt/DeckyScaler/issues).
 
 ## What This Plugin Does
 
@@ -15,7 +15,7 @@ This plugin uses OptiScaler to replace DLSS calls with FSR3/FSR3.1, giving you:
 ## Features
 
 ### Core Functionality
-- **One-Click Setup**: Automatically downloads and installs OptiScaler into a "fgmod" directory
+- **One-Click Setup**: Automatically downloads OptiScaler versions into its own directory (`~/deckyscaler`)
 - **Smart Installation**: Handles all required dependencies and library files
 - **Game Patching**: Easy copy-paste launch commands for enabling/disabling the mod per game
 - **Games**: **DeckyScaler → Games** lists every game the plugin patched, with its OptiScaler version, proxy DLL and anything wrong with the patch; a Steam game opens its page, a directory patched by path is unpatched right there.
@@ -33,7 +33,7 @@ This plugin uses OptiScaler to replace DLSS calls with FSR3/FSR3.1, giving you:
 5. **Advanced Options**: Press the Insert key in-game for additional OptiScaler settings
 
 ### Removing the Mod from Games
-- If you used the wrapper method, enable Manual Mode and click "Copy Unpatch Command", then replace the launch options with: `~/fgmod/fgmod-uninstaller.sh %command%`
+- If you used the wrapper method, enable Manual Mode and click "Copy Unpatch Command", then replace the launch options with: `~/deckyscaler/unpatch %command%`
 - If you used the standard direct patch flow, use the in-plugin unpatch button instead
 - Run the game at least once to make the uninstaller script run. After that you can leave the launch option or remove it
 
@@ -72,10 +72,10 @@ Here's the breakdown of supported formats:
 **Example:**
 ```bash
 # Enable frame generation with XeFG output
-FrameGen_Enabled=true FGInput=fsrfg FGOutput=xefg ~/fgmod/fgmod %command%
+FrameGen_Enabled=true FGInput=fsrfg FGOutput=xefg ~/deckyscaler/patch %command%
 
 # Set DX12 upscaler to FSR 3.1 (Upgrades to FSR4)
-Dx12Upscaler=fsr31 ~/fgmod/fgmod %command%
+Dx12Upscaler=fsr31 ~/deckyscaler/patch %command%
 ```
 
 **Notes:**
@@ -93,7 +93,7 @@ On Linux FSR 4 also needs AMD's driver DLL (`amdxcffx64.dll`), which neither Opt
 ## Technical Details
 
 ### Where OptiScaler comes from
-Builds of this plugin don't include OptiScaler. **OptiScaler versions** → *Download versions…* fetches versions straight from OptiScaler's own releases ([stable](https://github.com/optiscaler/OptiScaler/releases), [nightly](https://github.com/optiscaler/OptiScaler-nightly/releases)), checks each download against its published checksum, and keeps it in `~/fgmod/library`; *Manage downloaded…* downloads one again or removes one. A patch places the version picked for it (the newest, unless you pick another) in the game's directory as symlinks into the library, so games hold no copies of OptiScaler; only `OptiScaler.ini` is copied, since OptiScaler saves each game's settings there. It backs up any game file it replaces and records what it did, so Unpatch undoes exactly that. A version games are linked to can't be removed until they are unpatched.
+Builds of this plugin don't include OptiScaler. **OptiScaler versions** → *Download versions…* fetches versions straight from OptiScaler's own releases ([stable](https://github.com/optiscaler/OptiScaler/releases), [nightly](https://github.com/optiscaler/OptiScaler-nightly/releases)), checks each download against its published checksum, and keeps it in `~/deckyscaler/library`; *Manage downloaded…* downloads one again or removes one. A patch places the version picked for it (the newest, unless you pick another) in the game's directory as symlinks into the library, so games hold no copies of OptiScaler; only `OptiScaler.ini` is copied, since OptiScaler saves each game's settings there. It backs up any game file it replaces and records what it did, so Unpatch undoes exactly that. A version games are linked to can't be removed until they are unpatched.
 
 ## Development
 

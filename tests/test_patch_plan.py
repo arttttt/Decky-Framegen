@@ -1,8 +1,8 @@
 """The rules every plan shares, the unpatch of earlier plugin versions' patches, and the launch options to restore."""
 
-from framegen.domain import marker
-from framegen.domain import patch_plan as plan
-from framegen.domain.patch_plan import Copy, DeleteFile, Move, RemoveFileOrTree, RemoveTree, preserving_existing
+from deckyscaler.domain import marker
+from deckyscaler.domain import patch_plan as plan
+from deckyscaler.domain.patch_plan import Copy, DeleteFile, Move, RemoveFileOrTree, RemoveTree, preserving_existing
 
 # ── keeping what was in the directory ────────────────────────────────────────
 

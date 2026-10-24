@@ -1,6 +1,6 @@
 import pytest
 
-from framegen.domain import bundle, launch_options
+from deckyscaler.domain import bundle, launch_options
 
 
 @pytest.mark.parametrize(
@@ -22,8 +22,8 @@ def test_options_written_for_a_dll_proxy_are_recognised_as_managed(dll_name):
 
 def test_is_managed_tolerates_extra_whitespace_and_recognises_the_wrapper():
     assert launch_options.is_managed("  WINEDLLOVERRIDES=dxgi=n,b    SteamDeck=0 %command%  ")
-    assert launch_options.is_managed("~/fgmod/fgmod %command%")
-    assert launch_options.is_managed("~/fgmod/fgmod-uninstaller.sh %command%")
+    assert launch_options.is_managed("~/deckyscaler/patch %command%")
+    assert launch_options.is_managed("~/fgmod/fgmod %command%")  # the original Decky Framegen's wrapper
 
 
 @pytest.mark.parametrize("quote", ['"', "'"])
@@ -66,7 +66,7 @@ def test_the_panel_gets_every_proxy_with_its_launch_options_and_the_wrapper_comm
     assert by_name["winmm.dll"]["launch_options"] == launch_options.managed("winmm.dll")
     assert by_name["OptiScaler.asi"]["launch_options"] == "SteamDeck=0 %command%"
     assert all(proxy["hint"] for proxy in setup["proxies"])
-    assert setup["wrapper"] == {"patch": "~/fgmod/fgmod %command%", "unpatch": "~/fgmod/fgmod-uninstaller.sh %command%"}
+    assert setup["wrapper"] == {"patch": "~/deckyscaler/patch %command%", "unpatch": "~/deckyscaler/unpatch %command%"}
 
 
 def test_the_wrapper_command_is_recognised_as_the_plugins():

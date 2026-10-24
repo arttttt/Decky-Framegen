@@ -1,5 +1,5 @@
 import { ButtonItem, PanelSection, PanelSectionRow, SidebarNavigation } from "@decky/ui";
-import { openSettingsPage } from "../api/framegenPage";
+import { openSettingsPage } from "../api/pages";
 import { useInstalledLibrary } from "../hooks/useInstalledLibrary";
 import { usePluginUpdates } from "../hooks/usePluginUpdates";
 import { usePatchPickers } from "../hooks/usePatchPickers";
@@ -52,7 +52,7 @@ function OptiScalerPage() {
 }
 
 /** The plugin's full-screen page, opened from the Quick Access panel. */
-export function FramegenPage() {
+export function PluginPage() {
   const { check } = usePluginUpdates();
   return (
     <SidebarNavigation

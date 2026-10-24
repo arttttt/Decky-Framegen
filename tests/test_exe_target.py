@@ -3,8 +3,8 @@
 import os
 from pathlib import Path
 
-from framegen.domain import exe_target
-from framegen.infrastructure import processes
+from deckyscaler.domain import exe_target
+from deckyscaler.infrastructure import processes
 
 ROOT = Path("/games/common/Satisfactory")
 

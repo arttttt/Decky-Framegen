@@ -1,6 +1,6 @@
 """Valve's KeyValues text format (unit)."""
 
-from framegen.domain import keyvalues
+from deckyscaler.domain import keyvalues
 
 CONFIG = r'''"InstallConfigStore"
 {

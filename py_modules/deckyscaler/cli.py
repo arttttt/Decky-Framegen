@@ -1,6 +1,6 @@
-"""Command-line entry for the ~/fgmod launch wrappers.
+"""Command-line entry for the ~/deckyscaler launch wrappers.
 
-`python3 -m framegen patch|unpatch -- <command>` prints the patched (or
+`python3 -m deckyscaler patch|unpatch -- <command>` prints the patched (or
 unpatched) game directory; on failure it prints the message for the user and
 exits with 1. `wine-overrides` prints WINEDLLOVERRIDES with the proxy added.
 Logs go to stderr.
@@ -14,12 +14,12 @@ import os
 import sys
 from pathlib import Path
 
-from framegen.application.launch_wrapper import LaunchWrapper, WrapperError
-from framegen.domain import bundle, launch_options
+from deckyscaler.application.launch_wrapper import LaunchWrapper, WrapperError
+from deckyscaler.domain import bundle, launch_options
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="python3 -m framegen")
+    parser = argparse.ArgumentParser(prog="python3 -m deckyscaler")
     commands = parser.add_subparsers(dest="action", required=True)
     patch = commands.add_parser("patch", help="patch the game a launch command starts")
     patch.add_argument("--dll", default=bundle.DEFAULT_PROXY_DLL, help="proxy DLL name")

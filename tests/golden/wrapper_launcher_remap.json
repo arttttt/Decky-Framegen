@@ -16,7 +16,7 @@
       "bin": "<dir>",
       "bin/x64": "<dir>",
       "bin/x64/Cyberpunk2077.exe": "game:Cyberpunk2077.exe",
-      "bin/x64/FRAMEGEN_PATCH": {
+      "bin/x64/DECKYSCALER_PATCH": {
         "appid": "",
         "backed_up_files": [],
         "backups": [],

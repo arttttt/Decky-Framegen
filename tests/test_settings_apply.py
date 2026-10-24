@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 from conftest import NIGHTLY, STABLE, make_game_dir, run
-from framegen.infrastructure.settings_store import SettingsStore
+from deckyscaler.infrastructure.settings_store import SettingsStore
 
 
 def ini_of(game) -> str:
     return (game / "OptiScaler.ini").read_text()
 
 
-def test_a_patch_writes_the_global_settings_the_version_takes(plugin, fgmod, tmp_path):
-    SettingsStore(fgmod / "settings").save_global(
+def test_a_patch_writes_the_global_settings_the_version_takes(plugin, plugin_home, tmp_path):
+    SettingsStore(plugin_home / "settings").save_global(
         {("FSR", "Fsr4Model"): "1", ("FrameGen", "FGInput"): "nukems", ("Menu", "UseHQFont"): "false"}
     )
     game = make_game_dir(tmp_path / "games" / "Game")
@@ -23,8 +23,8 @@ def test_a_patch_writes_the_global_settings_the_version_takes(plugin, fgmod, tmp
     assert "UseHQFont=false" in ini_of(game)
 
 
-def test_a_games_own_setting_wins_over_global(plugin, fgmod, steam_library):
-    store = SettingsStore(fgmod / "settings")
+def test_a_games_own_setting_wins_over_global(plugin, plugin_home, steam_library):
+    store = SettingsStore(plugin_home / "settings")
     store.save_global({("FSR", "Fsr4Model"): "1"})
     store.save_game("1234", {("FSR", "Fsr4Model"): "0"})
     root = steam_library.add_game("1234", "Test Game")
@@ -34,8 +34,8 @@ def test_a_games_own_setting_wins_over_global(plugin, fgmod, steam_library):
     assert "Fsr4Model=0" in ini_of(root)
 
 
-def test_a_later_patch_brings_a_changed_global_setting_and_keeps_the_games_own(plugin, fgmod, steam_library):
-    store = SettingsStore(fgmod / "settings")
+def test_a_later_patch_brings_a_changed_global_setting_and_keeps_the_games_own(plugin, plugin_home, steam_library):
+    store = SettingsStore(plugin_home / "settings")
     store.save_game("1234", {("FSR", "Fsr4GpuSupport"): "2"})
     root = steam_library.add_game("1234", "Test Game")
     run(plugin.patch_game("1234", "dxgi.dll", "", NIGHTLY))
@@ -46,10 +46,10 @@ def test_a_later_patch_brings_a_changed_global_setting_and_keeps_the_games_own(p
     assert "Fsr4GpuSupport=2" in ini_of(root) and "Fsr4Model=1" in ini_of(root)
 
 
-def test_the_wrapper_brings_the_settings_of_the_game_steam_starts(fgmod, home, tmp_path):
-    from framegen.application.launch_wrapper import LaunchWrapper
+def test_the_wrapper_brings_the_settings_of_the_game_steam_starts(plugin_home, home, tmp_path):
+    from deckyscaler.application.launch_wrapper import LaunchWrapper
 
-    store = SettingsStore(fgmod / "settings")
+    store = SettingsStore(plugin_home / "settings")
     store.save_game("1234", {("FSR", "Fsr4Model"): "1"})
     game = make_game_dir(tmp_path / "games" / "Wrapped")
     LaunchWrapper(home, {}).patch([str(game / "Game.exe")], "dxgi.dll", NIGHTLY)
@@ -61,8 +61,8 @@ def test_the_wrapper_brings_the_settings_of_the_game_steam_starts(fgmod, home, t
     assert "Fsr4Model=1" in ini_of(game)
 
 
-def test_an_ini_the_game_had_before_is_left_as_it_was(plugin, fgmod, tmp_path):
-    SettingsStore(fgmod / "settings").save_global({("Menu", "UseHQFont"): "false"})
+def test_an_ini_the_game_had_before_is_left_as_it_was(plugin, plugin_home, tmp_path):
+    SettingsStore(plugin_home / "settings").save_global({("Menu", "UseHQFont"): "false"})
     game = make_game_dir(tmp_path / "games" / "Own Ini", {"OptiScaler.ini": b"[Menu]\nUseHQFont=true\n"})
 
     run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))

@@ -7,8 +7,8 @@ import json
 import pytest
 
 from conftest import game_file, make_game_dir, run, snapshot, write
-from framegen.domain import stock_reset
-from framegen.domain.patch_plan import DeleteFile, Move, RemoveTree
+from deckyscaler.domain import stock_reset
+from deckyscaler.domain.patch_plan import DeleteFile, Move, RemoveTree
 
 OURS = "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%"
 
@@ -123,7 +123,7 @@ def test_unpatching_an_older_versions_patch_previews_a_reset_and_resets_once_con
     assert preview["launch_options"] == "mangohud %command%"
 
     unconfirmed = run(plugin.unpatch_game("700", OURS))
-    assert unconfirmed["status"] == "error" and "older version of the plugin" in unconfirmed["message"]
+    assert unconfirmed["status"] == "error" and "patched by Decky Framegen" in unconfirmed["message"]
     assert snapshot(root) == patched
 
     result = run(plugin.unpatch_game("700", OURS, True))
@@ -135,7 +135,7 @@ def test_unpatching_an_older_versions_patch_previews_a_reset_and_resets_once_con
     assert snapshot(other) == other_before
 
 
-def test_a_game_patched_with_a_record_is_unpatched_by_it_even_when_a_reset_is_confirmed(plugin, fgmod, steam_library):
+def test_a_game_patched_with_a_record_is_unpatched_by_it_even_when_a_reset_is_confirmed(plugin, plugin_home, steam_library):
     # The device report: a v10 patch puts its libxess under OptiScaler/, so the game's own root
     # libxess.dll has no backup — and the old reset deleted it by name.
     from conftest import NIGHTLY
@@ -208,15 +208,15 @@ def test_a_directory_with_an_old_versions_backups_is_reset(plugin, tmp_path):
 
 
 @pytest.mark.parametrize("inside", ["", "library"])
-def test_the_bundle_itself_is_never_reset(plugin, fgmod, inside):
-    before = snapshot(fgmod)
+def test_the_bundle_itself_is_never_reset(plugin, plugin_home, inside):
+    before = snapshot(plugin_home)
 
-    preview = run(plugin.preview_unpatch_directory(str(fgmod / inside)))
-    result = run(plugin.manual_unpatch_directory(str(fgmod / inside), True))
+    preview = run(plugin.preview_unpatch_directory(str(plugin_home / inside)))
+    result = run(plugin.manual_unpatch_directory(str(plugin_home / inside), True))
 
     assert preview["status"] == result["status"] == "error"
     assert "OptiScaler bundle itself" in result["message"]
-    assert snapshot(fgmod) == before
+    assert snapshot(plugin_home) == before
 
 
 def test_a_support_file_removed_without_a_backup_is_named_as_maybe_the_games():
@@ -227,7 +227,7 @@ def test_a_support_file_removed_without_a_backup_is_named_as_maybe_the_games():
 
 
 def test_a_reset_that_fails_midway_answers_with_the_error(plugin, tmp_path, monkeypatch):
-    from framegen.infrastructure import game_directory
+    from deckyscaler.infrastructure import game_directory
 
     game = make_game_dir(tmp_path / "games" / "Game", {"dxgi.dll": b"opti", "libxess.dll.b": game_file("libxess.dll")})
 

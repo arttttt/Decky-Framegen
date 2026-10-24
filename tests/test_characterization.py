@@ -94,7 +94,7 @@ MANUAL_SCENARIOS = {
 
 
 @pytest.mark.parametrize("name", sorted(MANUAL_SCENARIOS))
-def test_manual_patch_scenarios(name, plugin, fgmod, tmp_path):
+def test_manual_patch_scenarios(name, plugin, plugin_home, tmp_path):
     scenario = MANUAL_SCENARIOS[name]
     game = make_game_dir(tmp_path / "games" / "Game", scenario["files"])
     recorder = Recorder(tmp_path, game)
@@ -110,7 +110,7 @@ def test_manual_patch_scenarios(name, plugin, fgmod, tmp_path):
     assert_golden(name, recorder.steps)
 
 
-def test_manual_patch_rejects_unknown_proxy_name(plugin, fgmod, game_dir):
+def test_manual_patch_rejects_unknown_proxy_name(plugin, plugin_home, game_dir):
     result = run(plugin.manual_patch_directory(str(game_dir), "d3d11.dll", STABLE))
 
     assert result == {"status": "error", "message": "Invalid proxy DLL name: d3d11.dll"}
@@ -122,7 +122,7 @@ def test_manual_patch_needs_an_optiscaler_version_in_the_library(plugin, home, g
     assert result == {"status": "error", "message": "No OptiScaler version is downloaded. Download one under Open DeckyScaler → OptiScaler first."}
 
 
-def test_a_patch_naming_no_version_keeps_the_games_else_takes_the_newest(plugin, fgmod, game_dir):
+def test_a_patch_naming_no_version_keeps_the_games_else_takes_the_newest(plugin, plugin_home, game_dir):
     assert run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", ""))["optiscaler_version"] == NIGHTLY
     run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", STABLE))
 
@@ -130,7 +130,7 @@ def test_a_patch_naming_no_version_keeps_the_games_else_takes_the_newest(plugin,
     assert run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", ""))["optiscaler_version"] == STABLE
 
 
-def test_manual_patch_with_a_version_not_in_the_library_is_refused(plugin, fgmod, game_dir):
+def test_manual_patch_with_a_version_not_in_the_library_is_refused(plugin, plugin_home, game_dir):
     result = run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", "nightly-20260101"))
 
     assert result == {"status": "error", "message": "OptiScaler nightly-20260101 is not in the library."}
@@ -139,7 +139,7 @@ def test_manual_patch_with_a_version_not_in_the_library_is_refused(plugin, fgmod
 # ── Steam AppID patching ─────────────────────────────────────────────────────
 
 
-def test_steam_version_switch_and_status(plugin, fgmod, steam_library, tmp_path):
+def test_steam_version_switch_and_status(plugin, plugin_home, steam_library, tmp_path):
     root = steam_library.add_game("100", "Version Game")
     recorder = Recorder(tmp_path, root)
 
@@ -156,7 +156,7 @@ def test_steam_version_switch_and_status(plugin, fgmod, steam_library, tmp_path)
     assert_golden("steam_version_switch_and_status", recorder.steps)
 
 
-def test_steam_launch_options_survive_repatch(plugin, fgmod, steam_library, tmp_path):
+def test_steam_launch_options_survive_repatch(plugin, plugin_home, steam_library, tmp_path):
     root = steam_library.add_game("200", "Options Game")
     recorder = Recorder(tmp_path, root)
 
@@ -171,7 +171,7 @@ def test_steam_launch_options_survive_repatch(plugin, fgmod, steam_library, tmp_
     assert_golden("steam_launch_options_survive_repatch", recorder.steps)
 
 
-def test_steam_target_directory_moves_between_patches(plugin, fgmod, steam_library, tmp_path):
+def test_steam_target_directory_moves_between_patches(plugin, plugin_home, steam_library, tmp_path):
     root = steam_library.add_game("300", "Moving Game")
     recorder = Recorder(tmp_path, root)
 
@@ -185,17 +185,17 @@ def test_steam_target_directory_moves_between_patches(plugin, fgmod, steam_libra
     assert_golden("steam_target_directory_moves_between_patches", recorder.steps)
 
 
-def test_steam_marker_records_the_backed_up_game_files(plugin, fgmod, steam_library):
+def test_steam_marker_records_the_backed_up_game_files(plugin, plugin_home, steam_library):
     root = steam_library.add_game("600", "Xess Game", {"libxess.dll": game_file("libxess.dll")})
 
     run(plugin.patch_game("600", "dxgi.dll", "", STABLE))
 
-    marker = json.loads((root / "FRAMEGEN_PATCH").read_text())
+    marker = json.loads((root / "DECKYSCALER_PATCH").read_text())
     assert marker["backed_up_files"] == ["libxess.dll"]
     assert (root / "libxess.dll.b").read_bytes() == game_file("libxess.dll")
 
 
-def test_steam_unknown_and_unpatched_games(plugin, fgmod, steam_library, tmp_path):
+def test_steam_unknown_and_unpatched_games(plugin, plugin_home, steam_library, tmp_path):
     steam_library.add_game("400", "Untouched Game")
     observed = {
         "status unknown": run(plugin.get_game_status("999")),

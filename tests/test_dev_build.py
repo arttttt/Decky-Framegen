@@ -10,7 +10,7 @@ import sys
 import pytest
 
 from conftest import REPO_ROOT
-from framegen.domain import dev_build
+from deckyscaler.domain import dev_build
 
 COMMIT = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 REPOSITORY = "arttttt/DeckyScaler"

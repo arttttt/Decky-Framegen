@@ -5,7 +5,7 @@ import zipfile
 import pytest
 
 from conftest import FAKE_7Z, install_tools, write
-from framegen.infrastructure import archive
+from deckyscaler.infrastructure import archive
 
 
 @pytest.fixture

@@ -1,4 +1,4 @@
-from framegen.domain import ini
+from deckyscaler.domain import ini
 
 
 def test_set_values_replaces_a_key_only_inside_its_section_keeping_crlf():

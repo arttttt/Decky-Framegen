@@ -2,7 +2,7 @@ import type { UnpatchPreview, UnpatchResult } from "../api";
 
 /**
  * The step Unpatch takes after asking the backend: undo the patch record right away, or, for a
- * patch an older plugin version made, show what a reset changes and wait for the user to confirm.
+ * patch Decky Framegen made, show what a reset changes and wait for the user to confirm.
  */
 export type UnpatchStep =
   | { kind: "refused"; message: string }
@@ -10,9 +10,9 @@ export type UnpatchStep =
   | { kind: "confirm"; title: string; lines: string[]; okLabel: string };
 
 const EVIDENCE: Record<"marker" | "backups" | "leftovers", string> = {
-  marker: "An older version of the plugin patched this game.",
-  backups: "Found backups an older version of the plugin made.",
-  leftovers: "Found files only early versions of the plugin left behind.",
+  marker: "Decky Framegen patched this game.",
+  backups: "Found backups Decky Framegen made.",
+  leftovers: "Found files only early versions of Decky Framegen left behind.",
 };
 
 const listed = (label: string, names: string[]): string[] => (names.length ? [`${label}: ${names.join(", ")}`] : []);

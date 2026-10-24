@@ -1,9 +1,9 @@
 """Integration: executing plans on disk."""
 
 from conftest import game_file, write
-from framegen.domain import patch_plan as plan
-from framegen.domain import patch_record
-from framegen.infrastructure import game_directory
+from deckyscaler.domain import patch_plan as plan
+from deckyscaler.domain import patch_record
+from deckyscaler.infrastructure import game_directory
 
 
 def test_execute_carries_out_every_operation_kind(tmp_path):

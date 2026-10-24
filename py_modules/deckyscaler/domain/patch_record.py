@@ -115,15 +115,15 @@ def parse(marker: dict) -> PatchRecord | None:
 
 OK = "ok"
 INCOMPLETE = "incomplete"
-OLDER_PLUGIN = "older-plugin"
+UPSTREAM = "upstream"
 
 
 def state(marker: dict) -> str:
     """What a marker says of its patch: OK; INCOMPLETE when the patch stopped before its last file (its
-    record still undoes what landed); OLDER_PLUGIN when an earlier plugin version wrote it (undone by a
+    record still undoes what landed); UPSTREAM when the original Decky Framegen wrote it (undone by a
     reset)."""
     if parse(marker) is None:
-        return OLDER_PLUGIN
+        return UPSTREAM
     return OK if marker.get("complete", True) else INCOMPLETE
 
 

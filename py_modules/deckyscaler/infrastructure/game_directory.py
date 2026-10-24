@@ -7,9 +7,9 @@ import os
 import shutil
 from pathlib import Path
 
-from framegen.domain import patch_record
-from framegen.domain import patch_plan as plan
-from framegen.infrastructure import files
+from deckyscaler.domain import patch_record
+from deckyscaler.domain import patch_plan as plan
+from deckyscaler.infrastructure import files
 
 log = logging.getLogger(__name__)
 

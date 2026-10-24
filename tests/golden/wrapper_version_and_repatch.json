@@ -3,7 +3,7 @@
     "exit_code": 0,
     "step": "patch nightly",
     "tree": {
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "",
         "backed_up_files": [],
         "backups": [],
@@ -59,7 +59,7 @@
   },
   {
     "final_tree": {
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "",
         "backed_up_files": [],
         "backups": [],

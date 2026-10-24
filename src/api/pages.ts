@@ -1,11 +1,11 @@
 import { Navigation } from "@decky/ui";
 
 /** The plugin's own full-screen pages, registered in index.tsx. */
-export const FRAMEGEN_ROUTE = "/framegen";
-// Not under /framegen: a route that isn't matched exactly would show the plugin's page instead.
-export const GAME_ROUTE = "/framegen-game/:appid";
+export const PLUGIN_ROUTE = "/deckyscaler";
+// Not under /deckyscaler: a route that isn't matched exactly would show the plugin's page instead.
+export const GAME_ROUTE = "/deckyscaler-game/:appid";
 /** The settings editor; :scope is "global" or a game's appid. */
-export const SETTINGS_ROUTE = "/framegen-settings/:scope";
+export const SETTINGS_ROUTE = "/deckyscaler-settings/:scope";
 
 const open = (path: string): void => {
   Navigation.Navigate(path);
@@ -13,7 +13,7 @@ const open = (path: string): void => {
 };
 
 /** Opens the plugin's page. */
-export const openFramegenPage = (): void => open(FRAMEGEN_ROUTE);
+export const openPluginPage = (): void => open(PLUGIN_ROUTE);
 
 /** Opens a Steam game's page in the plugin. */
 export const openGamePage = (appid: string): void => open(GAME_ROUTE.replace(":appid", appid));

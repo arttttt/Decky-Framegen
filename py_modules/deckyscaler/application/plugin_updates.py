@@ -7,9 +7,9 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
-from framegen.domain import dev_build
-from framegen.infrastructure.files import read_json, sha256, write_json
-from framegen.infrastructure.github_releases import ReleasesUnavailable
+from deckyscaler.domain import dev_build
+from deckyscaler.infrastructure.files import read_json, sha256, write_json
+from deckyscaler.infrastructure.github_releases import ReleasesUnavailable
 
 log = logging.getLogger(__name__)
 

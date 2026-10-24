@@ -1,4 +1,4 @@
-"""~/fgmod/patched.json: the directories the plugin has patched, and what to call each.
+"""~/deckyscaler/patched.json: the directories the plugin has patched, and what to call each.
 
 It lets the library say which games use a version without searching every game's files.
 Each directory's marker stays the truth about its patch; the index only says where to look.
@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from framegen.infrastructure.files import read_json, write_json
+from deckyscaler.infrastructure.files import read_json, write_json
 
 
 class PatchIndex:

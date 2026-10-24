@@ -20,8 +20,8 @@ GOLDEN_DIR = Path(__file__).parent / "golden"
 # Fields that differ between runs and say nothing about behaviour.
 _VOLATILE_FIELDS = ("patched_at", "installed_at", "updated_at")
 
-# A library version's files, wherever the test's ~/fgmod is: what a patch's symlinks point to.
-_LIBRARY_PATH = re.compile(r"/\S*?/fgmod/library/versions/")
+# A library version's files, wherever the test's ~/deckyscaler is: what a patch's symlinks point to.
+_LIBRARY_PATH = re.compile(r"/\S*?/deckyscaler/library/versions/")
 
 
 def _stabilize(value, root: Path):
@@ -52,7 +52,7 @@ def describe_tree(root: Path) -> dict[str, object]:
             tree[rel] = "<dir>"
             continue
         data = path.read_bytes()
-        if path.name == "FRAMEGEN_PATCH" or path.suffix == ".json":
+        if path.name == "DECKYSCALER_PATCH" or path.suffix == ".json":
             tree[rel] = _stabilize(json.loads(data), root)
         elif sha256(data) in KNOWN_CONTENT:
             tree[rel] = KNOWN_CONTENT[sha256(data)]
