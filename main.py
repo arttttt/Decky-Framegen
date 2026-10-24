@@ -72,7 +72,8 @@ class Plugin:
         return self._patcher().unpatch_user_directory(directory, confirmed_reset)
 
     async def get_game_status(self, appid: str) -> dict:
-        return self._patcher().game_status(appid)
+        # Reading the game's Proton setup can take a moment on handheld storage; keep it off Decky's event loop.
+        return await asyncio.to_thread(self._patcher().game_status, appid)
 
     async def patch_game(
         self,
@@ -81,7 +82,9 @@ class Plugin:
         current_launch_options: str = "",
         version_id: str = "",
     ) -> dict:
-        return self._patcher().patch_game(appid, dll_name, current_launch_options, version_id or None)
+        return await asyncio.to_thread(
+            self._patcher().patch_game, appid, dll_name, current_launch_options, version_id or None
+        )
 
     async def preview_unpatch_game(self, appid: str, current_launch_options: str = "") -> dict:
         return self._patcher().preview_unpatch_game(appid, current_launch_options)

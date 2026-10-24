@@ -43,4 +43,7 @@ def is_managed(options: str) -> bool:
     tokens = (f"WINEDLLOVERRIDES={override_entry(dll)}" for dll in VALID_DLL_NAMES if override_entry(dll))
     if any(token in normalized for token in tokens):
         return True
+    # An .asi proxy's options carry no override: only what the plugin adds marks them.
+    if f"{UPGRADE_VARIABLE}=1" in normalized or normalized == "SteamDeck=0 %command%":
+        return True
     return "fgmod/fgmod" in normalized

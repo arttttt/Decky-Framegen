@@ -151,3 +151,17 @@ def test_a_tool_installed_for_every_user_is_found_too(plugin, fgmod, steam_libra
     steam_library.set_compat_tools({"730": "proton-cachyos"})
 
     assert run(plugin.get_game_status("730"))["fsr4"]["state"] == "will-fetch"
+
+
+def test_a_tool_updated_in_place_is_read_again(plugin, fgmod, steam_library, amd_gpu):
+    import os
+
+    steam_library.add_game("730", "Fsr Game")
+    tool = steam_library.add_tool("GE-Proton11-11", reads_fsr4_variable=False)
+    steam_library.set_compat_tools({"730": "GE-Proton11-11"})
+    assert run(plugin.get_game_status("730"))["fsr4"]["state"] == "unsupported"
+
+    (tool / "proton").write_text('os.environ.get("PROTON_FSR4_UPGRADE")\n')
+    os.utime(tool / "proton", ns=(1, 2_000_000_000_000_000_000))  # a later mtime than the cached read
+
+    assert run(plugin.get_game_status("730"))["fsr4"]["state"] == "will-fetch"
