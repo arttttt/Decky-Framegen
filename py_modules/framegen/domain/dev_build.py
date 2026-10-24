@@ -30,7 +30,8 @@ class BuildInfo:
     channel: str
     commit: str
     title: str = field(default="", compare=False)
-    """How the build is named on the device (`main @ 1a2b3c4`, `PR #12: <title>`); not part of its identity."""
+    """How the build is named on the device (`Dev build · main @ 1a2b3c4`, `Dev build · PR #12: <title>`);
+    not part of its identity."""
 
     @property
     def short_commit(self) -> str:
@@ -77,13 +78,17 @@ def version(base: str, info: BuildInfo) -> str:
     return f"{base}-{info.channel}.{info.short_commit}"
 
 
+DEV_TITLE_PREFIX = "Dev build · "
+"""Sets a development build apart from a release (`Decky Framegen 2026.10.24`) on the releases page."""
+
+
 def release_title(info: BuildInfo, pull_request_title: str = "") -> str:
     """The name of the release that publishes a build, shown on the device next to each build."""
     if info.channel == MAIN_CHANNEL:
-        return f"main @ {info.short_commit}"
+        return f"{DEV_TITLE_PREFIX}main @ {info.short_commit}"
     number = info.channel.removeprefix("pr-")
     title = " ".join(pull_request_title.split())  # one line, whatever the pull request's title holds
-    return f"PR #{number}: {title}" if title else f"PR #{number}"
+    return f"{DEV_TITLE_PREFIX}PR #{number}: {title}" if title else f"{DEV_TITLE_PREFIX}PR #{number}"
 
 
 def asset_name(plugin_name: str, info: BuildInfo) -> str:

@@ -90,4 +90,4 @@ builds a release build (no Developer section), checks the package, and publishes
 as the GitHub Release tagged with the bare version (`2026.10.24`) on main's current commit, with generated notes.
 
 `package.json`'s `version` stays `0.0.0`: every published build gets its version stamped. Development
-builds carry the build day too, then their channel and commit (`2026.10.24-dev.1a2b3c4`).
+builds carry the build day too, then their channel and commit (`2026.10.24-dev.1a2b3c4`). Their prereleases are tagged `dev` (main's latest commit) and `pr-N`, and titled `Dev build · main @ 1a2b3c4` or `Dev build · PR #N: <title>`, so they can't pass for a release.
