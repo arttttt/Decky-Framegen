@@ -119,7 +119,7 @@ def test_manual_patch_rejects_unknown_proxy_name(plugin, fgmod, game_dir):
 def test_manual_patch_needs_an_optiscaler_version_in_the_library(plugin, home, game_dir):
     result = run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", ""))
 
-    assert result == {"status": "error", "message": "No OptiScaler version is installed. Download one in the OptiScaler section first."}
+    assert result == {"status": "error", "message": "No OptiScaler version is downloaded. Download one under OptiScaler versions first."}
 
 
 def test_manual_patch_with_a_version_not_in_the_library_is_refused(plugin, fgmod, game_dir):

@@ -69,11 +69,11 @@ def test_patching_offers_installed_versions_newest_first():
     stable = library.Installed("stable-0.9.4", library.STABLE, "0.9.4", "20260718", "0.9", "u", "0" * 64, "t")
     nightly = installed_entry()
 
-    offered = [library.choice_json(entry) for entry in library.newest_first([stable, nightly])]
+    offered = [library.choice_json(entry, 5) for entry in library.newest_first([stable, nightly])]
 
     assert offered == [
-        {"id": NEWEST, "version": "10.0.0-pre1", "channel": "nightly", "date": "20261023"},
-        {"id": "stable-0.9.4", "version": "0.9.4", "channel": "stable", "date": "20260718"},
+        {"id": NEWEST, "version": "10.0.0-pre1", "channel": "nightly", "date": "20261023", "size": 5},
+        {"id": "stable-0.9.4", "version": "0.9.4", "channel": "stable", "date": "20260718", "size": 5},
     ]
 
 
@@ -301,6 +301,7 @@ def test_the_plugin_lists_what_games_can_be_patched_with(plugin, fgmod):
 
     assert installed["default"] == STABLE
     assert [version["id"] for version in installed["versions"]] == [NIGHTLY, STABLE]
+    assert installed["installed_bytes"] == sum(version["size"] for version in installed["versions"]) > 0
     write(fgmod / "library" / "settings.json", json.dumps({"default_version": "stable-0.9.1"}).encode())
     assert run(plugin.library_installed())["default"] is None  # a default no longer installed is none
 
@@ -315,3 +316,80 @@ def test_a_game_status_names_a_newer_version_of_its_channel(plugin, fgmod, steam
     install_version(fgmod, "nightly-20261101", "10", NIGHTLY_FILES, NIGHTLY_INI)
 
     assert run(plugin.get_game_status("1234"))["newer_version"] == "nightly-20261101"
+
+
+def test_downloading_a_version_again_swaps_in_a_fresh_copy(world):
+    world.library().install(library.NIGHTLY, NEWEST)
+    files = world.fgmod / "library" / "versions" / NEWEST / "files"
+    write(files / "OptiScaler.dll", b"corrupted")
+    (files / "OptiScaler.ini").unlink()
+
+    result = world.library().reinstall(NEWEST)
+
+    assert result == {"status": "success", "id": NEWEST, "message": "OptiScaler 10.0.0-pre1 is downloaded again."}
+    assert (files / "OptiScaler.dll").read_bytes() == b"opti"
+    assert (files / "OptiScaler.ini").exists()
+    assert not (world.fgmod / "library" / ".partial").exists()
+
+
+def test_a_failed_download_again_keeps_the_copy_the_library_has(world):
+    world.library().install(library.NIGHTLY, NEWEST)
+    before = world.tree()
+
+    result = world.library(FakeDownload(b"not the published archive")).reinstall(NEWEST)
+
+    assert result["status"] == "error" and "did not match its checksum" in result["message"]
+    assert world.tree() == before
+
+
+def test_a_failed_swap_puts_the_old_copy_back(world, monkeypatch):
+    world.library().install(library.NIGHTLY, NEWEST)
+    before = world.tree()
+    from framegen.infrastructure.library_store import LibraryStore
+
+    def fail(self, stage, installed):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(LibraryStore, "commit", fail)
+    result = world.library().reinstall(NEWEST)
+
+    assert result["status"] == "error" and "disk full" in result["message"]
+    assert world.tree() == before
+
+
+def test_only_a_version_in_the_library_is_downloaded_again(world):
+    download = FakeDownload(world.archive)
+
+    result = world.library(download).reinstall(NEWEST)
+
+    assert result == {"status": "error", "message": f"{NEWEST} is not in the library."}
+    assert download.urls == []
+
+
+def test_a_replace_cut_short_between_its_two_moves_gets_the_old_copy_back(world):
+    world.library().install(library.NIGHTLY, NEWEST)
+    before = world.tree()
+    versions = world.fgmod / "library" / "versions"
+    (versions / NEWEST).replace(versions / f".{NEWEST}.old")  # the device slept right after setting it aside
+
+    world.library(FakeDownload(b"not the published archive")).install(library.NIGHTLY, "nightly-20261020")
+
+    assert world.tree() == before
+
+
+def test_a_finished_replace_leaves_no_old_copy_behind(world):
+    world.library().install(library.NIGHTLY, NEWEST)
+    world.library().reinstall(NEWEST)
+
+    assert not list((world.fgmod / "library" / "versions").glob(".*"))
+
+
+def test_an_old_copy_left_after_the_new_one_landed_is_cleared_by_the_next_install(world):
+    world.library().install(library.NIGHTLY, NEWEST)
+    versions = world.fgmod / "library" / "versions"
+    write(versions / f".{NEWEST}.old" / "files" / "OptiScaler.dll", b"the old copy")  # slept before deleting it
+
+    world.library(FakeDownload(b"not the published archive")).install(library.NIGHTLY, "nightly-20261020")
+
+    assert not (versions / f".{NEWEST}.old").exists()
+    assert (versions / NEWEST / "files" / "OptiScaler.dll").read_bytes() == b"opti"

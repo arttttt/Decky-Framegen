@@ -1,8 +1,18 @@
 import { describe, expect, it } from "vitest";
-import type { LibraryVersion } from "../api";
-import { LibraryState, actionOutcome, libraryMenu, libraryView, removeConfirmation } from "./library";
+import type { InstalledLibrary, LibraryVersion } from "../api";
+import {
+  DownloadState,
+  ManageState,
+  actionOutcome,
+  downloadView,
+  librarySummary,
+  manageDone,
+  manageMenu,
+  manageView,
+  removeConfirmation,
+} from "./library";
 
-const installed: LibraryVersion = {
+const downloaded: LibraryVersion = {
   id: "nightly-20261023", version: "10.0.0-pre1", date: "20261023", family: "10",
   state: "installed", reason: null, size: 312_400_000, default: true,
 };
@@ -15,9 +25,30 @@ const unsupported: LibraryVersion = {
   state: "unsupported", reason: "a version this plugin does not support yet", size: 70_000_000, default: false,
 };
 
-const state = (overrides: Partial<LibraryState> = {}): LibraryState => ({
+const LIBRARY: InstalledLibrary = {
+  default: "stable-0.9.4",
+  installed_bytes: 512_000_000,
+  versions: [
+    { id: "nightly-20261023", version: "10.0.0-pre1", channel: "nightly", date: "20261023", size: 312_000_000 },
+    { id: "stable-0.9.4", version: "0.9.4", channel: "stable", date: "20260718", size: 200_000_000 },
+  ],
+};
+
+describe("panel summary", () => {
+  it("counts the downloaded versions and names the one new patches use", () => {
+    expect(librarySummary(LIBRARY)).toBe("2 versions downloaded. New patches use 0.9.4 · 2026-07-18.");
+    expect(librarySummary({ ...LIBRARY, versions: LIBRARY.versions.slice(1) })).toBe(
+      "1 version downloaded. New patches use 0.9.4 · 2026-07-18.",
+    );
+    expect(librarySummary({ ...LIBRARY, default: null })).toBe("2 versions downloaded.");
+    expect(librarySummary({ default: null, versions: [], installed_bytes: 0 })).toBe("No version is downloaded yet.");
+    expect(librarySummary(null)).toBe("Loading…");
+  });
+});
+
+const downloadState = (overrides: Partial<DownloadState> = {}): DownloadState => ({
   channel: "nightly",
-  listing: { status: "success", versions: [installed, available, unsupported], listing_error: null, installed_bytes: 312_400_000 },
+  listing: { status: "success", versions: [downloaded, available, unsupported], listing_error: null, installed_bytes: 1 },
   checking: false,
   busy: null,
   download: null,
@@ -25,77 +56,107 @@ const state = (overrides: Partial<LibraryState> = {}): LibraryState => ({
   ...overrides,
 });
 
-describe("library view", () => {
-  it("lists installed versions to manage, available ones to download and unsupported ones with the reason", () => {
-    const view = libraryView(state());
+describe("download dialog", () => {
+  it("offers what is published, marks what is downloaded and says why the rest can't be", () => {
+    const view = downloadView(downloadState());
 
     expect(view.rows).toEqual([
-      {
-        id: "nightly-20261023", label: "10.0.0-pre1 · 2026-10-23",
-        description: "Installed · 312 MB · default for new patches",
-        action: { intent: "manage", label: "Manage", enabled: true },
-      },
+      { id: "nightly-20261023", label: "10.0.0-pre1 · 2026-10-23", description: "Downloaded", action: null },
       {
         id: "nightly-20261020", label: "10.0.0-pre1 · 2026-10-20", description: "75 MB download",
-        action: { intent: "download", label: "Download", enabled: true },
+        action: { label: "Download", enabled: true },
       },
       {
         id: "nightly-20261001", label: "9.9.0 · 2026-10-01",
-        description: "Can't be installed: a version this plugin does not support yet", action: null,
+        description: "Can't be downloaded: a version this plugin does not support yet", action: null,
       },
     ]);
-    expect(view.usage).toBe("The library takes 312 MB.");
-    expect(view.message).toBeNull();
-    expect(view.checkEnabled).toBe(true);
-    expect(view.channelEnabled).toBe(true);
+    expect(view).toMatchObject({ channelEnabled: true, checkEnabled: true, message: null, checkLabel: "Check for new versions" });
   });
 
-  it("shows a download's progress on its row and holds every other action meanwhile", () => {
-    const busy = state({ busy: { id: "nightly-20261020", action: "download" }, download: { received: 29_900_000, total: 75_000_000 } });
+  it("shows a download's progress on its row and holds everything else meanwhile", () => {
+    const busy = downloadState({ busy: "nightly-20261020", download: { received: 29_900_000, total: 75_000_000 } });
 
-    const view = libraryView(busy);
+    const view = downloadView(busy);
 
-    expect(view.rows[1].description).toBe("Downloading: 39% of 75 MB"); // never 100% before it ends
-    expect(view.rows[0].description).toBe("Installed · 312 MB · default for new patches");
-    expect(view.rows.map((row) => row.action?.enabled)).toEqual([false, false, undefined]);
-    expect(view.checkEnabled).toBe(false);
-    expect(view.channelEnabled).toBe(false);
-    expect(libraryView({ ...busy, download: null }).rows[1].description).toBe("Downloading…");
-    expect(libraryView({ ...busy, download: { received: 5_000_000, total: null } }).rows[1].description).toBe(
+    expect(view.rows[1]).toMatchObject({ description: "Downloading: 39% of 75 MB", action: { enabled: false } });
+    expect(view.rows[0].description).toBe("Downloaded");
+    expect(view).toMatchObject({ channelEnabled: false, checkEnabled: false });
+    expect(downloadView({ ...busy, download: null }).rows[1].description).toBe("Downloading…");
+    expect(downloadView({ ...busy, download: { received: 5_000_000, total: null } }).rows[1].description).toBe(
       "Downloading: 5 MB",
     );
-    expect(libraryView(state({ busy: { id: "nightly-20261023", action: "remove" } })).rows[0].description).toBe("Removing…");
   });
 
-  it("says when GitHub could not be reached, nothing is published, or the last action's outcome", () => {
-    const listing = { status: "success" as const, versions: [installed], listing_error: "GitHub answered 403", installed_bytes: 1 };
-    expect(libraryView(state({ listing })).message).toBe(
-      "Could not list what OptiScaler publishes (GitHub answered 403). Installed versions are shown.",
-    );
-    expect(libraryView(state({ listing: { ...listing, versions: [], listing_error: null } })).message).toBe(
+  it("says when GitHub could not be reached, nothing is published, or how the last download went", () => {
+    const listing = { status: "success" as const, versions: [], listing_error: "GitHub answered 403", installed_bytes: 0 };
+    expect(downloadView(downloadState({ listing })).message).toBe("Could not list what OptiScaler publishes (GitHub answered 403).");
+    expect(downloadView(downloadState({ listing: { ...listing, listing_error: null } })).message).toBe(
       "No nightly versions are published.",
     );
-    expect(libraryView(state({ listing: { status: "error", message: "Unknown channel: x" } })).message).toBe("Unknown channel: x");
-    expect(libraryView(state({ listing, message: "OptiScaler 10.0.0-pre1 is installed." })).message).toBe(
+    expect(downloadView(downloadState({ listing: { status: "error", message: "Unknown channel: x" } })).message).toBe(
+      "Unknown channel: x",
+    );
+    expect(downloadView(downloadState({ listing, message: "OptiScaler 10.0.0-pre1 is installed." })).message).toBe(
       "OptiScaler 10.0.0-pre1 is installed.",
     );
-    expect(libraryView(state({ checking: true })).checkLabel).toBe("Checking…");
-    expect(libraryView(state({ listing: null })).rows).toEqual([]);
-    expect(libraryView(state({ listing: { ...listing, installed_bytes: 0 } })).usage).toBeNull();
+    expect(downloadView(downloadState({ checking: true }))).toMatchObject({ checkLabel: "Checking…", checkEnabled: false });
+    expect(downloadView(downloadState({ listing: null })).rows).toEqual([]);
   });
 });
 
-describe("managing an installed version", () => {
-  it("offers making it the default unless it is, and removing it", () => {
-    expect(libraryMenu(installed)).toEqual([{ intent: "remove", label: "Remove", destructive: true }]);
-    expect(libraryMenu({ ...installed, default: false })).toEqual([
-      { intent: "default", label: "Use for new patches", destructive: false },
-      { intent: "remove", label: "Remove", destructive: true },
+const manageState = (overrides: Partial<ManageState> = {}): ManageState => ({
+  library: LIBRARY,
+  busy: null,
+  download: null,
+  message: null,
+  ...overrides,
+});
+
+describe("manage dialog", () => {
+  it("lists downloaded versions with channel, size, which one new patches use, and the total", () => {
+    const view = manageView(manageState());
+
+    expect(view.rows).toEqual([
+      { id: "nightly-20261023", label: "10.0.0-pre1 · 2026-10-23", description: "Nightly · 312 MB", action: { label: "Manage", enabled: true } },
+      {
+        id: "stable-0.9.4", label: "0.9.4 · 2026-07-18", description: "Stable · 200 MB · used for new patches",
+        action: { label: "Manage", enabled: true },
+      },
     ]);
+    expect(view.usage).toBe("Downloaded versions take 512 MB.");
+    expect(view.message).toBeNull();
+  });
+
+  it("shows what is happening to a version on its row and holds the others", () => {
+    const reinstalling = manageView(
+      manageState({ busy: { id: "nightly-20261023", action: "reinstall" }, download: { received: 10_000_000, total: 100_000_000 } }),
+    );
+    expect(reinstalling.rows[0].description).toBe("Downloading: 10% of 100 MB");
+    expect(reinstalling.rows[1]).toMatchObject({ description: "Stable · 200 MB · used for new patches", action: { enabled: false } });
+    expect(manageView(manageState({ busy: { id: "stable-0.9.4", action: "remove" } })).rows[1].description).toBe("Removing…");
+    expect(manageView(manageState({ busy: { id: "nightly-20261023", action: "default" } })).rows[0].description).toBe(
+      "Making it the version for new patches…",
+    );
+  });
+
+  it("says when nothing is downloaded, and how the last action went", () => {
+    const empty = manageView(manageState({ library: { default: null, versions: [], installed_bytes: 0 } }));
+    expect(empty).toEqual({ rows: [], usage: null, message: "No version is downloaded yet." });
+    expect(manageView(manageState({ library: null }))).toEqual({ rows: [], usage: null, message: null });
+    expect(manageView(manageState({ message: "Removing failed: busy" })).message).toBe("Removing failed: busy");
+  });
+
+  it("offers making a version the one for new patches unless it is, downloading it again, and removing it", () => {
+    expect(manageMenu(true)).toEqual([
+      { action: "reinstall", label: "Download again", destructive: false },
+      { action: "remove", label: "Remove", destructive: true },
+    ]);
+    expect(manageMenu(false)[0]).toEqual({ action: "default", label: "Use for new patches", destructive: false });
   });
 
   it("names the games patched with a version before removing it", () => {
-    expect(removeConfirmation(installed, ["Cyberpunk 2077", "/games/Manual"])).toEqual({
+    expect(removeConfirmation(LIBRARY.versions[0], ["Cyberpunk 2077", "/games/Manual"])).toEqual({
       title: "Remove OptiScaler 10.0.0-pre1 · 2026-10-23?",
       lines: [
         "These stay patched with it and keep working; patching them again needs another version:",
@@ -104,12 +165,14 @@ describe("managing an installed version", () => {
       ],
       okLabel: "Remove",
     });
-    expect(removeConfirmation(installed, []).lines).toEqual(["No game is patched with it."]);
+    expect(removeConfirmation(LIBRARY.versions[0], []).lines).toEqual(["No game is patched with it."]);
   });
 
-  it("reports the backend's words, or a fallback", () => {
+  it("reports the backend's words, or what the action did", () => {
     expect(actionOutcome({ status: "error", message: "Not enough free space" }, "Done.")).toBe("Not enough free space");
-    expect(actionOutcome({ status: "success" }, "Done.")).toBe("Done.");
+    expect(actionOutcome({ status: "success" }, manageDone("default", "stable-0.9.4"))).toBe("New patches use stable-0.9.4.");
+    expect(manageDone("reinstall", "x")).toBe("x is downloaded again.");
+    expect(manageDone("remove", "x")).toBe("x is removed.");
     expect(actionOutcome(null, "Done.")).toBe("The plugin backend did not answer.");
   });
 });

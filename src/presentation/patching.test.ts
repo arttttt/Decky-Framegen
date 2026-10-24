@@ -4,18 +4,21 @@ import { GameStatus, gameVersionLine, libraryReady, patchButton, patchChoice, st
 
 const LIBRARY: InstalledLibrary = {
   default: "stable-0.9.4",
+  installed_bytes: 500_000_000,
   versions: [
     {
       id: "nightly-20261023",
       version: "10.0.0-pre1",
       channel: "nightly",
       date: "20261023",
+      size: 300_000_000,
     },
     {
       id: "stable-0.9.4",
       version: "0.9.4",
       channel: "stable",
       date: "20260718",
+      size: 200_000_000,
     },
   ],
 };
@@ -33,7 +36,7 @@ describe("patch button", () => {
 describe("library readiness", () => {
   it("is unknown until the library answers, then whether any version is installed", () => {
     expect(libraryReady(null)).toBeNull();
-    expect(libraryReady({ default: null, versions: [] })).toBe(false);
+    expect(libraryReady({ default: null, versions: [], installed_bytes: 0 })).toBe(false);
     expect(libraryReady(LIBRARY)).toBe(true);
   });
 });
@@ -62,10 +65,10 @@ describe("patch choice", () => {
   });
 
   it("offers nothing and says where to get a version when the library is empty", () => {
-    for (const library of [null, { default: null, versions: [] }]) {
+    for (const library of [null, { default: null, versions: [], installed_bytes: 0 }]) {
       const view = patchChoice(library, "stable-0.9.4");
       expect(view).toMatchObject({ versionId: null, ready: false, versionOptions: [], patchWith: { versionId: "" } });
-      expect(view.versionHint).toMatch(/OptiScaler library section/);
+      expect(view.versionHint).toMatch(/under OptiScaler versions/);
     }
   });
 });

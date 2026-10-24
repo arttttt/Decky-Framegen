@@ -2,7 +2,7 @@
 
 A Steam Deck plugin that enables DLSS upscaling and Frame Generation on handhelds by utilizing the latest OptiScaler and supporting modification software. This plugin automatically installs and manages all necessary components for FSR-based frame generation in games that support DLSS, or OptiFG for adding FG to games that do not have any existing FG pathway (highly experimental)
 
-> **Work in progress.** Builds from this repository no longer include OptiScaler: games are patched from versions in the plugin's OptiScaler library (`~/fgmod/library`), downloaded straight from OptiScaler's releases. Download a version in the plugin's **OptiScaler library** section before patching a game. The rework is not yet checked on devices; for a settled build, use the last release of the upstream plugin (xXJSONDeruloXx/Decky-Framegen), which still bundles OptiScaler.
+> **Work in progress.** Builds from this repository no longer include OptiScaler: games are patched from versions in the plugin's OptiScaler library (`~/fgmod/library`), downloaded straight from OptiScaler's releases. Download a version under **OptiScaler versions** → *Download versions…* before patching a game. The rework is not yet checked on devices; for a settled build, use the last release of the upstream plugin (xXJSONDeruloXx/Decky-Framegen), which still bundles OptiScaler.
 
 ## What This Plugin Does
 
@@ -85,7 +85,7 @@ The plugin does not pick an FSR 4 model: OptiScaler does. OptiScaler 10.x choose
 ## Technical Details
 
 ### Where OptiScaler comes from
-Builds of this plugin don't include OptiScaler. The **OptiScaler library** section downloads versions straight from OptiScaler's own releases ([stable](https://github.com/optiscaler/OptiScaler/releases), [nightly](https://github.com/optiscaler/OptiScaler-nightly/releases)), checks each download against its published checksum, and keeps it in `~/fgmod/library`. A patch copies the chosen version into the game's directory, backs up any game file it replaces, and records what it did so Unpatch undoes exactly that.
+Builds of this plugin don't include OptiScaler. **OptiScaler versions** → *Download versions…* fetches versions straight from OptiScaler's own releases ([stable](https://github.com/optiscaler/OptiScaler/releases), [nightly](https://github.com/optiscaler/OptiScaler-nightly/releases)), checks each download against its published checksum, and keeps it in `~/fgmod/library`; *Manage downloaded…* chooses the version new patches use, downloads one again, or removes one. A patch copies the chosen version into the game's directory, backs up any game file it replaces, and records what it did so Unpatch undoes exactly that.
 
 ## Development
 
