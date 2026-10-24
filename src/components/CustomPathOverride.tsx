@@ -3,7 +3,7 @@ import { ButtonItem, Field, PanelSectionRow, ToggleField } from "@decky/ui";
 import { FileSelectionType, openFilePicker } from "@decky/api";
 import { getPathDefaults, runManualPatch, runManualUnpatch } from "../api";
 import { ResetToStock } from "./ResetToStock";
-import { patchButton } from "../presentation/patching";
+import { PatchWith, patchButton } from "../presentation/patching";
 import type { ApiResponse } from "../types/index";
 import { SmartClipboardButton } from "./SmartClipboardButton";
 
@@ -37,9 +37,10 @@ const ensureDirectory = (value: string) => {
 
 interface ManualPatchControlsProps {
   isAvailable: boolean;
-  bundleInstalled: boolean;
+  ready: boolean;
   onManualModeChange?: (enabled: boolean) => void;
   dllName: string;
+  patchWith: PatchWith;
 }
 
 interface PickerState {
@@ -62,9 +63,10 @@ const formatResultMessage = (result: ApiResponse | null) => {
 
 export const ManualPatchControls = ({
   isAvailable,
-  bundleInstalled,
+  ready,
   onManualModeChange,
   dllName,
+  patchWith,
 }: ManualPatchControlsProps) => {
   const [isEnabled, setEnabled] = useState(false);
   const [defaults, setDefaults] = useState<PathDefaults>(INITIAL_DEFAULTS);
@@ -112,7 +114,7 @@ export const ManualPatchControls = ({
   }, [isAvailable, onManualModeChange]);
 
   const canInteract = isAvailable && isEnabled;
-  const patchAction = patchButton(bundleInstalled, isPatching ? "Patching..." : "Patch directory");
+  const patchAction = patchButton(ready, isPatching ? "Patching..." : "Patch directory");
   const selectedPath = pickerState.selectedPath;
   const statusMessage = useMemo(() => formatResultMessage(operationResult), [operationResult]);
   const wasSuccessful = operationResult?.status === "success";
@@ -175,7 +177,7 @@ export const ManualPatchControls = ({
       try {
         const response =
           action === "patch"
-            ? await runManualPatch(selectedPath, dllName, "")
+            ? await runManualPatch(selectedPath, dllName, patchWith.variant, patchWith.versionId)
             : await runManualUnpatch(selectedPath);
         setOperationResult(response ?? { status: "error", message: "No response from backend." });
       } catch (err) {

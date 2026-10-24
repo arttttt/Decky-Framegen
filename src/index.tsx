@@ -1,43 +1,15 @@
 import { definePlugin } from "@decky/api";
 import { MdOutlineAutoAwesomeMotion } from "react-icons/md";
-import { useState, useEffect } from "react";
-import { DeveloperSection, OptiScalerControls } from "./components";
-// import { InstalledGamesSection } from "./components/InstalledGamesSection";
-import { checkFGModPath } from "./api";
-import { safeAsyncOperation } from "./utils";
-import { TIMEOUTS } from "./utils/constants";
-
-type FgmodInfo = { exists: boolean; version: string | null };
+import { DeveloperSection, LibrarySection, OptiScalerControls } from "./components";
+import { useInstalledLibrary } from "./hooks/useInstalledLibrary";
 
 function MainContent() {
-  const [pathExists, setPathExists] = useState<boolean | null>(null);
-  const [fgmodInfo, setFgmodInfo] = useState<FgmodInfo | null>(null);
-
-  useEffect(() => {
-    const checkPath = async () => {
-      const result = await safeAsyncOperation(
-        async () => await checkFGModPath(),
-        'MainContent -> checkPath'
-      );
-      if (result) {
-        setFgmodInfo(result);
-        setPathExists(result.exists);
-      }
-    };
-    
-    checkPath(); // Initial check
-    const intervalId = setInterval(checkPath, TIMEOUTS.pathCheck); // Check every 3 seconds
-    return () => clearInterval(intervalId); // Cleanup interval on component unmount
-  }, []);
+  const { library, reload } = useInstalledLibrary();
 
   return (
     <>
-      <OptiScalerControls pathExists={pathExists} fgmodInfo={fgmodInfo} />
-      {pathExists === true ? (
-        <>
-          {/* <InstalledGamesSection /> */}
-        </>
-      ) : null}
+      <OptiScalerControls library={library} />
+      <LibrarySection onChanged={reload} />
       <DeveloperSection />
     </>
   );

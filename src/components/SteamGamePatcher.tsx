@@ -4,7 +4,7 @@ import { toaster } from "@decky/api";
 import { listInstalledGames, getGameStatus, patchGame, unpatchGame } from "../api";
 import { getAppLaunchOptions, setAppLaunchOptions } from "../api/steamClient";
 import { ResetToStock } from "./ResetToStock";
-import { patchButton } from "../presentation/patching";
+import { PatchWith, gameVersionLine, patchButton } from "../presentation/patching";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +21,7 @@ type GameStatus = {
   optiscaler_version?: string | null;
   fsr4_variant?: string | null;
   fsr4_variant_label?: string | null;
+  newer_version?: string | null;
 };
 
 // ─── Module-level state persistence ──────────────────────────────────────────
@@ -31,10 +32,11 @@ let lastSelectedAppId = "";
 
 interface SteamGamePatcherProps {
   dllName: string;
-  bundleInstalled: boolean;
+  patchWith: PatchWith;
+  ready: boolean;
 }
 
-export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherProps) {
+export function SteamGamePatcher({ dllName, patchWith, ready }: SteamGamePatcherProps) {
   const [games, setGames] = useState<GameEntry[]>([]);
   const [gamesLoading, setGamesLoading] = useState(true);
   const [selectedAppId, setSelectedAppId] = useState<string>(() => lastSelectedAppId);
@@ -124,7 +126,7 @@ export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherP
     if (gameStatus?.patched) return `Reinstall (${dllName})`;
     return `Patch with ${dllName}`;
   }, [busyAction, dllName, gameStatus, isPatchedWithDifferentDll, selectedGame]);
-  const patchAction = patchButton(bundleInstalled, patchButtonLabel);
+  const patchAction = patchButton(ready, patchButtonLabel);
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -139,8 +141,7 @@ export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherP
       } catch {
         // non-fatal: proceed without current launch options
       }
-      // The library's default version and its default FSR 4 variant, until the library section offers a choice.
-      const result = await patchGame(selectedAppId, dllName, currentLaunchOptions, "");
+      const result = await patchGame(selectedAppId, dllName, currentLaunchOptions, patchWith.variant, patchWith.versionId);
       if (result.status !== "success") throw new Error(result.message || "Patch failed.");
       setAppLaunchOptions(Number(selectedAppId), result.launch_options || "");
       const msg = result.message || `Patched ${selectedGame.name}.`;
@@ -154,7 +155,7 @@ export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherP
     } finally {
       setBusyAction(null);
     }
-  }, [busyAction, dllName, loadStatus, selectedAppId, selectedGame]);
+  }, [busyAction, dllName, loadStatus, patchWith, selectedAppId, selectedGame]);
 
   const handleUnpatch = useCallback(async () => {
     if (!selectedGame || !selectedAppId || busyAction) return;
@@ -191,6 +192,8 @@ export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherP
       return { text: `Patched (${dllLabel}) — switch available`, color: "#ffd866" };
     return { text: `Patched (${dllLabel})`, color: "#3fb950" };
   }, [gameStatus, isPatchedWithDifferentDll, selectedGame, statusLoading]);
+
+  const versionLine = gameVersionLine(statusLoading ? null : gameStatus);
 
   const focusableFieldProps = { focusable: true, highlightOnFocus: true } as const;
 
@@ -233,13 +236,11 @@ export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherP
             </Field>
           </PanelSectionRow>
 
-          <PanelSectionRow>
-            <Field {...focusableFieldProps} label="OptiScaler">
-              {gameStatus?.patched
-                ? `${gameStatus?.optiscaler_version ?? "?"}: ${gameStatus?.fsr4_variant_label || "Unknown"}`
-                : "Will patch with the default version"}
-            </Field>
-          </PanelSectionRow>
+          {versionLine && (
+            <PanelSectionRow>
+              <Field {...focusableFieldProps} label="OptiScaler" description={versionLine} />
+            </PanelSectionRow>
+          )}
 
           <PanelSectionRow>
             <ButtonItem layout="below" disabled={!canPatch || !patchAction.enabled} onClick={handlePatch}>

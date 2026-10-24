@@ -7,30 +7,53 @@ import { InstructionCard } from "./InstructionCard";
 import { OptiScalerWiki } from "./OptiScalerWiki";
 import { ManualPatchControls } from "./CustomPathOverride";
 import { SteamGamePatcher } from "./SteamGamePatcher";
-import { libraryLine } from "../presentation/patching";
-
-interface FgmodInfo {
-  exists: boolean;
-  version?: string | null;
-}
+import type { InstalledLibrary } from "../api";
+import { PatchPick, libraryReady, patchChoice } from "../presentation/patching";
 
 interface OptiScalerControlsProps {
-  pathExists: boolean | null;
-  fgmodInfo?: FgmodInfo | null;
+  library: InstalledLibrary | null;
 }
 
-export function OptiScalerControls({ pathExists, fgmodInfo }: OptiScalerControlsProps) {
+export function OptiScalerControls({ library }: OptiScalerControlsProps) {
   const [advancedModeEnabled, setAdvancedModeEnabled] = useState(false);
   const [manualClipboardModeEnabled, setManualClipboardModeEnabled] = useState(false);
   const [dllName, setDllName] = useState<string>(DEFAULT_PROXY_DLL);
+  const [pick, setPick] = useState<PatchPick>({ versionId: null, variant: null });
+  const pathExists = libraryReady(library);
+  const choice = patchChoice(library, pick);
 
   return (
     <PanelSection>
       <OptiScalerHeader pathExists={pathExists} />
 
-      <PanelSectionRow>
-        <Field label="OptiScaler" description={libraryLine(fgmodInfo ?? null)} focusable={true} highlightOnFocus={true} />
-      </PanelSectionRow>
+      {choice.ready ? (
+        <>
+          <PanelSectionRow>
+            <DropdownItem
+              layout="below"
+              label="OptiScaler version"
+              menuLabel="OptiScaler version"
+              selectedOption={choice.versionId}
+              rgOptions={choice.versionOptions}
+              onChange={(option) => setPick({ versionId: String(option.data), variant: null })}
+            />
+          </PanelSectionRow>
+          <PanelSectionRow>
+            <DropdownItem
+              layout="below"
+              label="FSR 4 variant"
+              menuLabel="FSR 4 variant"
+              selectedOption={choice.variant}
+              rgOptions={choice.variantOptions}
+              onChange={(option) => setPick({ versionId: choice.versionId, variant: String(option.data) })}
+            />
+          </PanelSectionRow>
+        </>
+      ) : (
+        <PanelSectionRow>
+          <Field label="OptiScaler" description={choice.versionHint} focusable={true} highlightOnFocus={true} />
+        </PanelSectionRow>
+      )}
 
       <PanelSectionRow>
         <DropdownItem
@@ -44,7 +67,7 @@ export function OptiScalerControls({ pathExists, fgmodInfo }: OptiScalerControls
         />
       </PanelSectionRow>
 
-      <SteamGamePatcher dllName={dllName} bundleInstalled={pathExists === true} />
+      <SteamGamePatcher dllName={dllName} patchWith={choice.patchWith} ready={choice.ready} />
 
       <ClipboardCommands pathExists={pathExists} dllName={dllName} />
 
@@ -70,9 +93,10 @@ export function OptiScalerControls({ pathExists, fgmodInfo }: OptiScalerControls
 
       <ManualPatchControls
         isAvailable={true}
-        bundleInstalled={pathExists === true}
+        ready={choice.ready}
         onManualModeChange={setAdvancedModeEnabled}
         dllName={dllName}
+        patchWith={choice.patchWith}
       />
 
       {!advancedModeEnabled && (

@@ -1,7 +1,5 @@
 import { callable } from "@decky/api";
 
-export const checkFGModPath = callable<[], { exists: boolean; version: string | null }>("check_fgmod_path");
-
 export const listInstalledGames = callable<
   [],
   { status: string; message?: string; games: { appid: string; name: string; install_found?: boolean }[] }
@@ -15,7 +13,7 @@ export const getPathDefaults = callable<
 >("get_path_defaults");
 
 export const runManualPatch = callable<
-  [string, string, string],
+  [directory: string, dll_name: string, fsr4_variant: string, version_id: string],
   {
     status: string;
     message?: string;
@@ -46,11 +44,13 @@ export const getGameStatus = callable<
     optiscaler_version?: string | null;
     fsr4_variant?: string | null;
     fsr4_variant_label?: string | null;
+    /** A later build of the game's version channel that is in the library. */
+    newer_version?: string | null;
   }
 >("get_game_status");
 
 export const patchGame = callable<
-  [appid: string, dll_name: string, current_launch_options: string, fsr4_variant: string],
+  [appid: string, dll_name: string, current_launch_options: string, fsr4_variant: string, version_id: string],
   {
     status: string;
     message?: string;
@@ -76,6 +76,50 @@ export const unpatchGame = callable<
     launch_options?: string;
   }
 >("unpatch_game");
+
+// ── OptiScaler library ───────────────────────────────────────────────────────
+
+export type LibraryChannel = "stable" | "nightly";
+
+/** An installed version as patching offers it; its family's FSR 4 variants, the default first. */
+export type InstalledVersion = {
+  id: string;
+  version: string;
+  channel: LibraryChannel;
+  date: string;
+  variants: { id: string; label: string }[];
+};
+
+export type InstalledLibrary = { default: string | null; versions: InstalledVersion[] };
+
+export type LibraryVersion = {
+  id: string;
+  version: string;
+  date: string;
+  family: string | null;
+  state: "installed" | "available" | "unsupported";
+  /** Why an unsupported version can't be installed. */
+  reason: string | null;
+  /** Bytes on disk for an installed version, the download size otherwise. */
+  size: number;
+  default: boolean;
+};
+
+export type LibraryListing =
+  | { status: "success"; versions: LibraryVersion[]; listing_error: string | null; installed_bytes: number }
+  | { status: "error"; message: string };
+
+type LibraryResult = { status: "success"; message?: string } | { status: "error"; message: string };
+
+export const libraryInstalled = callable<[], InstalledLibrary>("library_installed");
+export const libraryVersions = callable<[channel: LibraryChannel], LibraryListing>("library_versions");
+/** Download progress arrives as "library_download" events: version id, bytes received, total bytes or null. */
+export const libraryInstall = callable<[channel: LibraryChannel, version_id: string], LibraryResult>("library_install");
+export const libraryRemove = callable<[version_id: string], LibraryResult>("library_remove");
+export const librarySetDefault = callable<[version_id: string], LibraryResult>("library_set_default");
+export const libraryGamesUsing = callable<[version_id: string], { status: "success"; games: string[] }>(
+  "library_games_using"
+);
 
 // ── Development builds ───────────────────────────────────────────────────────
 
