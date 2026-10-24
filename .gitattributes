@@ -1,0 +1,2 @@
+# The real OptiScaler.ini files, byte for byte (the nightly ships CRLF).
+tests/fixtures/optiscaler-ini/*.ini -text
