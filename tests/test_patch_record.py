@@ -219,3 +219,14 @@ def test_unpatching_a_directory_with_a_record_needs_no_confirmation(plugin, fgmo
     run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
 
     assert run(plugin.preview_unpatch_directory(str(game))) == {"status": "success", "mode": "record", "target_dir": str(game)}
+
+
+def test_a_patched_game_whose_marker_names_a_stale_path_still_reads_as_patched(plugin, fgmod, steam_library):
+    root = steam_library.add_game("740", "Moved Game")
+    run(plugin.patch_game("740", "dxgi.dll", "", STABLE))
+    marker_path = root / "FRAMEGEN_PATCH"
+    marker_path.write_text(json.dumps({**json.loads(marker_path.read_text()), "target_dir": "/run/media/gone/Moved Game"}))
+
+    status = run(plugin.get_game_status("740"))
+
+    assert status["patched"] is True and status["target_dir"] == str(root)

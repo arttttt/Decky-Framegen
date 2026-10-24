@@ -154,6 +154,26 @@ def test_a_game_patched_with_a_record_is_unpatched_by_it_even_when_a_reset_is_co
     assert snapshot(root) == before
 
 
+def test_an_older_versions_marker_naming_a_path_that_is_gone_resets_the_directory_it_sits_in(plugin, steam_library):
+    # The device report: the marker an older version wrote named a /run/... path that no longer
+    # exists, so Unpatch failed with "not found" and Patch was refused.
+    stale = json.dumps({"dll_name": "dxgi.dll", "target_dir": "/run/media/gone/Old Game", "original_launch_options": ""})
+    root = steam_library.add_game("730", "Old Game", {
+        "FRAMEGEN_PATCH": stale.encode(), "dxgi.dll": b"old opti", "libxess.dll.b": game_file("libxess.dll"),
+        "libxess.dll": b"old opti xess",
+    })
+
+    status = run(plugin.get_game_status("730"))
+    preview = run(plugin.preview_unpatch_game("730", OURS))
+    result = run(plugin.unpatch_game("730", OURS, True))
+
+    assert status["target_dir"] == str(root)
+    assert preview["status"] == "success" and preview["target_dir"] == str(root)
+    assert result["status"] == "success"
+    assert sorted(snapshot(root)) == ["Game.exe", "libxess.dll"]
+    assert (root / "libxess.dll").read_bytes() == game_file("libxess.dll")
+
+
 def test_a_game_the_plugin_never_touched_is_refused(plugin, steam_library):
     root = steam_library.add_game("710", "Own Opti Game", {"dxgi.dll": b"user's own OptiScaler", "OptiScaler.ini": b"[x]"})
     before = snapshot(root)
@@ -204,3 +224,4 @@ def test_a_support_file_removed_without_a_backup_is_named_as_maybe_the_games():
     reset = stock_reset.plan(frozenset({"Game.exe", "FRAMEGEN_PATCH", "dxgi.dll", "libxess.dll"}), frozenset())
 
     assert "libxess.dll" in reset.unrecoverable
+
