@@ -8,7 +8,7 @@ import { OptiScalerWiki } from "./OptiScalerWiki";
 import { ManualPatchControls } from "./CustomPathOverride";
 import { SteamGamePatcher } from "./SteamGamePatcher";
 import type { InstalledLibrary } from "../api";
-import { PatchPick, libraryReady, patchChoice } from "../presentation/patching";
+import { libraryReady, patchChoice } from "../presentation/patching";
 
 interface OptiScalerControlsProps {
   library: InstalledLibrary | null;
@@ -18,37 +18,25 @@ export function OptiScalerControls({ library }: OptiScalerControlsProps) {
   const [advancedModeEnabled, setAdvancedModeEnabled] = useState(false);
   const [manualClipboardModeEnabled, setManualClipboardModeEnabled] = useState(false);
   const [dllName, setDllName] = useState<string>(DEFAULT_PROXY_DLL);
-  const [pick, setPick] = useState<PatchPick>({ versionId: null, variant: null });
+  const [picked, setPicked] = useState<string | null>(null);
   const pathExists = libraryReady(library);
-  const choice = patchChoice(library, pick);
+  const choice = patchChoice(library, picked);
 
   return (
     <PanelSection>
       <OptiScalerHeader pathExists={pathExists} />
 
       {choice.ready ? (
-        <>
-          <PanelSectionRow>
-            <DropdownItem
-              layout="below"
-              label="OptiScaler version"
-              menuLabel="OptiScaler version"
-              selectedOption={choice.versionId}
-              rgOptions={choice.versionOptions}
-              onChange={(option) => setPick({ versionId: String(option.data), variant: null })}
-            />
-          </PanelSectionRow>
-          <PanelSectionRow>
-            <DropdownItem
-              layout="below"
-              label="FSR 4 variant"
-              menuLabel="FSR 4 variant"
-              selectedOption={choice.variant}
-              rgOptions={choice.variantOptions}
-              onChange={(option) => setPick({ versionId: choice.versionId, variant: String(option.data) })}
-            />
-          </PanelSectionRow>
-        </>
+        <PanelSectionRow>
+          <DropdownItem
+            layout="below"
+            label="OptiScaler version"
+            menuLabel="OptiScaler version"
+            selectedOption={choice.versionId}
+            rgOptions={choice.versionOptions}
+            onChange={(option) => setPicked(String(option.data))}
+          />
+        </PanelSectionRow>
       ) : (
         <PanelSectionRow>
           <Field label="OptiScaler" description={choice.versionHint} focusable={true} highlightOnFocus={true} />

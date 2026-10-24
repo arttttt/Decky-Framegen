@@ -15,31 +15,25 @@ export const patchButton = (
 export const libraryReady = (library: InstalledLibrary | null): boolean | null =>
   library === null ? null : library.versions.length > 0;
 
-/** The version and FSR 4 variant the user picked; null leaves the choice to the defaults. */
-export type PatchPick = { versionId: string | null; variant: string | null };
-
-/** What the patch calls send: a version id and variant id; empty strings let the backend use its defaults. */
-export type PatchWith = { versionId: string; variant: string };
+/** What the patch calls send: a version id; empty lets the backend use the library's default. */
+export type PatchWith = { versionId: string };
 
 export type PatchChoiceView = {
   versionOptions: { data: string; label: string }[];
   versionId: string | null;
   versionHint: string | null;
-  variantOptions: { data: string; label: string }[];
-  variant: string | null;
   ready: boolean;
   patchWith: PatchWith;
 };
 
 /**
  * What a patch will use: the picked version while it is installed, else the library's default,
- * else the newest; the picked variant when that version's family has it, else the family's default.
+ * else the newest. FSR 4's model is left to OptiScaler, which picks it for the GPU.
  */
-export const patchChoice = (library: InstalledLibrary | null, pick: PatchPick): PatchChoiceView => {
+export const patchChoice = (library: InstalledLibrary | null, picked: string | null): PatchChoiceView => {
   const versions = library?.versions ?? [];
   const byId = (id: string | null): InstalledVersion | undefined => versions.find((v) => v.id === id);
-  const version = byId(pick.versionId) ?? byId(library?.default ?? null) ?? versions[0];
-  const variant = version?.variants.find((v) => v.id === pick.variant) ?? version?.variants[0];
+  const version = byId(picked) ?? byId(library?.default ?? null) ?? versions[0];
   return {
     versionOptions: versions.map((v) => ({
       data: v.id,
@@ -47,10 +41,8 @@ export const patchChoice = (library: InstalledLibrary | null, pick: PatchPick): 
     })),
     versionId: version?.id ?? null,
     versionHint: version ? null : "No OptiScaler version is installed. Download one in the OptiScaler library section.",
-    variantOptions: version?.variants.map((v) => ({ data: v.id, label: v.label })) ?? [],
-    variant: variant?.id ?? null,
     ready: version !== undefined,
-    patchWith: { versionId: version?.id ?? "", variant: variant?.id ?? "" },
+    patchWith: { versionId: version?.id ?? "" },
   };
 };
 
@@ -58,11 +50,10 @@ export const patchChoice = (library: InstalledLibrary | null, pick: PatchPick): 
 export const gameVersionLine = (status: {
   patched?: boolean;
   optiscaler_version?: string | null;
-  fsr4_variant_label?: string | null;
   newer_version?: string | null;
 } | null): string | null => {
   if (!status?.patched) return null;
-  const line = `${status.optiscaler_version ?? "Unknown version"}: ${status.fsr4_variant_label ?? "unknown FSR 4 variant"}`;
+  const line = status.optiscaler_version ?? "Unknown version";
   return status.newer_version ? `${line}. ${status.newer_version} is in the library; choose it and patch again to update.` : line;
 };
 
@@ -74,7 +65,6 @@ export type GameStatus = {
   patched?: boolean;
   dll_name?: string | null;
   optiscaler_version?: string | null;
-  fsr4_variant_label?: string | null;
   newer_version?: string | null;
 };
 

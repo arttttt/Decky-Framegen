@@ -13,13 +13,11 @@ export const getPathDefaults = callable<
 >("get_path_defaults");
 
 export const runManualPatch = callable<
-  [directory: string, dll_name: string, fsr4_variant: string, version_id: string],
+  [directory: string, dll_name: string, version_id: string],
   {
     status: string;
     message?: string;
     output?: string;
-    fsr4_variant?: string;
-    fsr4_variant_label?: string;
     optiscaler_version?: string | null;
   }
 >("manual_patch_directory");
@@ -41,15 +39,13 @@ export const getGameStatus = callable<
     target_dir?: string | null;
     patched_at?: string | null;
     optiscaler_version?: string | null;
-    fsr4_variant?: string | null;
-    fsr4_variant_label?: string | null;
     /** A later build of the game's version channel that is in the library. */
     newer_version?: string | null;
   }
 >("get_game_status");
 
 export const patchGame = callable<
-  [appid: string, dll_name: string, current_launch_options: string, fsr4_variant: string, version_id: string],
+  [appid: string, dll_name: string, current_launch_options: string, version_id: string],
   {
     status: string;
     message?: string;
@@ -60,8 +56,6 @@ export const patchGame = callable<
     launch_options?: string;
     original_launch_options?: string;
     optiscaler_version?: string | null;
-    fsr4_variant?: string;
-    fsr4_variant_label?: string;
   }
 >("patch_game");
 
@@ -74,13 +68,12 @@ export const unpatchGame = callable<
 
 export type LibraryChannel = "stable" | "nightly";
 
-/** An installed version as patching offers it; its family's FSR 4 variants, the default first. */
+/** An installed version as patching offers it. */
 export type InstalledVersion = {
   id: string;
   version: string;
   channel: LibraryChannel;
   date: string;
-  variants: { id: string; label: string }[];
 };
 
 export type InstalledLibrary = { default: string | null; versions: InstalledVersion[] };
