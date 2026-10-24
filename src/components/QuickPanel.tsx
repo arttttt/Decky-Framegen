@@ -42,7 +42,7 @@ export function QuickPanel() {
         </PanelSectionRow>
       )}
       <PanelSectionRow>
-        <Field label="OptiScaler" description={librarySummary(library)} focusable={true} highlightOnFocus={true} />
+        <Field label="OptiScaler" description={librarySummary(library)} />
       </PanelSectionRow>
       <PanelSectionRow>
         <ButtonItem layout="below" onClick={openFramegenPage}>

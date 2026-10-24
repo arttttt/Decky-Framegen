@@ -9,27 +9,26 @@ const TONE_COLORS: Record<SteamGameView["status"]["tone"], string | undefined> =
   good: "#3fb950",
 };
 
-const focusable = { focusable: true, highlightOnFocus: true } as const;
-
-/** A game's patch status, its FSR 4 state, and Patch and Unpatch. */
+/** A game's patch status, its FSR 4 state, and Patch and Unpatch. The lines are plain text the
+ *  gamepad skips: only the buttons take focus. */
 export function GamePatchCard({ patch }: { patch: GamePatch }) {
   const { view, unpatch } = patch;
   const color = TONE_COLORS[view.status.tone];
   return (
     <>
       <PanelSectionRow>
-        <Field {...focusable} label="Patch status">
+        <Field label="Patch status">
           {color ? <span style={{ color, fontWeight: 600 }}>{view.status.text}</span> : view.status.text}
         </Field>
       </PanelSectionRow>
       {view.versionLine && (
         <PanelSectionRow>
-          <Field {...focusable} label="OptiScaler" description={view.versionLine} />
+          <Field label="OptiScaler" description={view.versionLine} />
         </PanelSectionRow>
       )}
       {view.fsr4Line && (
         <PanelSectionRow>
-          <Field {...focusable} label="FSR 4" description={view.fsr4Line} />
+          <Field label="FSR 4" description={view.fsr4Line} />
         </PanelSectionRow>
       )}
       <PanelSectionRow>
@@ -47,7 +46,7 @@ export function GamePatchCard({ patch }: { patch: GamePatch }) {
       <UnpatchConfirmation confirmation={unpatch.confirmation} onConfirm={unpatch.onConfirm} onCancel={unpatch.onCancel} />
       {patch.resultMessage && (
         <PanelSectionRow>
-          <Field {...focusable} label="Result">
+          <Field label="Result">
             {patch.resultMessage}
           </Field>
         </PanelSectionRow>
