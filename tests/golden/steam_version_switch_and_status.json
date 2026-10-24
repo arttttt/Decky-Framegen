@@ -3,11 +3,9 @@
     "result": {
       "appid": "100",
       "dll_name": null,
-      "fsr4_variant": null,
-      "fsr4_variant_label": null,
       "install_found": true,
       "message": "Not patched.",
-      "name": "Variant Game",
+      "name": "Version Game",
       "newer_version": null,
       "patched": false,
       "status": "success",
@@ -22,17 +20,15 @@
     "result": {
       "appid": "100",
       "dll_name": "dxgi.dll",
-      "fsr4_variant": "int8",
-      "fsr4_variant_label": "INT8 (RDNA 3, also integrated)",
       "launch_options": "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%",
-      "message": "Patched Variant Game with OptiScaler nightly-20261023 using dxgi.dll, INT8 (RDNA 3, also integrated).",
-      "name": "Variant Game",
+      "message": "Patched Version Game with OptiScaler nightly-20261023 using dxgi.dll.",
+      "name": "Version Game",
       "optiscaler_version": "nightly-20261023",
       "original_launch_options": "",
       "status": "success",
-      "target_dir": "<root>/home/.local/share/Steam/steamapps/common/VariantGame"
+      "target_dir": "<root>/home/.local/share/Steam/steamapps/common/VersionGame"
     },
-    "step": "patch nightly int8",
+    "step": "patch nightly",
     "tree": {
       "FRAMEGEN_PATCH": {
         "appid": "100",
@@ -46,9 +42,7 @@
         "dll_name": "dxgi.dll",
         "family": "10",
         "format": 2,
-        "fsr4_variant": "int8",
-        "fsr4_variant_label": "INT8 (RDNA 3, also integrated)",
-        "game_name": "Variant Game",
+        "game_name": "Version Game",
         "optiscaler_version": "nightly-20261023",
         "original_launch_options": "",
         "placed": [
@@ -77,7 +71,7 @@
       },
       "Game.exe": "game:Game.exe",
       "OptiScaler": "<dir>",
-      "OptiScaler.ini": "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=2\nFsr4Model=1\n\n[Menu]\nUseHQFont=false\n",
+      "OptiScaler.ini": "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=auto\nFsr4Model=auto\n\n[Menu]\nUseHQFont=false\n",
       "OptiScaler/D3D12_OptiScaler": "<dir>",
       "OptiScaler/D3D12_OptiScaler/D3D12Core.dll": "bundle:v10 D3D12Core.dll",
       "OptiScaler/amd_fidelityfx_upscaler_dx12.dll": "bundle:v10 amd_fidelityfx_upscaler_dx12.dll",
@@ -89,18 +83,16 @@
     "result": {
       "appid": "100",
       "dll_name": "dxgi.dll",
-      "fsr4_variant": "int8",
-      "fsr4_variant_label": "INT8 (RDNA 3, also integrated)",
       "install_found": true,
-      "message": "Patched with OptiScaler nightly-20261023 using dxgi.dll, INT8 (RDNA 3, also integrated).",
-      "name": "Variant Game",
+      "message": "Patched with OptiScaler nightly-20261023 using dxgi.dll.",
+      "name": "Version Game",
       "newer_version": null,
       "optiscaler_version": "nightly-20261023",
       "patched": true,
       "status": "success",
-      "target_dir": "<root>/home/.local/share/Steam/steamapps/common/VariantGame"
+      "target_dir": "<root>/home/.local/share/Steam/steamapps/common/VersionGame"
     },
-    "step": "status nightly int8",
+    "step": "status nightly",
     "tree": {
       "FRAMEGEN_PATCH": {
         "appid": "100",
@@ -114,9 +106,7 @@
         "dll_name": "dxgi.dll",
         "family": "10",
         "format": 2,
-        "fsr4_variant": "int8",
-        "fsr4_variant_label": "INT8 (RDNA 3, also integrated)",
-        "game_name": "Variant Game",
+        "game_name": "Version Game",
         "optiscaler_version": "nightly-20261023",
         "original_launch_options": "",
         "placed": [
@@ -145,7 +135,7 @@
       },
       "Game.exe": "game:Game.exe",
       "OptiScaler": "<dir>",
-      "OptiScaler.ini": "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=2\nFsr4Model=1\n\n[Menu]\nUseHQFont=false\n",
+      "OptiScaler.ini": "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=auto\nFsr4Model=auto\n\n[Menu]\nUseHQFont=false\n",
       "OptiScaler/D3D12_OptiScaler": "<dir>",
       "OptiScaler/D3D12_OptiScaler/D3D12Core.dll": "bundle:v10 D3D12Core.dll",
       "OptiScaler/amd_fidelityfx_upscaler_dx12.dll": "bundle:v10 amd_fidelityfx_upscaler_dx12.dll",
@@ -157,143 +147,181 @@
     "result": {
       "appid": "100",
       "dll_name": "dxgi.dll",
-      "fsr4_variant": "int8-lite",
-      "fsr4_variant_label": "INT8 Lite (any GPU)",
       "launch_options": "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%",
-      "message": "Patched Variant Game with OptiScaler nightly-20261023 using dxgi.dll, INT8 Lite (any GPU).",
-      "name": "Variant Game",
-      "optiscaler_version": "nightly-20261023",
+      "message": "Patched Version Game with OptiScaler stable-0.9.4 using dxgi.dll.",
+      "name": "Version Game",
+      "optiscaler_version": "stable-0.9.4",
       "original_launch_options": "",
       "status": "success",
-      "target_dir": "<root>/home/.local/share/Steam/steamapps/common/VariantGame"
+      "target_dir": "<root>/home/.local/share/Steam/steamapps/common/VersionGame"
     },
-    "step": "repatch nightly int8-lite",
+    "step": "repatch stable",
     "tree": {
+      "D3D12_Optiscaler": "<dir>",
+      "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
       "FRAMEGEN_PATCH": {
         "appid": "100",
         "backed_up_files": [],
         "backups": [],
         "complete": true,
         "created_dirs": [
-          "OptiScaler/D3D12_OptiScaler",
-          "OptiScaler"
+          "D3D12_Optiscaler"
         ],
         "dll_name": "dxgi.dll",
-        "family": "10",
+        "family": "0.9",
         "format": 2,
-        "fsr4_variant": "int8-lite",
-        "fsr4_variant_label": "INT8 Lite (any GPU)",
-        "game_name": "Variant Game",
-        "optiscaler_version": "nightly-20261023",
+        "game_name": "Version Game",
+        "optiscaler_version": "stable-0.9.4",
         "original_launch_options": "",
         "placed": [
+          {
+            "path": "dxgi.dll",
+            "sha256": "fbb716b26a09f4534f6ccc494c19ab847feb4862e001b406263329282d2d54d3"
+          },
           {
             "path": "OptiScaler.ini",
             "sha256": null
           },
           {
-            "path": "dxgi.dll",
-            "sha256": "f5609871045a41fc81c64efd358ee3e571c83d819fea2dfc56ea16ed3e330676"
+            "path": "D3D12_Optiscaler/D3D12Core.dll",
+            "sha256": "71e0ba0524f174e556bb0b51641163232c89a58cb9ee1aedd626ef942e4faf8f"
           },
           {
-            "path": "OptiScaler/D3D12_OptiScaler/D3D12Core.dll",
-            "sha256": "52ad4daf719d0c44039ceb05a5519d8353fb5b6e494359e813e1a13c8909dbcf"
+            "path": "amd_fidelityfx_dx12.dll",
+            "sha256": "2cd31498fb6d5c444bbea225b88efcd008a358281e1c38be5f912bfbed954d6f"
           },
           {
-            "path": "OptiScaler/amd_fidelityfx_upscaler_dx12.dll",
-            "sha256": "0f91675ccc2cea0f17cc0adce5083e86a2dd0977dd8626d504fae03725c461d6"
+            "path": "amd_fidelityfx_upscaler_dx12.dll",
+            "sha256": "0a689f0006b030f3ac4409eeb57bcc90fff01019b7c4b8006772f0ccaad76dd5"
           },
           {
-            "path": "OptiScaler/libxess.dll",
-            "sha256": "09d0f85efd9e311beedb55ce23be91152282c0259c28c1ceee7cd78bce7d3936"
+            "path": "dlssg_to_fsr3_amd_is_better.dll",
+            "sha256": "c50b14113bec76ecb8470454ed92a44d83e1be6d0f4d957dd59077f81c31a923"
+          },
+          {
+            "path": "fakenvapi.dll",
+            "sha256": "2f4a172adf0177586175b9036c8b1330cdf0ebe9384a0ab940f19b60a6e1c291"
+          },
+          {
+            "path": "fakenvapi.ini",
+            "sha256": "daa5f9fadd5c7bb506b8cf307c885dafa89152ec303b517dca632cdf0bb51a7e"
+          },
+          {
+            "path": "libxess.dll",
+            "sha256": "57a05b6c87707a719ab55e4c334c4790ac1d44a3d55635125eed36dd4fd6ef30"
+          },
+          {
+            "path": "libxess_dx11.dll",
+            "sha256": "ba4bfc4b22623846be2bbcdd534cc5edf810e79915ad74fd0cd4be8457bdc149"
           }
         ],
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
-      "OptiScaler": "<dir>",
-      "OptiScaler.ini": "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=auto\nFsr4Model=3\n\n[Menu]\nUseHQFont=false\n",
-      "OptiScaler/D3D12_OptiScaler": "<dir>",
-      "OptiScaler/D3D12_OptiScaler/D3D12Core.dll": "bundle:v10 D3D12Core.dll",
-      "OptiScaler/amd_fidelityfx_upscaler_dx12.dll": "bundle:v10 amd_fidelityfx_upscaler_dx12.dll",
-      "OptiScaler/libxess.dll": "bundle:v10 libxess.dll",
-      "dxgi.dll": "bundle:v10 OptiScaler.dll"
+      "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n\n[FSR]\nFsr4Update=true\nFsr4ForceEnableInt8=auto\n\n[Menu]\nUseHQFont=false\n",
+      "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",
+      "amd_fidelityfx_upscaler_dx12.dll": "bundle:amd_fidelityfx_upscaler_dx12.dll",
+      "dlssg_to_fsr3_amd_is_better.dll": "bundle:dlssg_to_fsr3_amd_is_better.dll",
+      "dxgi.dll": "bundle:OptiScaler.dll",
+      "fakenvapi.dll": "bundle:fakenvapi.dll",
+      "fakenvapi.ini": "bundle:fakenvapi.ini",
+      "libxess.dll": "bundle:libxess.dll",
+      "libxess_dx11.dll": "bundle:libxess_dx11.dll"
     }
   },
   {
     "result": {
       "appid": "100",
       "dll_name": "dxgi.dll",
-      "fsr4_variant": "int8-lite",
-      "fsr4_variant_label": "INT8 Lite (any GPU)",
       "install_found": true,
-      "message": "Patched with OptiScaler nightly-20261023 using dxgi.dll, INT8 Lite (any GPU).",
-      "name": "Variant Game",
+      "message": "Patched with OptiScaler stable-0.9.4 using dxgi.dll.",
+      "name": "Version Game",
       "newer_version": null,
-      "optiscaler_version": "nightly-20261023",
+      "optiscaler_version": "stable-0.9.4",
       "patched": true,
       "status": "success",
-      "target_dir": "<root>/home/.local/share/Steam/steamapps/common/VariantGame"
+      "target_dir": "<root>/home/.local/share/Steam/steamapps/common/VersionGame"
     },
-    "step": "status nightly int8-lite",
+    "step": "status stable",
     "tree": {
+      "D3D12_Optiscaler": "<dir>",
+      "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
       "FRAMEGEN_PATCH": {
         "appid": "100",
         "backed_up_files": [],
         "backups": [],
         "complete": true,
         "created_dirs": [
-          "OptiScaler/D3D12_OptiScaler",
-          "OptiScaler"
+          "D3D12_Optiscaler"
         ],
         "dll_name": "dxgi.dll",
-        "family": "10",
+        "family": "0.9",
         "format": 2,
-        "fsr4_variant": "int8-lite",
-        "fsr4_variant_label": "INT8 Lite (any GPU)",
-        "game_name": "Variant Game",
-        "optiscaler_version": "nightly-20261023",
+        "game_name": "Version Game",
+        "optiscaler_version": "stable-0.9.4",
         "original_launch_options": "",
         "placed": [
+          {
+            "path": "dxgi.dll",
+            "sha256": "fbb716b26a09f4534f6ccc494c19ab847feb4862e001b406263329282d2d54d3"
+          },
           {
             "path": "OptiScaler.ini",
             "sha256": null
           },
           {
-            "path": "dxgi.dll",
-            "sha256": "f5609871045a41fc81c64efd358ee3e571c83d819fea2dfc56ea16ed3e330676"
+            "path": "D3D12_Optiscaler/D3D12Core.dll",
+            "sha256": "71e0ba0524f174e556bb0b51641163232c89a58cb9ee1aedd626ef942e4faf8f"
           },
           {
-            "path": "OptiScaler/D3D12_OptiScaler/D3D12Core.dll",
-            "sha256": "52ad4daf719d0c44039ceb05a5519d8353fb5b6e494359e813e1a13c8909dbcf"
+            "path": "amd_fidelityfx_dx12.dll",
+            "sha256": "2cd31498fb6d5c444bbea225b88efcd008a358281e1c38be5f912bfbed954d6f"
           },
           {
-            "path": "OptiScaler/amd_fidelityfx_upscaler_dx12.dll",
-            "sha256": "0f91675ccc2cea0f17cc0adce5083e86a2dd0977dd8626d504fae03725c461d6"
+            "path": "amd_fidelityfx_upscaler_dx12.dll",
+            "sha256": "0a689f0006b030f3ac4409eeb57bcc90fff01019b7c4b8006772f0ccaad76dd5"
           },
           {
-            "path": "OptiScaler/libxess.dll",
-            "sha256": "09d0f85efd9e311beedb55ce23be91152282c0259c28c1ceee7cd78bce7d3936"
+            "path": "dlssg_to_fsr3_amd_is_better.dll",
+            "sha256": "c50b14113bec76ecb8470454ed92a44d83e1be6d0f4d957dd59077f81c31a923"
+          },
+          {
+            "path": "fakenvapi.dll",
+            "sha256": "2f4a172adf0177586175b9036c8b1330cdf0ebe9384a0ab940f19b60a6e1c291"
+          },
+          {
+            "path": "fakenvapi.ini",
+            "sha256": "daa5f9fadd5c7bb506b8cf307c885dafa89152ec303b517dca632cdf0bb51a7e"
+          },
+          {
+            "path": "libxess.dll",
+            "sha256": "57a05b6c87707a719ab55e4c334c4790ac1d44a3d55635125eed36dd4fd6ef30"
+          },
+          {
+            "path": "libxess_dx11.dll",
+            "sha256": "ba4bfc4b22623846be2bbcdd534cc5edf810e79915ad74fd0cd4be8457bdc149"
           }
         ],
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
-      "OptiScaler": "<dir>",
-      "OptiScaler.ini": "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=auto\nFsr4Model=3\n\n[Menu]\nUseHQFont=false\n",
-      "OptiScaler/D3D12_OptiScaler": "<dir>",
-      "OptiScaler/D3D12_OptiScaler/D3D12Core.dll": "bundle:v10 D3D12Core.dll",
-      "OptiScaler/amd_fidelityfx_upscaler_dx12.dll": "bundle:v10 amd_fidelityfx_upscaler_dx12.dll",
-      "OptiScaler/libxess.dll": "bundle:v10 libxess.dll",
-      "dxgi.dll": "bundle:v10 OptiScaler.dll"
+      "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n\n[FSR]\nFsr4Update=true\nFsr4ForceEnableInt8=auto\n\n[Menu]\nUseHQFont=false\n",
+      "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",
+      "amd_fidelityfx_upscaler_dx12.dll": "bundle:amd_fidelityfx_upscaler_dx12.dll",
+      "dlssg_to_fsr3_amd_is_better.dll": "bundle:dlssg_to_fsr3_amd_is_better.dll",
+      "dxgi.dll": "bundle:OptiScaler.dll",
+      "fakenvapi.dll": "bundle:fakenvapi.dll",
+      "fakenvapi.ini": "bundle:fakenvapi.ini",
+      "libxess.dll": "bundle:libxess.dll",
+      "libxess_dx11.dll": "bundle:libxess_dx11.dll"
     }
   },
   {
     "result": {
       "appid": "100",
       "launch_options": "",
-      "message": "Unpatched Variant Game.",
-      "name": "Variant Game",
+      "message": "Unpatched Version Game.",
+      "name": "Version Game",
       "status": "success"
     },
     "step": "unpatch",

@@ -1,41 +1,36 @@
 [
   {
-    "step": "initial",
-    "tree": {
-      "Game.exe": "game:Game.exe"
-    }
+    "exit_code": 0,
+    "step": "patch"
   },
   {
-    "result": {
-      "fsr4_variant": "sdk-int8",
-      "fsr4_variant_label": "FSR 4.1.1 SDK, INT8 forced",
-      "message": "OptiScaler 0.9.4 (FSR 4.1.1 SDK, INT8 forced) is in <root>/games/Game.",
-      "optiscaler_version": "stable-0.9.4",
-      "status": "success"
-    },
-    "step": "patch version.dll stable-0.9.4 sdk-int8",
-    "tree": {
+    "final_tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
       "FRAMEGEN_PATCH": {
         "appid": "",
-        "backed_up_files": [],
-        "backups": [],
+        "backed_up_files": [
+          "dxgi.dll"
+        ],
+        "backups": [
+          {
+            "backup": "dxgi.dll.b",
+            "original": "dxgi.dll"
+          }
+        ],
         "complete": true,
         "created_dirs": [
           "D3D12_Optiscaler"
         ],
-        "dll_name": "version.dll",
+        "dll_name": "dxgi.dll",
         "family": "0.9",
         "format": 2,
-        "fsr4_variant": "sdk-int8",
-        "fsr4_variant_label": "FSR 4.1.1 SDK, INT8 forced",
         "game_name": "",
         "optiscaler_version": "stable-0.9.4",
         "original_launch_options": "",
         "placed": [
           {
-            "path": "version.dll",
+            "path": "dxgi.dll",
             "sha256": "fbb716b26a09f4534f6ccc494c19ab847feb4862e001b406263329282d2d54d3"
           },
           {
@@ -78,25 +73,16 @@
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
-      "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n\n[FSR]\nFsr4Update=true\nFsr4ForceEnableInt8=true\n\n[Menu]\nUseHQFont=false\n",
+      "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n\n[FSR]\nFsr4Update=true\nFsr4ForceEnableInt8=auto\n\n[Menu]\nUseHQFont=false\n",
       "amd_fidelityfx_dx12.dll": "bundle:amd_fidelityfx_dx12.dll",
       "amd_fidelityfx_upscaler_dx12.dll": "bundle:amd_fidelityfx_upscaler_dx12.dll",
       "dlssg_to_fsr3_amd_is_better.dll": "bundle:dlssg_to_fsr3_amd_is_better.dll",
+      "dxgi.dll": "bundle:OptiScaler.dll",
+      "dxgi.dll.b": "bundle:OptiScaler.dll",
       "fakenvapi.dll": "bundle:fakenvapi.dll",
       "fakenvapi.ini": "bundle:fakenvapi.ini",
       "libxess.dll": "bundle:libxess.dll",
-      "libxess_dx11.dll": "bundle:libxess_dx11.dll",
-      "version.dll": "bundle:OptiScaler.dll"
-    }
-  },
-  {
-    "result": {
-      "message": "OptiScaler files removed from <root>/games/Game",
-      "status": "success"
-    },
-    "step": "unpatch",
-    "tree": {
-      "Game.exe": "game:Game.exe"
+      "libxess_dx11.dll": "bundle:libxess_dx11.dll"
     }
   }
 ]

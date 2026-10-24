@@ -24,7 +24,6 @@ def _parser() -> argparse.ArgumentParser:
     patch = commands.add_parser("patch", help="patch the game a launch command starts")
     patch.add_argument("--dll", default=bundle.DEFAULT_PROXY_DLL, help="proxy DLL name")
     patch.add_argument("--version", default="", help="library version id, e.g. nightly-20261023 (default: the default version)")
-    patch.add_argument("--variant", default="", help="FSR 4 variant of that version (default: its family's default)")
     patch.add_argument("--reset-ini", action="store_true", help="replace the game's OptiScaler.ini")
     commands.add_parser("unpatch", help="unpatch the game a launch command starts")
     for name in ("patch", "unpatch"):
@@ -47,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     wrapper = LaunchWrapper(Path(os.environ["HOME"]), os.environ)
     try:
         if args.action == "patch":
-            directory = wrapper.patch(command, args.dll, args.variant, version_id=args.version, reset_ini=args.reset_ini)
+            directory = wrapper.patch(command, args.dll, version_id=args.version, reset_ini=args.reset_ini)
         else:
             directory = wrapper.unpatch(command)
     except WrapperError as exc:

@@ -55,15 +55,6 @@ CHANNELS = {
 
 
 @dataclass(frozen=True)
-class Variant:
-    """A way to run FSR 4 with a version: OptiScaler.ini settings, nothing more."""
-
-    label: str
-    ini: dict[str, str]
-    """`Section.Key` → value."""
-
-
-@dataclass(frozen=True)
 class Family:
     """One OptiScaler generation: what its archive must hold and how the plugin configures it.
 
@@ -77,22 +68,6 @@ class Family:
     """Files an archive of this family must contain, or it is not added to the library."""
     ini_defaults: dict[str, str]
     """Settings a freshly placed OptiScaler.ini gets (`Section.Key` → value)."""
-    variants: dict[str, Variant]
-    """FSR 4 variants by id, the default first."""
-
-    @property
-    def default_variant(self) -> str:
-        return next(iter(self.variants))
-
-    def resolve_variant(self, requested: str | None) -> str:
-        """The variant to use: the one asked for when this family has it, else its default."""
-        return requested if requested in self.variants else self.default_variant
-
-    def other_variant_keys(self, variant: str) -> set[str]:
-        """Keys the other variants set and `variant` does not: switching to it puts them back to auto,
-        so a kept OptiScaler.ini keeps nothing of the previous variant."""
-        chosen = self.variants[variant].ini
-        return {key for each in self.variants.values() for key in each.ini if key not in chosen}
 
 
 FAMILIES = {
@@ -107,20 +82,11 @@ FAMILIES = {
             # The HQ font's auto mode asserts on Proton when its font file is missing.
             "Menu.UseHQFont": "false",
         },
-        {
-            "sdk": Variant("FSR 4.1.1 SDK", {}),
-            "sdk-int8": Variant("FSR 4.1.1 SDK, INT8 forced", {"FSR.Fsr4ForceEnableInt8": "true"}),
-        },
     ),
     "10": Family(
         "10",
         frozenset({"OptiScaler.dll", "OptiScaler.ini", "OptiScaler/amd_fidelityfx_upscaler_dx12.dll"}),
         {"Menu.UseHQFont": "false"},
-        {
-            "auto": Variant("Automatic (the best model the GPU supports)", {}),
-            "int8": Variant("INT8 (RDNA 3, also integrated)", {"FSR.Fsr4GpuSupport": "2", "FSR.Fsr4Model": "1"}),
-            "int8-lite": Variant("INT8 Lite (any GPU)", {"FSR.Fsr4Model": "3"}),
-        },
     ),
 }
 
@@ -288,13 +254,12 @@ def newest_first(installed: list[Installed]) -> list[Installed]:
 
 
 def choice_json(installed: Installed) -> dict:
-    """An installed version as patching offers it: with its family's FSR 4 variants, the default first."""
+    """An installed version as patching offers it."""
     return {
         "id": installed.id,
         "version": installed.version,
         "channel": installed.channel,
         "date": installed.date,
-        "variants": [{"id": key, "label": variant.label} for key, variant in FAMILIES[installed.family].variants.items()],
     }
 
 

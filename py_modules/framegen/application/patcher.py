@@ -59,7 +59,6 @@ class Patcher:
         self,
         directory: Path,
         dll_name: str,
-        fsr4_variant: str | None,
         *,
         version_id: str | None = None,
         reset_ini: bool = False,
@@ -73,8 +72,6 @@ class Patcher:
         if entry is None:
             return _error(f"OptiScaler {chosen} is not in the library." if chosen else NO_VERSION)
         family = library.FAMILIES[entry.family]
-        variant = family.resolve_variant(fsr4_variant)
-        label = family.variants[variant].label
         source = self.library.version_dir(entry.id) / library.FILES_DIRNAME
 
         marker_path = directory / bundle.MARKER_FILENAME
@@ -94,9 +91,9 @@ class Patcher:
         try:
             entries, _ = game_directory.listing(directory)
             operations = version_placement.plan_patch(
-                entries, self.library.files_in(source), family, version_placement.Request(dll_name, variant, reset_ini)
+                entries, self.library.files_in(source), family, version_placement.Request(dll_name, reset_ini)
             )
-            log.info(f"Patching {directory} with OptiScaler {entry.id}, {dll_name}, FSR 4 {variant}")
+            log.info(f"Patching {directory} with OptiScaler {entry.id}, {dll_name}")
             recorded = patch_record.record(
                 operations, entries, game_directory.bundle_hashes(source, operations), carried_over & entries
             )
@@ -106,8 +103,6 @@ class Patcher:
                 backed_up_files=[backup.original for backup in recorded.backups],
                 optiscaler_version=entry.id,
                 family=entry.family,
-                fsr4_variant=variant,
-                fsr4_variant_label=label,
                 patched_at=datetime.now(timezone.utc).isoformat(),
                 steam_game=steam_game,
             )
@@ -126,10 +121,8 @@ class Patcher:
             return _error(f"Patch failed: {exc}")
         return {
             "status": "success",
-            "message": f"OptiScaler {entry.version} ({label}) is in {directory}.",
+            "message": f"OptiScaler {entry.version} is in {directory}.",
             "optiscaler_version": entry.id,
-            "fsr4_variant": variant,
-            "fsr4_variant_label": label,
         }
 
     def _is_bundle(self, directory: Path) -> bool:
@@ -187,14 +180,14 @@ class Patcher:
         return {"status": "success", "games": sorted(names)}
 
     def patch_user_directory(
-        self, directory: str, dll_name: str, fsr4_variant: str, version_id: str | None = None
+        self, directory: str, dll_name: str, version_id: str | None = None
     ) -> dict:
         try:
             target = self.resolve_directory(directory)
         except (FileNotFoundError, NotADirectoryError, PermissionError) as exc:
             log.error(f"Manual patch validation failed: {exc}")
             return _error(str(exc))
-        return self.patch_directory(target, dll_name, fsr4_variant, version_id=version_id)
+        return self.patch_directory(target, dll_name, version_id=version_id)
 
     def unpatch_user_directory(self, directory: str, confirmed_reset: bool = False) -> dict:
         """Unpatch a directory the user picked: by its record, or — for an older plugin version's
@@ -283,8 +276,6 @@ class Patcher:
             "patched": False,
             "dll_name": None,
             "target_dir": None,
-            "fsr4_variant": None,
-            "fsr4_variant_label": None,
             "newer_version": None,
         }
         if game is None:
@@ -305,9 +296,8 @@ class Patcher:
         target_dir = Path(metadata.get("target_dir", str(marker_path.parent)))
         dll_present = (target_dir / dll_name).exists()
         version = metadata.get("optiscaler_version")
-        label = metadata.get("fsr4_variant_label")
         if dll_present:
-            message = f"Patched with OptiScaler {version} using {dll_name}, {label}."
+            message = f"Patched with OptiScaler {version} using {dll_name}."
         else:
             message = f"Marker found but {dll_name} is missing. Patch it again."
         return {
@@ -320,23 +310,21 @@ class Patcher:
             "target_dir": str(target_dir),
             "patched_at": metadata.get("patched_at"),
             "optiscaler_version": version,
-            "fsr4_variant": metadata.get("fsr4_variant"),
-            "fsr4_variant_label": label,
             "newer_version": library.newer_in_channel(self.library.installed(), version),
             "message": message,
         }
 
     def patch_game(
-        self, appid: str, dll_name: str, current_launch_options: str, fsr4_variant: str, version_id: str | None = None
+        self, appid: str, dll_name: str, current_launch_options: str, version_id: str | None = None
     ) -> dict:
         try:
-            return self._patch_game(appid, dll_name, current_launch_options, fsr4_variant, version_id)
+            return self._patch_game(appid, dll_name, current_launch_options, version_id)
         except Exception as exc:
             log.error(f"[Framegen] patch_game failed for {appid}: {exc}")
             return _error(str(exc))
 
     def _patch_game(
-        self, appid: str, dll_name: str, current_launch_options: str, fsr4_variant: str, version_id: str | None
+        self, appid: str, dll_name: str, current_launch_options: str, version_id: str | None
     ) -> dict:
         game = steam_library.find_game(self.home, str(appid))
         if game is None:
@@ -361,7 +349,6 @@ class Patcher:
         result = self.patch_directory(
             target_dir,
             dll_name,
-            fsr4_variant,
             version_id=version_id,
             steam_game=marker.SteamGame(str(appid), game.name, original_options),
         )
@@ -379,10 +366,7 @@ class Patcher:
             "launch_options": managed_options,
             "original_launch_options": original_options,
             "optiscaler_version": result.get("optiscaler_version"),
-            "fsr4_variant": result.get("fsr4_variant"),
-            "fsr4_variant_label": result.get("fsr4_variant_label"),
-            "message": f"Patched {game.name} with OptiScaler {result.get('optiscaler_version')} using {dll_name}, "
-            f"{result.get('fsr4_variant_label')}.",
+            "message": f"Patched {game.name} with OptiScaler {result.get('optiscaler_version')} using {dll_name}.",
         }
 
     def unpatch_game(self, appid: str, current_launch_options: str = "", confirmed_reset: bool = False) -> dict:

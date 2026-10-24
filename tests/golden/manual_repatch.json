@@ -7,13 +7,11 @@
   },
   {
     "result": {
-      "fsr4_variant": "sdk",
-      "fsr4_variant_label": "FSR 4.1.1 SDK",
-      "message": "OptiScaler 0.9.4 (FSR 4.1.1 SDK) is in <root>/games/Game.",
+      "message": "OptiScaler 0.9.4 is in <root>/games/Game.",
       "optiscaler_version": "stable-0.9.4",
       "status": "success"
     },
-    "step": "patch dxgi.dll default default",
+    "step": "patch dxgi.dll default",
     "tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
@@ -28,8 +26,6 @@
         "dll_name": "dxgi.dll",
         "family": "0.9",
         "format": 2,
-        "fsr4_variant": "sdk",
-        "fsr4_variant_label": "FSR 4.1.1 SDK",
         "game_name": "",
         "optiscaler_version": "stable-0.9.4",
         "original_launch_options": "",
@@ -91,13 +87,11 @@
   },
   {
     "result": {
-      "fsr4_variant": "int8",
-      "fsr4_variant_label": "INT8 (RDNA 3, also integrated)",
-      "message": "OptiScaler 10.0.0-pre1 (INT8 (RDNA 3, also integrated)) is in <root>/games/Game.",
+      "message": "OptiScaler 10.0.0-pre1 is in <root>/games/Game.",
       "optiscaler_version": "nightly-20261023",
       "status": "success"
     },
-    "step": "patch winmm.dll nightly-20261023 int8",
+    "step": "patch winmm.dll nightly-20261023",
     "tree": {
       "FRAMEGEN_PATCH": {
         "appid": "",
@@ -111,8 +105,6 @@
         "dll_name": "winmm.dll",
         "family": "10",
         "format": 2,
-        "fsr4_variant": "int8",
-        "fsr4_variant_label": "INT8 (RDNA 3, also integrated)",
         "game_name": "",
         "optiscaler_version": "nightly-20261023",
         "original_launch_options": "",
@@ -142,7 +134,7 @@
       },
       "Game.exe": "game:Game.exe",
       "OptiScaler": "<dir>",
-      "OptiScaler.ini": "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=2\nFsr4Model=1\n\n[Menu]\nUseHQFont=false\n",
+      "OptiScaler.ini": "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=auto\nFsr4Model=auto\n\n[Menu]\nUseHQFont=false\n",
       "OptiScaler/D3D12_OptiScaler": "<dir>",
       "OptiScaler/D3D12_OptiScaler/D3D12Core.dll": "bundle:v10 D3D12Core.dll",
       "OptiScaler/amd_fidelityfx_upscaler_dx12.dll": "bundle:v10 amd_fidelityfx_upscaler_dx12.dll",

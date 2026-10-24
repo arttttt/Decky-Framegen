@@ -145,19 +145,17 @@ def test_game_shipped_files_across_patch_and_uninstall(wrapper, tmp_path):
     )
 
 
-def test_version_and_variant_from_env_and_repatch_on_every_launch(wrapper, tmp_path):
-    game = make_game_dir(tmp_path / "games" / "Variant Game")
+def test_version_from_env_and_repatch_on_every_launch(wrapper, tmp_path):
+    game = make_game_dir(tmp_path / "games" / "Version Game")
 
-    first = wrapper.run(
-        "fgmod", str(game / "Game.exe"), env={"FGMOD_VERSION": "nightly-20261023", "FGMOD_FSR4_VARIANT": "int8"}
-    )
+    first = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_VERSION": "nightly-20261023"})
     after_nightly = describe_tree(game)
-    second = wrapper.run("fgmod", str(game / "Game.exe"))  # the library's default version and variant
+    second = wrapper.run("fgmod", str(game / "Game.exe"))  # the library's default version
 
     scenario(
-        "wrapper_variant_and_repatch",
+        "wrapper_version_and_repatch",
         game,
-        [("patch nightly int8", {**first, "tree": after_nightly}), ("patch default", second)],
+        [("patch nightly", {**first, "tree": after_nightly}), ("patch default", second)],
     )
 
 
@@ -220,19 +218,13 @@ def test_steams_install_path_is_the_fallback_and_separators_are_dropped(wrapper,
     scenario("wrapper_steam_install_path_fallback", game, [("launch", launched)])
 
 
-def test_a_game_proxy_identical_to_ours_and_another_variant(wrapper, fgmod, tmp_path):
+def test_a_game_proxy_identical_to_ours(wrapper, fgmod, tmp_path):
     ours = (fgmod / "library" / "versions" / "stable-0.9.4" / "files" / "OptiScaler.dll").read_bytes()
     game = make_game_dir(tmp_path / "games" / "Proxy Game", {"dxgi.dll": ours})
 
-    sdk = wrapper.run("fgmod", str(game / "Game.exe"))
-    after_sdk = describe_tree(game)
-    forced = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_FSR4_VARIANT": "sdk-int8"})
+    patched = wrapper.run("fgmod", str(game / "Game.exe"))
 
-    scenario(
-        "wrapper_identical_proxy_and_variants",
-        game,
-        [("patch sdk", {**sdk, "tree": after_sdk}), ("patch sdk-int8", forced)],
-    )
+    scenario("wrapper_identical_proxy", game, [("patch", patched)])
 
 
 def test_usage_errors(wrapper):
@@ -284,9 +276,9 @@ def test_the_wrapper_and_the_plugin_patch_a_game_identically(wrapper, plugin, tm
     by_wrapper = make_game_dir(tmp_path / "games" / "A" / "Game", shipped)
     by_plugin = make_game_dir(tmp_path / "games" / "B" / "Game", shipped)
 
-    env = {"DLL": "winmm.dll", "FGMOD_VERSION": "nightly-20261023", "FGMOD_FSR4_VARIANT": "int8-lite"}
+    env = {"DLL": "winmm.dll", "FGMOD_VERSION": "nightly-20261023"}
     wrapper.run("fgmod", str(by_wrapper / "Game.exe"), env=env)
-    run(plugin.manual_patch_directory(str(by_plugin), "winmm.dll", "int8-lite", "nightly-20261023"))
+    run(plugin.manual_patch_directory(str(by_plugin), "winmm.dll", "nightly-20261023"))
 
     assert describe_tree(by_wrapper) == describe_tree(by_plugin)
 

@@ -9,13 +9,11 @@
   },
   {
     "result": {
-      "fsr4_variant": "sdk",
-      "fsr4_variant_label": "FSR 4.1.1 SDK",
-      "message": "OptiScaler 0.9.4 (FSR 4.1.1 SDK) is in <root>/games/Game.",
+      "message": "OptiScaler 0.9.4 is in <root>/games/Game.",
       "optiscaler_version": "stable-0.9.4",
       "status": "success"
     },
-    "step": "patch version.dll default default",
+    "step": "patch version.dll default",
     "tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "bundle:D3D12Core.dll",
@@ -42,8 +40,6 @@
         "dll_name": "version.dll",
         "family": "0.9",
         "format": 2,
-        "fsr4_variant": "sdk",
-        "fsr4_variant_label": "FSR 4.1.1 SDK",
         "game_name": "",
         "optiscaler_version": "stable-0.9.4",
         "original_launch_options": "",

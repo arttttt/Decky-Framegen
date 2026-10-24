@@ -35,12 +35,8 @@ def test_only_known_generations_have_a_family(version, family):
     assert (found.id if found else None) == family
 
 
-def test_each_family_offers_its_own_fsr4_variants_as_ini_settings_with_a_default():
-    assert library.FAMILIES["0.9"].default_variant == "sdk"
-    assert library.FAMILIES["10"].default_variant == "auto"
-    assert library.FAMILIES["10"].variants["int8"].ini == {"FSR.Fsr4GpuSupport": "2", "FSR.Fsr4Model": "1"}
-    # 0.9 knows nothing of Fsr4Model, and 10 dropped the nukems FG setting.
-    assert all("Fsr4Model" not in key for v in library.FAMILIES["0.9"].variants.values() for key in v.ini)
+def test_10_drops_the_nukems_frame_generation_default_that_0_9_has():
+    assert library.FAMILIES["0.9"].ini_defaults["FrameGen.FGInput"] == "nukems"
     assert "FrameGen.FGInput" not in library.FAMILIES["10"].ini_defaults
 
 
