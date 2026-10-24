@@ -3,6 +3,7 @@ import { MdOutlineAutoAwesomeMotion } from "react-icons/md";
 import { FramegenPage, GamePage, QuickPanel } from "./components";
 import { showReloadedPlugin } from "./api/deckyPanel";
 import { FRAMEGEN_ROUTE, GAME_ROUTE } from "./api/framegenPage";
+import { patchGameContextMenu } from "./patches/gameContextMenu";
 import { patchSteamGamePage } from "./patches/steamGamePage";
 
 export default definePlugin(() => {
@@ -12,6 +13,7 @@ export default definePlugin(() => {
   routerHook.addRoute(FRAMEGEN_ROUTE, FramegenPage);
   routerHook.addRoute(GAME_ROUTE, GamePage);
   const unpatchSteamGamePage = patchSteamGamePage();
+  const unpatchGameContextMenu = patchGameContextMenu();
   return {
     name: "Decky Framegen",
     titleView: <div>Decky Framegen</div>,
@@ -22,6 +24,7 @@ export default definePlugin(() => {
       routerHook.removeRoute(FRAMEGEN_ROUTE);
       routerHook.removeRoute(GAME_ROUTE);
       unpatchSteamGamePage();
+      unpatchGameContextMenu();
     },
   };
 });
