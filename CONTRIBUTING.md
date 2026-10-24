@@ -7,6 +7,12 @@
 - Releases are tags on `main` (`vX.Y`).
 - Commits are atomic and say what changed and why; the pull request description says the same for the whole change and how it was tested.
 
+## Gamepad focus
+
+Only things that do something take focus: buttons, dropdowns, toggles. Lines that only say something
+are plain text the gamepad skips. The D-pad scrolls a dialog only by moving focus, so keep nothing
+tall and non-focusable at a dialog's bottom: long text gets its own scroll region.
+
 ## Tests
 
 CI runs everything below on every pull request and on `main`.

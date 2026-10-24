@@ -1,4 +1,5 @@
 import type { InstalledLibrary, InstalledVersion } from "../api";
+import { ProxyDllView, patchReady } from "./launch";
 import { versionLabel } from "./library";
 
 /**
@@ -38,7 +39,7 @@ export const patchChoice = (
   return {
     versionOptions: versions.map((v) => ({ data: v.id, label: `${versionLabel(v)} (${v.channel})` })),
     versionId: version?.id ?? null,
-    versionHint: version ? null : "No OptiScaler version is downloaded. Use Download versions… under OptiScaler versions.",
+    versionHint: version ? null : "No OptiScaler version is downloaded. Open Framegen → OptiScaler to download one.",
     ready: version !== undefined,
     patchWith: version?.id ?? "",
   };
@@ -54,6 +55,18 @@ export const gameVersionLine = (status: {
   const line = status.optiscaler_version ?? "Unknown version";
   return status.newer_version ? `${line}. ${status.newer_version} is in the library; choose it and patch again to update.` : line;
 };
+
+/** What a game's patch uses: the proxy, the version id ("" lets the backend keep the game's version,
+ *  else take the newest), and whether patching can run. */
+export type PatchWith = { dllName: string; versionId: string; ready: boolean };
+
+/** What the Quick Access panel's Patch uses: nothing to pick there, so a patched game keeps its proxy
+ *  and version, and an unpatched one gets the default proxy and the newest version. */
+export const quickPatchWith = (status: GameStatus | null, launch: ProxyDllView, versionReady: boolean): PatchWith => ({
+  dllName: (status?.patched && status.dll_name) || launch.selected || "",
+  versionId: "",
+  ready: patchReady(versionReady, launch),
+});
 
 /** A game's FSR 4 under Proton, as the backend reads it; null off AMD. */
 export type Fsr4State = { state: "in-prefix" | "will-fetch" | "unsupported"; tool: string | null; version: string | null };
@@ -71,6 +84,7 @@ export const fsr4Line = (fsr4: Fsr4State | null | undefined): string | null => {
 export type GameStatus = {
   status: "success" | "error";
   message?: string;
+  name?: string;
   install_found?: boolean;
   patched?: boolean;
   dll_name?: string | null;
@@ -131,3 +145,16 @@ export const steamGameView = (s: {
     unpatch: { label: busy === "unpatch" ? "Unpatching..." : "Unpatch this game", enabled: busy === null },
   };
 };
+
+/** The Steam game picker in the Quick Access panel. */
+export const gamePickerView = (
+  games: { appid: string; name: string; install_found?: boolean }[],
+  loading: boolean,
+): { placeholder: string; enabled: boolean; options: { data: string; label: string }[] } => ({
+  placeholder: loading ? "Loading games..." : games.length ? "Choose a game" : "No Steam games found",
+  enabled: !loading && games.length > 0,
+  options: games.map((g) => ({ data: g.appid, label: g.install_found === false ? `${g.name} (not installed)` : g.name })),
+});
+
+/** A game page's title: the game's name once its status has said it. */
+export const gamePageTitle = (status: GameStatus | null): string => status?.name ?? "Loading…";

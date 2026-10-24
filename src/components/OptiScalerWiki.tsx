@@ -1,13 +1,7 @@
 import { PanelSectionRow, ButtonItem } from "@decky/ui";
 import { FaBook } from "react-icons/fa";
 
-interface OptiScalerWikiProps {
-  pathExists: boolean | null;
-}
-
-export function OptiScalerWiki({ pathExists }: OptiScalerWikiProps) {
-  if (pathExists !== true) return null;
-
+export function OptiScalerWiki() {
   const handleWikiClick = () => {
     window.open("https://github.com/optiscaler/OptiScaler/wiki", "_blank");
   };

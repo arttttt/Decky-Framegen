@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { InstalledLibrary } from "../api";
-import { GameStatus, fsr4Line, gameVersionLine, libraryReady, patchButton, patchChoice, steamGameView } from "./patching";
+import { GameStatus, fsr4Line, gamePageTitle, gamePickerView, gameVersionLine, quickPatchWith, libraryReady, patchButton, patchChoice, steamGameView } from "./patching";
 
 const LIBRARY: InstalledLibrary = {
   installed_bytes: 500_000_000,
@@ -66,7 +66,7 @@ describe("patch choice", () => {
     for (const library of [null, { versions: [], installed_bytes: 0 }]) {
       const view = patchChoice(library, "stable-0.9.4");
       expect(view).toMatchObject({ versionId: null, ready: false, versionOptions: [], patchWith: "" });
-      expect(view.versionHint).toMatch(/under OptiScaler versions/);
+      expect(view.versionHint).toMatch(/Open Framegen → OptiScaler/);
     }
   });
 });
@@ -161,5 +161,33 @@ describe("FSR 4 line", () => {
     const status = { status: "success" as const, install_found: true, patched: false, fsr4 };
     expect(steamGameView({ ...base, statusLoading: true, status }).fsr4Line).toBeNull();
     expect(steamGameView({ ...base, statusLoading: false, status }).fsr4Line).toMatch(/can't provide FSR 4/);
+  });
+});
+
+describe("Quick Access panel", () => {
+  const launch = { options: [], selected: "dxgi.dll", hint: null, launchOptions: null, wrapper: null };
+
+  it("patches a patched game with its own proxy and version, and a new one with the default proxy and the newest", () => {
+    const patched: GameStatus = { status: "success", patched: true, dll_name: "winmm.dll" };
+
+    expect(quickPatchWith(patched, launch, true)).toEqual({ dllName: "winmm.dll", versionId: "", ready: true });
+    expect(quickPatchWith({ status: "success", patched: false }, launch, true)).toEqual({ dllName: "dxgi.dll", versionId: "", ready: true });
+    expect(quickPatchWith(null, launch, false).ready).toBe(false);
+    expect(quickPatchWith(null, { ...launch, selected: null }, true)).toEqual({ dllName: "", versionId: "", ready: false });
+  });
+
+  it("offers the games, says when they load or there are none, and marks the ones not installed", () => {
+    expect(gamePickerView([], true)).toEqual({ placeholder: "Loading games...", enabled: false, options: [] });
+    expect(gamePickerView([], false)).toMatchObject({ placeholder: "No Steam games found", enabled: false });
+    expect(gamePickerView([{ appid: "1", name: "A" }, { appid: "2", name: "B", install_found: false }], false)).toEqual({
+      placeholder: "Choose a game",
+      enabled: true,
+      options: [{ data: "1", label: "A" }, { data: "2", label: "B (not installed)" }],
+    });
+  });
+
+  it("titles a game page with the game's name once known", () => {
+    expect(gamePageTitle(null)).toBe("Loading…");
+    expect(gamePageTitle({ status: "success", name: "Cyberpunk 2077" })).toBe("Cyberpunk 2077");
   });
 });
