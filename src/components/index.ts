@@ -1,11 +1,3 @@
 // Component exports for cleaner imports
-export { OptiScalerControls } from './OptiScalerControls';
-export { OptiScalerHeader } from './OptiScalerHeader';
-export { ClipboardCommands } from './ClipboardCommands';
-export { InstructionCard } from './InstructionCard';
-export { OptiScalerWiki } from './OptiScalerWiki';
-export { SmartClipboardButton } from './SmartClipboardButton';
-export { ManualPatchControls } from './CustomPathOverride';
-export { SteamGamePatcher } from './SteamGamePatcher';
-export { DeveloperSection } from './DeveloperSection';
-export { LibrarySection } from './LibrarySection';
+export { QuickPanel } from './QuickPanel';
+export { FramegenPage } from './FramegenPage';

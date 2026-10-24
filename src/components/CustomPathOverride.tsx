@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ButtonItem, Field, PanelSectionRow, ToggleField } from "@decky/ui";
+import { ButtonItem, Field, PanelSectionRow } from "@decky/ui";
 import { FileSelectionType, openFilePicker } from "@decky/api";
 import { getPathDefaults, runManualPatch } from "../api";
 import { UnpatchConfirmation } from "./UnpatchConfirmation";
@@ -37,9 +37,7 @@ const ensureDirectory = (value: string) => {
 };
 
 interface ManualPatchControlsProps {
-  isAvailable: boolean;
   ready: boolean;
-  onManualModeChange?: (enabled: boolean) => void;
   dllName: string;
   /** What to copy as the game's launch options; built by the backend. */
   launchOptions: string | null;
@@ -64,15 +62,13 @@ const formatResultMessage = (result: ApiResponse | null) => {
   return result.message || result.output || "Operation failed.";
 };
 
+/** Patch a directory picked by hand: a game outside Steam, or one the Steam section can't find. */
 export const ManualPatchControls = ({
-  isAvailable,
   ready,
-  onManualModeChange,
   dllName,
   launchOptions,
   patchWith,
 }: ManualPatchControlsProps) => {
-  const [isEnabled, setEnabled] = useState(false);
   const [defaults, setDefaults] = useState<PathDefaults>(INITIAL_DEFAULTS);
   const [pickerState, setPickerState] = useState<PickerState>(INITIAL_PICKER_STATE);
   const [isPatching, setIsPatching] = useState(false);
@@ -106,17 +102,6 @@ export const ManualPatchControls = ({
     };
   }, []);
 
-  useEffect(() => {
-    if (!isAvailable) {
-      setEnabled(false);
-      setPickerState(INITIAL_PICKER_STATE);
-      setOperationResult(null);
-      setLastOperation(null);
-      onManualModeChange?.(false);
-    }
-  }, [isAvailable, onManualModeChange]);
-
-  const canInteract = isAvailable && isEnabled;
   const patchAction = patchButton(ready, isPatching ? "Patching..." : "Patch directory");
   const selectedPath = pickerState.selectedPath;
   const statusMessage = useMemo(() => formatResultMessage(operationResult), [operationResult]);
@@ -193,41 +178,11 @@ export const ManualPatchControls = ({
     [selectedPath, dllName, patchWith]
   );
 
-  const handleToggle = (value: boolean) => {
-    if (!isAvailable) {
-      setEnabled(false);
-      return;
-    }
-
-    setEnabled(value);
-    onManualModeChange?.(value);
-    if (!value) {
-      setPickerState(INITIAL_PICKER_STATE);
-      setOperationResult(null);
-      setLastOperation(null);
-    }
-  };
-
   const busy = isPatching || unpatch.busy;
 
   return (
     <>
-      <PanelSectionRow>
-        <ToggleField
-          label="Advanced Mode"
-          description={
-            isAvailable
-              ? "Manually apply OptiScaler to a specific game directory."
-              : "Install OptiScaler first to enable manual patching."
-          }
-          checked={isEnabled && isAvailable}
-          disabled={!isAvailable}
-          onChange={handleToggle}
-        />
-      </PanelSectionRow>
-
-      {canInteract && (
-        <>
+      <>
           {launchOptions && <SmartClipboardButton command={launchOptions} buttonText="Manual launch cmd" />}
           <PanelSectionRow>
             <ButtonItem
@@ -253,7 +208,7 @@ export const ManualPatchControls = ({
               <PanelSectionRow>
                 <Field
                   label="Target directory"
-                  description="OptiScaler files will be copied here."
+                  description="OptiScaler is placed here as links into the library."
                 >
                   <div
                     style={{
@@ -310,8 +265,7 @@ export const ManualPatchControls = ({
               </Field>
             </PanelSectionRow>
           )}
-        </>
-      )}
+      </>
     </>
   );
 };

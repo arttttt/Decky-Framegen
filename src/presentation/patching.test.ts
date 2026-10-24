@@ -66,7 +66,7 @@ describe("patch choice", () => {
     for (const library of [null, { versions: [], installed_bytes: 0 }]) {
       const view = patchChoice(library, "stable-0.9.4");
       expect(view).toMatchObject({ versionId: null, ready: false, versionOptions: [], patchWith: "" });
-      expect(view.versionHint).toMatch(/under OptiScaler versions/);
+      expect(view.versionHint).toMatch(/Open Framegen → OptiScaler/);
     }
   });
 });

@@ -215,16 +215,6 @@ export function SteamGamePatcher({ dllName, patchWith, ready }: SteamGamePatcher
             onCancel={unpatch.onCancel}
           />
 
-          <PanelSectionRow>
-            <ButtonItem
-              layout="below"
-              disabled={!selectedAppId || busyAction !== null || statusLoading}
-              onClick={() => void loadStatus(selectedAppId)}
-            >
-              {statusLoading ? "Refreshing..." : "Refresh status"}
-            </ButtonItem>
-          </PanelSectionRow>
-
           {resultMessage && (
             <PanelSectionRow>
               <Field {...focusableFieldProps} label="Result">

@@ -38,7 +38,7 @@ export const patchChoice = (
   return {
     versionOptions: versions.map((v) => ({ data: v.id, label: `${versionLabel(v)} (${v.channel})` })),
     versionId: version?.id ?? null,
-    versionHint: version ? null : "No OptiScaler version is downloaded. Use Download versions… under OptiScaler versions.",
+    versionHint: version ? null : "No OptiScaler version is downloaded. Open Framegen → OptiScaler to download one.",
     ready: version !== undefined,
     patchWith: version?.id ?? "",
   };
