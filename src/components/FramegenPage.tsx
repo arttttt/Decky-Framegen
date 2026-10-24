@@ -6,6 +6,7 @@ import { usePatchPickers } from "../hooks/usePatchPickers";
 import { ClipboardCommands } from "./ClipboardCommands";
 import { ManualPatchControls } from "./CustomPathOverride";
 import { DeveloperSection } from "./DeveloperSection";
+import { GamesPage } from "./GamesPage";
 import { LibrarySection } from "./LibrarySection";
 import { OptiScalerWiki } from "./OptiScalerWiki";
 import { PatchPickers } from "./PatchPickers";
@@ -56,6 +57,7 @@ export function FramegenPage() {
       showTitle
       pages={[
         { title: "OptiScaler", content: <OptiScalerPage /> },
+        { title: "Games", content: <GamesPage /> },
         { title: "Advanced", content: <AdvancedPage /> },
         { title: "Developer", content: <DeveloperSection />, visible: devBuild },
       ]}
