@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ButtonItem, Field, PanelSectionRow, ToggleField } from "@decky/ui";
 import { FileSelectionType, openFilePicker } from "@decky/api";
-import { getPathDefaults, runManualPatch, runManualUnpatch } from "../api";
-import { ResetToStock } from "./ResetToStock";
+import { getPathDefaults, runManualPatch } from "../api";
+import { UnpatchConfirmation } from "./UnpatchConfirmation";
+import { useUnpatch } from "../hooks/useUnpatch";
 import { PatchWith, patchButton } from "../presentation/patching";
 import type { ApiResponse } from "../types/index";
 import { SmartClipboardButton } from "./SmartClipboardButton";
@@ -72,9 +73,8 @@ export const ManualPatchControls = ({
   const [defaults, setDefaults] = useState<PathDefaults>(INITIAL_DEFAULTS);
   const [pickerState, setPickerState] = useState<PickerState>(INITIAL_PICKER_STATE);
   const [isPatching, setIsPatching] = useState(false);
-  const [isUnpatching, setIsUnpatching] = useState(false);
   const [operationResult, setOperationResult] = useState<ApiResponse | null>(null);
-  const [lastOperation, setLastOperation] = useState<"patch" | "unpatch" | null>(null);
+  const [lastOperation, setLastOperation] = useState<"patch" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,10 +120,7 @@ export const ManualPatchControls = ({
   const wasSuccessful = operationResult?.status === "success";
   const statusLabel = useMemo(() => {
     if (!operationResult || !lastOperation) return null;
-    if (operationResult.status === "success") {
-      return lastOperation === "patch" ? "Game patched" : "Game unpatched";
-    }
-    return lastOperation === "patch" ? "Patch failed" : "Unpatch failed";
+    return operationResult.status === "success" ? "Game patched" : "Patch failed";
   }, [lastOperation, operationResult]);
 
   const openDirectoryPicker = useCallback(async () => {
@@ -165,20 +162,21 @@ export const ManualPatchControls = ({
     setPickerState((prev) => ({ ...prev, lastError }));
   }, [defaults.home, defaults.steamCommon, selectedPath]);
 
-  const runOperation = useCallback(
-    async (action: "patch" | "unpatch") => {
+  const unpatch = useUnpatch(selectedPath ? { kind: "directory", path: selectedPath } : null, () => {
+    setLastOperation(null);
+    setOperationResult(null);
+  });
+
+  const runPatch = useCallback(
+    async () => {
       if (!selectedPath) return;
 
-      const setBusy = action === "patch" ? setIsPatching : setIsUnpatching;
-  setLastOperation(action);
-      setBusy(true);
+      setLastOperation("patch");
+      setIsPatching(true);
       setOperationResult(null);
 
       try {
-        const response =
-          action === "patch"
-            ? await runManualPatch(selectedPath, dllName, patchWith.variant, patchWith.versionId)
-            : await runManualUnpatch(selectedPath);
+        const response = await runManualPatch(selectedPath, dllName, patchWith.variant, patchWith.versionId);
         setOperationResult(response ?? { status: "error", message: "No response from backend." });
       } catch (err) {
         setOperationResult({
@@ -186,10 +184,10 @@ export const ManualPatchControls = ({
           message: err instanceof Error ? err.message : String(err),
         });
       } finally {
-        setBusy(false);
+        setIsPatching(false);
       }
     },
-    [selectedPath, dllName]
+    [selectedPath, dllName, patchWith]
   );
 
   const handleToggle = (value: boolean) => {
@@ -207,7 +205,7 @@ export const ManualPatchControls = ({
     }
   };
 
-  const busy = isPatching || isUnpatching;
+  const busy = isPatching || unpatch.busy;
 
   return (
     <>
@@ -283,7 +281,7 @@ export const ManualPatchControls = ({
                 <ButtonItem
                   layout="below"
                   disabled={busy || !patchAction.enabled}
-                  onClick={() => runOperation("patch")}
+                  onClick={() => void runPatch()}
                 >
                   {patchAction.label}
                 </ButtonItem>
@@ -293,13 +291,17 @@ export const ManualPatchControls = ({
                 <ButtonItem
                   layout="below"
                   disabled={busy}
-                  onClick={() => runOperation("unpatch")}
+                  onClick={unpatch.onUnpatch}
                 >
-                  {isUnpatching ? "Reverting..." : "Unpatch directory"}
+                  {unpatch.busy ? "Unpatching..." : "Unpatch directory"}
                 </ButtonItem>
               </PanelSectionRow>
 
-              <ResetToStock target={{ kind: "directory", path: selectedPath }} onDone={() => undefined} />
+              <UnpatchConfirmation
+                confirmation={unpatch.confirmation}
+                onConfirm={unpatch.onConfirm}
+                onCancel={unpatch.onCancel}
+              />
             </>
           )}
 

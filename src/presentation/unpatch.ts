@@ -1,23 +1,28 @@
-import type { ResetPreview } from "../api";
+import type { UnpatchPreview, UnpatchResult } from "../api";
 
-/** What the confirmation shows before a reset; the modal maps it and decides nothing. */
-export type ResetConfirmation =
+/**
+ * The step Unpatch takes after asking the backend: undo the patch record right away, or, for a
+ * patch an older plugin version made, show what a reset changes and wait for the user to confirm.
+ */
+export type UnpatchStep =
   | { kind: "refused"; message: string }
+  | { kind: "now" }
   | { kind: "confirm"; title: string; lines: string[]; okLabel: string };
 
 const EVIDENCE: Record<"marker" | "backups" | "leftovers", string> = {
-  marker: "Found the plugin's patch record.",
-  backups: "Found backups an earlier plugin version made.",
-  leftovers: "Found files only early plugin versions left behind.",
+  marker: "An older version of the plugin patched this game.",
+  backups: "Found backups an older version of the plugin made.",
+  leftovers: "Found files only early versions of the plugin left behind.",
 };
 
 const listed = (label: string, names: string[]): string[] => (names.length ? [`${label}: ${names.join(", ")}`] : []);
 
-export const resetConfirmation = (preview: ResetPreview, subject: string): ResetConfirmation => {
+export const unpatchStep = (preview: UnpatchPreview, subject: string): UnpatchStep => {
   if (preview.status !== "success") return { kind: "refused", message: preview.message };
+  if (preview.mode === "record") return { kind: "now" };
   return {
     kind: "confirm",
-    title: `Reset ${subject} to stock?`,
+    title: `Unpatch ${subject}?`,
     lines: [
       EVIDENCE[preview.evidence],
       `In ${preview.target_dir}:`,
@@ -37,18 +42,15 @@ export const resetConfirmation = (preview: ResetPreview, subject: string): Reset
               : "The plugin's launch options are cleared.",
           ]),
     ],
-    okLabel: "Reset",
+    okLabel: "Unpatch",
   };
 };
 
-export const resetButtonLabel = (busy: boolean): string => (busy ? "Working…" : "Reset to stock…");
-
-/** How the confirmation names what is reset: the game's name, or the directory. */
-export const resetSubject = (target: { kind: "game"; name: string } | { kind: "directory"; path: string }): string =>
+/** How the confirmation names what is unpatched: the game's name, or the directory. */
+export const unpatchSubject = (target: { kind: "game"; name: string } | { kind: "directory"; path: string }): string =>
   target.kind === "game" ? target.name : target.path;
 
-export const resetOutcome = (result: ResetPreview | undefined): string => {
+export const unpatchOutcome = (result: UnpatchResult | undefined): string => {
   if (!result) return "The plugin backend did not answer.";
-  if (result.status !== "success") return result.message;
-  return result.message ?? "Reset to stock.";
+  return result.message ?? (result.status === "success" ? "Unpatched." : "Unpatch failed.");
 };

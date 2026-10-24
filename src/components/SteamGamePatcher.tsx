@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ButtonItem, DropdownItem, Field, PanelSectionRow } from "@decky/ui";
 import { toaster } from "@decky/api";
-import { listInstalledGames, getGameStatus, patchGame, unpatchGame } from "../api";
+import { listInstalledGames, getGameStatus, patchGame } from "../api";
 import { getAppLaunchOptions, setAppLaunchOptions } from "../api/steamClient";
-import { ResetToStock } from "./ResetToStock";
+import { UnpatchConfirmation } from "./UnpatchConfirmation";
+import { useUnpatch } from "../hooks/useUnpatch";
 import { GameStatus, PatchWith, SteamGameView, steamGameView } from "../presentation/patching";
 
 type GameEntry = { appid: string; name: string; install_found?: boolean };
@@ -32,7 +33,7 @@ export function SteamGamePatcher({ dllName, patchWith, ready }: SteamGamePatcher
   const [selectedAppId, setSelectedAppId] = useState<string>(() => lastSelectedAppId);
   const [gameStatus, setGameStatus] = useState<GameStatus | null>(null);
   const [statusLoading, setStatusLoading] = useState(false);
-  const [busyAction, setBusyAction] = useState<"patch" | "unpatch" | null>(null);
+  const [patching, setPatching] = useState(false);
   const [resultMessage, setResultMessage] = useState<string>("");
 
   // ── Data loaders ───────────────────────────────────────────────────────────
@@ -102,6 +103,12 @@ export function SteamGamePatcher({ dllName, patchWith, ready }: SteamGamePatcher
   );
 
 
+  const unpatch = useUnpatch(
+    selectedGame ? { kind: "game", appid: selectedGame.appid, name: selectedGame.name } : null,
+    () => void loadStatus(selectedAppId),
+  );
+  const busyAction = patching ? "patch" : unpatch.busy ? "unpatch" : null;
+
   const view = steamGameView({
     gameSelected: selectedGame !== null,
     status: gameStatus,
@@ -115,7 +122,7 @@ export function SteamGamePatcher({ dllName, patchWith, ready }: SteamGamePatcher
 
   const handlePatch = useCallback(async () => {
     if (!selectedGame || !selectedAppId || busyAction) return;
-    setBusyAction("patch");
+    setPatching(true);
     setResultMessage("");
     try {
       let currentLaunchOptions = "";
@@ -136,30 +143,10 @@ export function SteamGamePatcher({ dllName, patchWith, ready }: SteamGamePatcher
       setResultMessage(`Error: ${msg}`);
       toaster.toast({ title: "Decky Framegen", body: msg });
     } finally {
-      setBusyAction(null);
+      setPatching(false);
     }
   }, [busyAction, dllName, loadStatus, patchWith, selectedAppId, selectedGame]);
 
-  const handleUnpatch = useCallback(async () => {
-    if (!selectedGame || !selectedAppId || busyAction) return;
-    setBusyAction("unpatch");
-    setResultMessage("");
-    try {
-      const result = await unpatchGame(selectedAppId);
-      if (result.status !== "success") throw new Error(result.message || "Unpatch failed.");
-      setAppLaunchOptions(Number(selectedAppId), result.launch_options || "");
-      const msg = result.message || `Unpatched ${selectedGame.name}.`;
-      setResultMessage(msg);
-      toaster.toast({ title: "Decky Framegen", body: msg });
-      await loadStatus(selectedAppId);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unpatch failed.";
-      setResultMessage(`Error: ${msg}`);
-      toaster.toast({ title: "Decky Framegen", body: msg });
-    } finally {
-      setBusyAction(null);
-    }
-  }, [busyAction, loadStatus, selectedAppId, selectedGame]);
 
   const focusableFieldProps = { focusable: true, highlightOnFocus: true } as const;
 
@@ -214,15 +201,16 @@ export function SteamGamePatcher({ dllName, patchWith, ready }: SteamGamePatcher
 
           {view.unpatchVisible && (
             <PanelSectionRow>
-              <ButtonItem layout="below" disabled={!view.unpatch.enabled} onClick={handleUnpatch}>
+              <ButtonItem layout="below" disabled={!view.unpatch.enabled} onClick={unpatch.onUnpatch}>
                 {view.unpatch.label}
               </ButtonItem>
             </PanelSectionRow>
           )}
 
-          <ResetToStock
-            target={{ kind: "game", appid: selectedGame.appid, name: selectedGame.name }}
-            onDone={() => void loadStatus(selectedGame.appid)}
+          <UnpatchConfirmation
+            confirmation={unpatch.confirmation}
+            onConfirm={unpatch.onConfirm}
+            onCancel={unpatch.onCancel}
           />
 
           <PanelSectionRow>
