@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { DropdownItem, Field, PanelSection, PanelSectionRow, ToggleField } from "@decky/ui";
-import { PROXY_DLL_OPTIONS, DEFAULT_PROXY_DLL } from "../utils/constants";
 import { OptiScalerHeader } from "./OptiScalerHeader";
 import { ClipboardCommands } from "./ClipboardCommands";
 import { InstructionCard } from "./InstructionCard";
@@ -9,6 +8,8 @@ import { ManualPatchControls } from "./CustomPathOverride";
 import { SteamGamePatcher } from "./SteamGamePatcher";
 import type { InstalledLibrary } from "../api";
 import { libraryReady, patchChoice } from "../presentation/patching";
+import { patchReady, proxyDllView } from "../presentation/launch";
+import { useLaunchSetup } from "../hooks/useLaunchSetup";
 
 interface OptiScalerControlsProps {
   library: InstalledLibrary | null;
@@ -17,10 +18,13 @@ interface OptiScalerControlsProps {
 export function OptiScalerControls({ library }: OptiScalerControlsProps) {
   const [advancedModeEnabled, setAdvancedModeEnabled] = useState(false);
   const [manualClipboardModeEnabled, setManualClipboardModeEnabled] = useState(false);
-  const [dllName, setDllName] = useState<string>(DEFAULT_PROXY_DLL);
+  const [pickedDll, setPickedDll] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const pathExists = libraryReady(library);
   const choice = patchChoice(library, picked);
+  const launch = proxyDllView(useLaunchSetup(), pickedDll);
+  const dllName = launch.selected ?? "";
+  const ready = patchReady(choice.ready, launch);
 
   return (
     <PanelSection>
@@ -47,17 +51,17 @@ export function OptiScalerControls({ library }: OptiScalerControlsProps) {
         <DropdownItem
           layout="below"
           label="Proxy DLL name"
-          description={PROXY_DLL_OPTIONS.find((o) => o.value === dllName)?.hint}
+          description={launch.hint}
           menuLabel="Proxy DLL name"
-          selectedOption={dllName}
-          rgOptions={PROXY_DLL_OPTIONS.map((o) => ({ data: o.value, label: o.label }))}
-          onChange={(option) => setDllName(String(option.data))}
+          selectedOption={launch.selected}
+          rgOptions={launch.options}
+          onChange={(option) => setPickedDll(String(option.data))}
         />
       </PanelSectionRow>
 
-      <SteamGamePatcher dllName={dllName} patchWith={choice.patchWith} ready={choice.ready} />
+      <SteamGamePatcher dllName={dllName} patchWith={choice.patchWith} ready={ready} />
 
-      <ClipboardCommands pathExists={pathExists} dllName={dllName} />
+      <ClipboardCommands pathExists={pathExists} launch={launch} />
 
       {pathExists === true && (
         <PanelSectionRow>
@@ -73,7 +77,7 @@ export function OptiScalerControls({ library }: OptiScalerControlsProps) {
       {pathExists === true && manualClipboardModeEnabled ? (
         <ClipboardCommands
           pathExists={pathExists}
-          dllName={dllName}
+          launch={launch}
           manualModeEnabled
           showLaunchOptions={false}
         />
@@ -81,9 +85,10 @@ export function OptiScalerControls({ library }: OptiScalerControlsProps) {
 
       <ManualPatchControls
         isAvailable={true}
-        ready={choice.ready}
+        ready={ready}
         onManualModeChange={setAdvancedModeEnabled}
         dllName={dllName}
+        launchOptions={launch.launchOptions}
         patchWith={choice.patchWith}
       />
 

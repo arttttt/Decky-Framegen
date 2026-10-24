@@ -12,7 +12,7 @@ import decky
 from framegen.application.dev_updates import DevUpdates, Report
 from framegen.application.library import Library
 from framegen.application.patcher import Patcher
-from framegen.domain import bundle
+from framegen.domain import bundle, launch_options
 from framegen.infrastructure import archive, fgmod_home, github_releases
 
 
@@ -70,6 +70,9 @@ class Plugin:
 
     async def manual_unpatch_directory(self, directory: str, confirmed_reset: bool = False) -> dict:
         return self._patcher().unpatch_user_directory(directory, confirmed_reset)
+
+    async def launch_setup(self) -> dict:
+        return launch_options.setup_json()
 
     async def get_game_status(self, appid: str) -> dict:
         # Reading the game's Proton setup can take a moment on handheld storage; keep it off Decky's event loop.

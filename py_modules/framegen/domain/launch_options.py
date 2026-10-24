@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
-from .bundle import VALID_DLL_NAMES
+from .bundle import DEFAULT_PROXY_DLL, PROXY_DLLS, VALID_DLL_NAMES
 from .fsr4 import UPGRADE_VARIABLE
+
+WRAPPER_PATCH = "~/fgmod/fgmod %command%"
+"""Launch options that patch the game through the launch wrapper on every start."""
+WRAPPER_UNPATCH = "~/fgmod/fgmod-uninstaller.sh %command%"
+"""Launch options that unpatch the game through the wrapper on its next start."""
 
 _ASI_PROXY = "OptiScaler.asi"
 
@@ -32,6 +37,18 @@ def managed(dll_name: str, fsr4_upgrade: bool = False) -> str:
     entry = override_entry(dll_name)
     variables = ([f"WINEDLLOVERRIDES={entry}"] if entry else []) + ([f"{UPGRADE_VARIABLE}=1"] if fsr4_upgrade else [])
     return " ".join([*variables, "SteamDeck=0 %command%"])
+
+
+def setup_json() -> dict:
+    """Everything the panel offers for starting a game: the proxy DLLs, each with when to pick it and
+    the launch options it needs, and the wrapper's commands. The panel builds none of these itself."""
+    return {
+        "default": DEFAULT_PROXY_DLL,
+        "proxies": [
+            {"name": name, "hint": hint, "launch_options": managed(name)} for name, hint in PROXY_DLLS.items()
+        ],
+        "wrapper": {"patch": WRAPPER_PATCH, "unpatch": WRAPPER_UNPATCH},
+    }
 
 
 def is_managed(options: str) -> bool:

@@ -4,14 +4,11 @@ import { FaClipboard, FaCheck } from "react-icons/fa";
 import { toaster } from "@decky/api";
 
 interface SmartClipboardButtonProps {
-  command?: string;
-  buttonText?: string;
+  command: string;
+  buttonText: string;
 }
 
-export function SmartClipboardButton({ 
-  command = "~/fgmod/fgmod %command%",
-  buttonText = "Copy Launch Command"
-}: SmartClipboardButtonProps) {
+export function SmartClipboardButton({ command, buttonText }: SmartClipboardButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 

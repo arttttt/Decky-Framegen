@@ -12,15 +12,17 @@ FSR4_DRIVER_OVERRIDE_FILENAME = "amdxcffx64.dll"
 VARIANT_EXTRA_FILENAMES = ["amdxc64.dll", FSR4_DRIVER_OVERRIDE_FILENAME]
 """Driver DLLs earlier versions placed for some FSR 4 variants."""
 
-PROXY_DLL_BACKUPS = [
-    "dxgi.dll",
-    "winmm.dll",
-    "dbghelp.dll",
-    "version.dll",
-    "wininet.dll",
-    "winhttp.dll",
-    "OptiScaler.asi",
-]
+PROXY_DLLS = {
+    "dxgi.dll": "Works for most DX12 games. Default.",
+    "winmm.dll": "Use when dxgi.dll conflicts with an existing game file.",
+    "version.dll": "Common fallback; works well with many launchers.",
+    "dbghelp.dll": "Use for debug helper hook paths.",
+    "winhttp.dll": "Use when other DLL names conflict.",
+    "wininet.dll": "Use when other DLL names conflict.",
+    "OptiScaler.asi": "For ASI loaders. Requires an ASI loader already installed in the game.",
+}
+"""The names OptiScaler.dll can be placed under, in the order the panel offers them, and when to pick each."""
+PROXY_DLL_BACKUPS = list(PROXY_DLLS)
 
 VALID_DLL_NAMES = set(PROXY_DLL_BACKUPS)
 DEFAULT_PROXY_DLL = "dxgi.dll"

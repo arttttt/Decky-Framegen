@@ -44,6 +44,14 @@ export const getGameStatus = callable<
   }
 >("get_game_status");
 
+/** What the panel offers for starting a game; the backend builds every launch string. */
+export type LaunchSetup = {
+  default: string;
+  proxies: { name: string; hint: string; launch_options: string }[];
+  wrapper: { patch: string; unpatch: string };
+};
+export const launchSetup = callable<[], LaunchSetup>("launch_setup");
+
 export const patchGame = callable<
   /** current_launch_options is null when Steam didn't say what they are. */
   [appid: string, dll_name: string, current_launch_options: string | null, version_id: string],

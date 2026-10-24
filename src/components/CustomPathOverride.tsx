@@ -41,6 +41,8 @@ interface ManualPatchControlsProps {
   ready: boolean;
   onManualModeChange?: (enabled: boolean) => void;
   dllName: string;
+  /** What to copy as the game's launch options; built by the backend. */
+  launchOptions: string | null;
   patchWith: string;
 }
 
@@ -67,6 +69,7 @@ export const ManualPatchControls = ({
   ready,
   onManualModeChange,
   dllName,
+  launchOptions,
   patchWith,
 }: ManualPatchControlsProps) => {
   const [isEnabled, setEnabled] = useState(false);
@@ -225,14 +228,7 @@ export const ManualPatchControls = ({
 
       {canInteract && (
         <>
-          <SmartClipboardButton
-            command={
-              dllName === "OptiScaler.asi"
-                ? "SteamDeck=0 %command%"
-                : `WINEDLLOVERRIDES="${dllName.replace(".dll", "")}=n,b" SteamDeck=0 %command%`
-            }
-            buttonText="Manual launch cmd"
-          />
+          {launchOptions && <SmartClipboardButton command={launchOptions} buttonText="Manual launch cmd" />}
           <PanelSectionRow>
             <ButtonItem
               layout="below"

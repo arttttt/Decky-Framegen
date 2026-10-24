@@ -1,43 +1,30 @@
 import { SmartClipboardButton } from "./SmartClipboardButton";
+import type { ProxyDllView } from "../presentation/launch";
 
 interface ClipboardCommandsProps {
   pathExists: boolean | null;
-  dllName: string;
+  launch: ProxyDllView;
   manualModeEnabled?: boolean;
   showLaunchOptions?: boolean;
 }
 
 export function ClipboardCommands({
   pathExists,
-  dllName,
+  launch,
   manualModeEnabled = false,
   showLaunchOptions = true,
 }: ClipboardCommandsProps) {
   if (pathExists !== true) return null;
 
-  const launchCmd =
-    dllName === "OptiScaler.asi"
-      ? "SteamDeck=0 %command%"
-      : `WINEDLLOVERRIDES=${dllName.replace(".dll", "")}=n,b SteamDeck=0 %command%`;
-
   return (
     <>
-      {showLaunchOptions ? (
-        <SmartClipboardButton
-          command={launchCmd}
-          buttonText="Copy launch options"
-        />
+      {showLaunchOptions && launch.launchOptions ? (
+        <SmartClipboardButton command={launch.launchOptions} buttonText="Copy launch options" />
       ) : null}
-      {manualModeEnabled ? (
+      {manualModeEnabled && launch.wrapper ? (
         <>
-          <SmartClipboardButton
-            command="~/fgmod/fgmod %command%"
-            buttonText="Copy Patch Command"
-          />
-          <SmartClipboardButton
-            command="~/fgmod/fgmod-uninstaller.sh %command%"
-            buttonText="Copy Unpatch Command"
-          />
+          <SmartClipboardButton command={launch.wrapper.patch} buttonText="Copy Patch Command" />
+          <SmartClipboardButton command={launch.wrapper.unpatch} buttonText="Copy Unpatch Command" />
         </>
       ) : null}
     </>
