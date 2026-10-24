@@ -173,6 +173,9 @@ class Plugin:
 
     # ── Misc ──────────────────────────────────────────────────────────────────
 
+    async def patched_games(self) -> dict:
+        return await asyncio.to_thread(self._patcher().patched_games)
+
     async def get_path_defaults(self) -> dict:
         return self._patcher().path_defaults()
 

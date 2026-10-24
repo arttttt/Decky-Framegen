@@ -231,3 +231,22 @@ export const resetGameSettings = callable<[appid: string], { status: string; mes
 
 /** Writes a game's settings once it has closed; applied is false when it isn't patched or still runs. */
 export const gameClosed = callable<[appid: string], { status: string; applied?: boolean }>("game_closed");
+
+// ── Patched games ────────────────────────────────────────────────────────────
+
+/** A game or directory the plugin patched; appid is "" for a directory patched by path. */
+export type PatchedGame = {
+  directory: string;
+  name: string;
+  appid: string;
+  dll_name: string;
+  dll_present: boolean;
+  version_id: string | null;
+  /** A later build of the game's version channel that is in the library. */
+  newer_version: string | null;
+  patched_at: string | null;
+  record: "ok" | "incomplete" | "older-plugin";
+  own_settings: boolean;
+};
+
+export const patchedGames = callable<[], { status: string; message?: string; games?: PatchedGame[] }>("patched_games");
