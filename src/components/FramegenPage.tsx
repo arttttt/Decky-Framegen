@@ -13,16 +13,17 @@ import { PatchPickers } from "./PatchPickers";
 function AdvancedPage() {
   const { library } = useInstalledLibrary();
   const pickers = usePatchPickers(library);
+  const picked = pickers.forGame(null);
   return (
     <PanelSection>
-      <PatchPickers pickers={pickers} />
+      <PatchPickers pickers={pickers} picked={picked} />
       <ManualPatchControls
-        ready={pickers.ready}
-        dllName={pickers.dllName}
-        launchOptions={pickers.launch.launchOptions}
-        patchWith={pickers.choice.patchWith}
+        ready={picked.patchWith.ready}
+        dllName={picked.patchWith.dllName}
+        launchOptions={picked.launch.launchOptions}
+        patchWith={picked.patchWith.versionId}
       />
-      <ClipboardCommands launch={pickers.launch} manualModeEnabled />
+      <ClipboardCommands launch={picked.launch} manualModeEnabled />
       <OptiScalerWiki />
     </PanelSection>
   );

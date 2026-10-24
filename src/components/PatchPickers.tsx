@@ -1,9 +1,9 @@
 import { DropdownItem, Field, PanelSectionRow } from "@decky/ui";
-import type { PatchPickers as Pickers } from "../hooks/usePatchPickers";
+import type { PatchPickers as Pickers, PickedPatch } from "../hooks/usePatchPickers";
 
 /** The OptiScaler version and the proxy DLL name a patch uses. */
-export function PatchPickers({ pickers }: { pickers: Pickers }) {
-  const { choice, launch } = pickers;
+export function PatchPickers({ pickers, picked }: { pickers: Pickers; picked: PickedPatch }) {
+  const { choice, launch } = picked;
   return (
     <>
       {choice.ready ? (
