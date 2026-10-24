@@ -69,11 +69,11 @@ def test_patching_offers_installed_versions_newest_first():
     stable = library.Installed("stable-0.9.4", library.STABLE, "0.9.4", "20260718", "0.9", "u", "0" * 64, "t")
     nightly = installed_entry()
 
-    offered = [library.choice_json(entry) for entry in library.newest_first([stable, nightly])]
+    offered = [library.choice_json(entry, 5) for entry in library.newest_first([stable, nightly])]
 
     assert offered == [
-        {"id": NEWEST, "version": "10.0.0-pre1", "channel": "nightly", "date": "20261023"},
-        {"id": "stable-0.9.4", "version": "0.9.4", "channel": "stable", "date": "20260718"},
+        {"id": NEWEST, "version": "10.0.0-pre1", "channel": "nightly", "date": "20261023", "size": 5},
+        {"id": "stable-0.9.4", "version": "0.9.4", "channel": "stable", "date": "20260718", "size": 5},
     ]
 
 
@@ -301,6 +301,7 @@ def test_the_plugin_lists_what_games_can_be_patched_with(plugin, fgmod):
 
     assert installed["default"] == STABLE
     assert [version["id"] for version in installed["versions"]] == [NIGHTLY, STABLE]
+    assert installed["installed_bytes"] == sum(version["size"] for version in installed["versions"]) > 0
     write(fgmod / "library" / "settings.json", json.dumps({"default_version": "stable-0.9.1"}).encode())
     assert run(plugin.library_installed())["default"] is None  # a default no longer installed is none
 

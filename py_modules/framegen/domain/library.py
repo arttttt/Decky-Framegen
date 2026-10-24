@@ -253,13 +253,14 @@ def newest_first(installed: list[Installed]) -> list[Installed]:
     return sorted(installed, key=lambda entry: (entry.date, entry.id), reverse=True)
 
 
-def choice_json(installed: Installed) -> dict:
-    """An installed version as patching offers it."""
+def choice_json(installed: Installed, size: int) -> dict:
+    """An installed version as patching offers it and the library lists it; `size` is its bytes on disk."""
     return {
         "id": installed.id,
         "version": installed.version,
         "channel": installed.channel,
         "date": installed.date,
+        "size": size,
     }
 
 

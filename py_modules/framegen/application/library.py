@@ -47,12 +47,15 @@ class Library:
         return library.available(channel, self.list_releases(library.CHANNELS[channel].repository))
 
     def installed(self) -> dict:
-        """The versions games can be patched with, newest first, and the default one new patches use."""
+        """The versions games can be patched with, newest first, the default one new patches use,
+        and what they take on disk."""
         entries = library.newest_first(self.store.installed())
+        sizes = {entry.id: self.store.size(entry.id) for entry in entries}
         default = self.store.default_version()
         return {
             "default": default if any(entry.id == default for entry in entries) else None,
-            "versions": [library.choice_json(entry) for entry in entries],
+            "versions": [library.choice_json(entry, sizes[entry.id]) for entry in entries],
+            "installed_bytes": sum(sizes.values()),
         }
 
     def versions(self, channel: str) -> dict:
