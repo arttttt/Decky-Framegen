@@ -1,172 +1,41 @@
-"""Unit tests for the pure patch/unpatch planner and the rules beside it."""
+"""The rules every plan shares, the unpatch of earlier plugin versions' patches, and the launch options to restore."""
 
-import pytest
-
-from framegen.domain import bundle, marker
+from framegen.domain import marker
 from framegen.domain import patch_plan as plan
-from framegen.domain.patch_plan import CopyFromBundle, DeleteFile, EditIni, MergeTreeFromBundle, Move, RemoveFileOrTree, RemoveTree
+from framegen.domain.patch_plan import Copy, DeleteFile, Move, RemoveFileOrTree, RemoveTree, preserving_existing
 
-BASE_BUNDLE = frozenset(
-    {
-        "OptiScaler.dll",
-        "OptiScaler.ini",
-        "renames/dxgi.dll",
-        "plugins",
-        "D3D12_Optiscaler",
-        bundle.FSR4_UPSCALER_FILENAME,
-        "fsr4-rdna2-3/amd_fidelityfx_upscaler_dx12.dll",
-        *bundle.SUPPORT_FILES,
-    }
-)
+# ── keeping what was in the directory ────────────────────────────────────────
 
 
-def patch(entries=(), *, bundle_files=BASE_BUNDLE, dll="dxgi.dll", variant="rdna23-int8", **facts):
-    game = plan.GameDirectory(frozenset(entries), **facts)
-    return plan.plan_patch(game, bundle_files, plan.PatchRequest(dll, variant))
+def test_a_file_a_copy_would_overwrite_is_backed_up_first():
+    operations = preserving_existing((Copy("x.dll", "x.dll"),), frozenset({"x.dll"}))
+
+    assert operations == (Move("x.dll", "x.dll.b"), Copy("x.dll", "x.dll"))
 
 
-def ops_of(result, kind):
-    return [op for op in result.operations if isinstance(op, kind)]
+def test_a_file_the_plan_would_delete_is_kept_as_a_backup():
+    operations = preserving_existing((DeleteFile("nvngx.dll"),), frozenset({"nvngx.dll"}))
+
+    assert operations == (Move("nvngx.dll", "nvngx.dll.b"),)
 
 
-# ── backups and cleanup ──────────────────────────────────────────────────────
+def test_a_file_with_a_backup_beside_it_keeps_the_old_behaviour_and_a_backup_is_never_deleted():
+    present = frozenset({"version.dll", "version.dll.b", "nvapi64.dll.b"})
 
-
-def test_a_game_shipped_proxy_dll_is_backed_up_before_ours_is_copied():
-    result = patch({"Game.exe", "version.dll"}, dll="dxgi.dll")
-
-    assert Move("version.dll", "version.dll.b") in result.operations
-
-
-def test_a_proxy_next_to_a_manual_optiscaler_install_is_backed_up_not_deleted():
-    # An OptiScaler.ini proves nothing about the game's version.dll (often a mod loader).
-    result = patch({"version.dll", "OptiScaler.ini"})
-
-    assert Move("version.dll", "version.dll.b") in result.operations
-    assert DeleteFile("version.dll") not in result.operations
-
-
-def test_an_existing_backup_is_never_overwritten():
-    result = patch({"version.dll", "version.dll.b"})
-
-    assert Move("version.dll", "version.dll.b") not in result.operations
-    assert DeleteFile("version.dll") in result.operations
-
-
-def test_stale_injectors_and_logs_are_kept_as_backups_not_deleted():
-    # A repatch undoes the previous patch first, so nothing left in the directory is the patch's.
-    result = patch({"nvngx.dll", "OptiScaler.log", "dlss-enabler.dll"})
-
-    assert {Move("nvngx.dll", "nvngx.dll.b"), Move("OptiScaler.log", "OptiScaler.log.b"),
-            Move("dlss-enabler.dll", "dlss-enabler.dll.b")} <= set(result.operations)
-    assert not ops_of(result, DeleteFile)
-
-
-def test_a_backup_left_in_the_directory_is_never_deleted():
-    result = patch({"nvapi64.dll.b"})
-
-    assert not [op for op in result.operations if "nvapi64.dll.b" in str(op)]
-
-
-def test_any_file_a_copy_would_overwrite_is_backed_up_first_even_outside_the_tables():
-    # E.g. a Nukem DLL the user put there by hand.
-    result = patch({"dlssg_to_fsr3_amd_is_better.dll"})
-    reset_ini = plan.plan_patch(
-        plan.GameDirectory(frozenset({"OptiScaler.ini"})), BASE_BUNDLE, plan.PatchRequest("dxgi.dll", "rdna23-int8", True)
+    operations = preserving_existing(
+        (DeleteFile("version.dll"), DeleteFile("nvapi64.dll.b"), Copy("OptiScaler.dll", "version.dll")), present
     )
 
-    backup = Move("dlssg_to_fsr3_amd_is_better.dll", "dlssg_to_fsr3_amd_is_better.dll.b")
-    copy = CopyFromBundle("dlssg_to_fsr3_amd_is_better.dll", "dlssg_to_fsr3_amd_is_better.dll")
-    assert result.operations.index(backup) < result.operations.index(copy)
-    assert reset_ini.operations.index(Move("OptiScaler.ini", "OptiScaler.ini.b")) < reset_ini.operations.index(
-        CopyFromBundle("OptiScaler.ini", "OptiScaler.ini")
+    assert operations == (DeleteFile("version.dll"), Copy("OptiScaler.dll", "version.dll"))
+
+
+def test_files_the_plan_creates_or_moves_are_not_backed_up_again():
+    operations = preserving_existing(
+        (Move("a.dll", "a.dll.b"), Copy("a.dll", "a.dll"), Copy("new.dll", "new.dll")),
+        frozenset({"a.dll"}),
     )
 
-
-def test_game_dlls_the_bundle_replaces_are_backed_up():
-    result = patch({"amd_fidelityfx_dx12.dll", "d3dcompiler_47.dll"})
-
-    assert Move("amd_fidelityfx_dx12.dll", "amd_fidelityfx_dx12.dll.b") in result.operations
-    assert Move("d3dcompiler_47.dll", "d3dcompiler_47.dll.b") in result.operations
-
-
-# ── laying down the bundle ───────────────────────────────────────────────────
-
-
-@pytest.mark.parametrize(
-    ("bundle_files", "variant", "expected"),
-    [
-        (BASE_BUNDLE, "rdna23-int8", "renames/dxgi.dll"),
-        (BASE_BUNDLE - {"renames/dxgi.dll"}, "rdna23-int8", "OptiScaler.dll"),
-        (
-            BASE_BUNDLE | {"fsr4-rdna2-valve-411-pre10/OptiScaler.dll", "fsr4-rdna2-valve-411-pre10/renames/dxgi.dll"},
-            "rdna2-valve-411-pre10",
-            "fsr4-rdna2-valve-411-pre10/renames/dxgi.dll",
-        ),
-        (BASE_BUNDLE | {"fsr4-rdna2-valve-411-pre10/OptiScaler.dll"}, "rdna2-valve-411-pre10", "fsr4-rdna2-valve-411-pre10/OptiScaler.dll"),
-    ],
-)
-def test_the_proxy_dll_comes_from_the_most_specific_injector_available(bundle_files, variant, expected):
-    result = patch(bundle_files=bundle_files, variant=variant)
-
-    assert CopyFromBundle(expected, "dxgi.dll") in result.operations
-
-
-def test_the_users_ini_is_kept_and_edited_otherwise_the_bundle_ini_is_copied():
-    kept = patch({"OptiScaler.ini"})
-    fresh = patch()
-
-    assert CopyFromBundle("OptiScaler.ini", "OptiScaler.ini") not in kept.operations
-    assert CopyFromBundle("OptiScaler.ini", "OptiScaler.ini") in fresh.operations
-    assert len(ops_of(kept, EditIni)) == len(ops_of(fresh, EditIni)) == 3
-
-
-def test_no_ini_edits_when_neither_the_game_nor_the_bundle_has_an_ini():
-    assert not ops_of(patch(bundle_files=BASE_BUNDLE - {"OptiScaler.ini"}), EditIni)
-
-
-def test_variant_overrides_are_written_and_leaving_the_valve_variant_resets_its_keys():
-    def overrides_after(variant, previous):
-        edit = ops_of(patch({"OptiScaler.ini"}, variant=variant, previous_variant=previous), EditIni)[-1]
-        return edit.transform("")
-
-    assert "Fsr4ForceModel=2" in overrides_after("rdna2-valve-411-pre10", "")
-    assert "Fsr4ForceModel=auto" in overrides_after("rdna23-int8", "rdna2-valve-411-pre10")
-    assert "LoadCustomAmdxc64OnRdna2=false" in overrides_after("rdna23-int8", "rdna2-valve-411-pre10")
-    assert overrides_after("rdna23-int8", "rdna4-native") == ""
-
-
-def test_support_files_upscaler_and_variant_extras_are_copied():
-    bundle_files = BASE_BUNDLE | {
-        "fsr4-rdna3-4-official-411/amd_fidelityfx_upscaler_dx12.dll",
-        "fsr4-rdna3-4-official-411/amdxcffx64.dll",
-    }
-
-    result = patch(bundle_files=bundle_files, variant="rdna34-official-411")
-
-    assert {MergeTreeFromBundle("plugins"), MergeTreeFromBundle("D3D12_Optiscaler")} <= set(result.operations)
-    assert CopyFromBundle("libxess.dll", "libxess.dll") in result.operations
-    assert result.upscaler_source == "fsr4-rdna3-4-official-411/amd_fidelityfx_upscaler_dx12.dll"
-    assert CopyFromBundle("fsr4-rdna3-4-official-411/amdxcffx64.dll", "amdxcffx64.dll") in result.operations
-
-
-def test_the_active_upscaler_is_used_when_the_variant_copy_is_missing():
-    assert patch(variant="rdna4-native").upscaler_source == bundle.FSR4_UPSCALER_FILENAME
-
-
-@pytest.mark.parametrize(
-    ("missing", "message"),
-    [
-        ({"OptiScaler.dll"}, "OptiScaler.dll not found in ~/fgmod. Reinstall OptiScaler."),
-        (
-            {bundle.FSR4_UPSCALER_FILENAME, "fsr4-rdna2-3/amd_fidelityfx_upscaler_dx12.dll"},
-            "FSR4 upscaler variant not found for rdna23-int8. Reinstall OptiScaler.",
-        ),
-    ],
-)
-def test_an_incomplete_bundle_is_refused_before_anything_changes(missing, message):
-    with pytest.raises(plan.PlanError, match=message.replace(".", r"\.")):
-        patch(bundle_files=BASE_BUNDLE - missing)
+    assert operations == (Move("a.dll", "a.dll.b"), Copy("a.dll", "a.dll"), Copy("new.dll", "new.dll"))
 
 
 # ── unpatch ──────────────────────────────────────────────────────────────────
@@ -227,29 +96,7 @@ def test_unpatch_of_a_clean_directory_does_nothing():
     assert plan.plan_unpatch(frozenset({"Game.exe", "data"}), frozenset()) == ()
 
 
-# ── variant detection and launch options to restore ──────────────────────────
-
-
-def test_detect_variant_requires_every_extra_file_to_match():
-    official = bundle.FSR4_VARIANTS["rdna34-official-411"]
-    extra = official["extra_files"][0]
-
-    assert bundle.detect_variant(official["sha256"], {extra["name"]: extra["sha256"]}) == "rdna34-official-411"
-    # Same upscaler without the driver override: the plain SDK variant.
-    assert bundle.detect_variant(official["sha256"], {}) == "rdna4-native"
-    assert bundle.detect_variant(official["sha256"], {extra["name"]: "0" * 64}) == "rdna4-native"
-    assert bundle.detect_variant("f" * 64, {}) is None
-
-
-def test_detect_variant_rejects_a_partial_match_of_a_multi_file_variant():
-    valve = bundle.FSR4_VARIANTS["rdna2-valve-411-pre10"]
-    first, second = valve["extra_files"]
-
-    assert bundle.detect_variant(valve["sha256"], {first["name"]: first["sha256"], second["name"]: second["sha256"]}) == (
-        "rdna2-valve-411-pre10"
-    )
-    assert bundle.detect_variant(valve["sha256"], {first["name"]: first["sha256"]}) != "rdna2-valve-411-pre10"
-    assert bundle.detect_variant(None, {}) is None
+# ── launch options to restore ────────────────────────────────────────────────
 
 
 def test_original_launch_options_prefer_the_stored_user_options_and_never_keep_ours():
@@ -261,13 +108,3 @@ def test_original_launch_options_prefer_the_stored_user_options_and_never_keep_o
     # Stored options the plugin wrote are not the user's; the current ones are.
     assert marker.original_launch_options("mangohud %command%", ours) == "mangohud %command%"
     assert marker.original_launch_options("", "") == ""
-
-
-@pytest.mark.parametrize("name", ["libxess.dll", "libxess_dx11.dll", "libxess_fg.dll", "libxell.dll"])
-def test_a_game_shipped_xess_runtime_is_backed_up_and_restored(name):
-    patched = patch({name})
-    unpatch = plan.plan_unpatch(frozenset({name, f"{name}.b"}), frozenset())
-
-    assert Move(name, f"{name}.b") in patched.operations
-    assert CopyFromBundle(name, name) in patched.operations
-    assert unpatch[-1] == Move(f"{name}.b", name)

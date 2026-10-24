@@ -1,32 +1,6 @@
 from framegen.domain import ini
 
 
-def test_apply_bundle_defaults_replaces_only_auto_values():
-    content = "FGInput=auto\nFGOutput = auto\nFsr4Update=auto\nLoadAsiPlugins=false\nUseHQFont=auto\nOther=auto\n"
-
-    assert ini.apply_bundle_defaults(content) == (
-        "FGInput=nukems\nFGOutput=nukems\nFsr4Update=true\nLoadAsiPlugins=false\nUseHQFont=false\nOther=auto\n"
-    )
-
-
-def test_migrate_fgtype_splits_into_input_and_output():
-    assert ini.migrate_fgtype("[FrameGen]\nFGType=nukems\nX=1\n") == (
-        "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\nX=1\n"
-    )
-
-
-def test_migrate_fgtype_drops_stale_fgtype_when_fginput_exists():
-    assert ini.migrate_fgtype("FGType=optifg\nFGInput=nukems\n") == "FGInput=nukems\n"
-
-
-def test_migrate_fgtype_is_a_no_op_without_fgtype_and_idempotent():
-    content = "[FrameGen]\nFGInput=auto\n"
-
-    assert ini.migrate_fgtype(content) == content
-    once = ini.migrate_fgtype("FGType=xefg\n")
-    assert ini.migrate_fgtype(once) == once
-
-
 def test_split_override_key():
     assert ini.split_override_key(" FSR . Fsr4ForceModel ") == ("FSR", "Fsr4ForceModel")
     assert ini.split_override_key("Fsr4ForceModel") == (None, "Fsr4ForceModel")

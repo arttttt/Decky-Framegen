@@ -40,7 +40,6 @@ interface ManualPatchControlsProps {
   bundleInstalled: boolean;
   onManualModeChange?: (enabled: boolean) => void;
   dllName: string;
-  fsr4Variant: string;
 }
 
 interface PickerState {
@@ -66,7 +65,6 @@ export const ManualPatchControls = ({
   bundleInstalled,
   onManualModeChange,
   dllName,
-  fsr4Variant,
 }: ManualPatchControlsProps) => {
   const [isEnabled, setEnabled] = useState(false);
   const [defaults, setDefaults] = useState<PathDefaults>(INITIAL_DEFAULTS);
@@ -177,7 +175,7 @@ export const ManualPatchControls = ({
       try {
         const response =
           action === "patch"
-            ? await runManualPatch(selectedPath, dllName, fsr4Variant)
+            ? await runManualPatch(selectedPath, dllName, "")
             : await runManualUnpatch(selectedPath);
         setOperationResult(response ?? { status: "error", message: "No response from backend." });
       } catch (err) {
@@ -189,7 +187,7 @@ export const ManualPatchControls = ({
         setBusy(false);
       }
     },
-    [selectedPath, dllName, fsr4Variant]
+    [selectedPath, dllName]
   );
 
   const handleToggle = (value: boolean) => {

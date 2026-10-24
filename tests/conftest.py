@@ -4,11 +4,11 @@
 module is registered before `main` is imported; each test then points its
 paths at a private temporary directory.
 
-The fixtures build a fake world on disk: an installed `~/fgmod` bundle, game
-directories and a Steam library. Bundle files are small placeholder blobs —
-the plugin tells its own files apart from foreign ones by content and hash,
-so size does not matter. Variant hashes in `main.FSR4_VARIANTS` are swapped
-for the hashes of those blobs so variant detection behaves as on a device.
+The fixtures build a fake world on disk: a `~/fgmod` with an OptiScaler library
+(a 0.9 stable version as the default and a 10 nightly one, laid out as their real
+archives are), game directories and a Steam library. Version files are small
+placeholder blobs — the plugin records and compares them by hash, so size does
+not matter.
 """
 
 from __future__ import annotations
@@ -23,7 +23,6 @@ import shutil
 import sys
 import threading
 import types
-import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -101,30 +100,6 @@ def snapshot(root: Path) -> dict[str, str | None]:
     return state
 
 
-# Blob names for files whose content must be shared or told apart.
-NATIVE_UPSCALER = "native amd_fidelityfx_upscaler_dx12.dll"
-INT8_UPSCALER = "int8 amd_fidelityfx_upscaler_dx12.dll"
-PRE10_INJECTOR = "pre10 OptiScaler.dll"
-EXTRA_FILE_BLOBS = {
-    ("rdna34-official-411", "amdxcffx64.dll"): "official amdxcffx64.dll",
-    ("rdna2-valve-411-pre10", "amdxcffx64.dll"): "valve amdxcffx64.dll",
-    ("rdna2-valve-411-pre10", "amdxc64.dll"): "valve amdxc64.dll",
-}
-
-
-@pytest.fixture
-def fake_variants(monkeypatch) -> dict:
-    """The FSR4 variant table with hashes pointed at the placeholder blobs (edited in place, undone after the test)."""
-    for variant_id, variant in bundle.FSR4_VARIANTS.items():
-        upscaler = NATIVE_UPSCALER if variant["uses_archive_native"] else INT8_UPSCALER
-        monkeypatch.setitem(variant, "sha256", sha256(blob(upscaler)))
-        for extra in variant.get("extra_files", []):
-            monkeypatch.setitem(extra, "sha256", sha256(blob(EXTRA_FILE_BLOBS[(variant_id, extra["name"])])))
-        if variant.get("injector"):
-            monkeypatch.setitem(variant["injector"], "sha256", sha256(blob(PRE10_INJECTOR)))
-    return bundle.FSR4_VARIANTS
-
-
 @pytest.fixture
 def home(tmp_path, monkeypatch) -> Path:
     """A private home directory wired into the fake `decky` module."""
@@ -141,21 +116,55 @@ def plugin(home) -> main.Plugin:
     return main.Plugin()
 
 
-@pytest.fixture
-def fgmod(home, fake_variants) -> Path:
-    """An installed `~/fgmod` bundle, laid out as `extract_static_optiscaler` leaves it.
+# The files of library versions, as their real archives lay them out (blob labels name the source).
+STABLE_FILES = {
+    "OptiScaler.dll": "OptiScaler.dll",
+    "OptiScaler.ini": None,
+    "amd_fidelityfx_dx12.dll": "amd_fidelityfx_dx12.dll",
+    "amd_fidelityfx_upscaler_dx12.dll": "amd_fidelityfx_upscaler_dx12.dll",
+    "dlssg_to_fsr3_amd_is_better.dll": "dlssg_to_fsr3_amd_is_better.dll",
+    "fakenvapi.dll": "fakenvapi.dll",
+    "fakenvapi.ini": "fakenvapi.ini",
+    "libxess.dll": "libxess.dll",
+    "libxess_dx11.dll": "libxess_dx11.dll",
+    "D3D12_Optiscaler/D3D12Core.dll": "D3D12Core.dll",
+    "Licenses/XeSS_LICENSE.txt": "XeSS_LICENSE.txt",
+    "!!.txt": "readme",
+    "setup_linux.sh": "setup_linux.sh",
+}
+NIGHTLY_FILES = {
+    "OptiScaler.dll": "v10 OptiScaler.dll",
+    "OptiScaler.ini": None,
+    "OptiScaler/amd_fidelityfx_upscaler_dx12.dll": "v10 amd_fidelityfx_upscaler_dx12.dll",
+    "OptiScaler/libxess.dll": "v10 libxess.dll",
+    "OptiScaler/D3D12_OptiScaler/D3D12Core.dll": "v10 D3D12Core.dll",
+    "OptiScaler/Streamlined_fetcher_windows.bat": "fetcher",
+    "setup_windows.bat": "setup_windows.bat",
+}
+STABLE_INI = "[FrameGen]\nFGInput=auto\nFGOutput=auto\n\n[FSR]\nFsr4Update=auto\nFsr4ForceEnableInt8=auto\n\n[Menu]\nUseHQFont=auto\n"
+NIGHTLY_INI = "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=auto\nFsr4Model=auto\n\n[Menu]\nUseHQFont=auto\n"
+STABLE, NIGHTLY = "stable-0.9.4", "nightly-20261023"
 
-    The default variant (`rdna23-int8`) is active and has no extra files.
-    """
+
+def install_version(fgmod: Path, version_id: str, family: str, files: dict[str, str | None], ini: str) -> Path:
+    """A version in ~/fgmod/library as the library service leaves it."""
+    from framegen.domain import library
+
+    root = fgmod / "library" / "versions" / version_id
+    for rel, label in files.items():
+        write(root / "files" / rel, ini.encode() if label is None else blob(label))
+    channel, _, rest = version_id.partition("-")
+    entry = library.Installed(version_id, channel, rest if channel == "stable" else "10.0.0-pre1",
+                              "20260718" if channel == "stable" else rest, family, "https://x", "0" * 64, "2026-10-24")
+    write(root / "entry.json", json.dumps(library.entry_json(entry)).encode())
+    return root
+
+
+@pytest.fixture
+def fgmod(home) -> Path:
+    """~/fgmod with the plugin's core and launch scripts, and a library holding OptiScaler 0.9.4
+    (the default) and a v10 nightly."""
     root = home / "fgmod"
-    write(root / "OptiScaler.dll", blob("OptiScaler.dll"))
-    write(root / "OptiScaler.ini", b"[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n")
-    for name in bundle.PROXY_DLL_BACKUPS:
-        write(root / "renames" / name, blob("OptiScaler.dll"))
-    for name in bundle.SUPPORT_FILES:
-        write(root / name, blob(name))
-    write(root / "D3D12_Optiscaler" / "D3D12Core.dll", blob("D3D12Core.dll"))
-    write(root / "plugins" / "OptiPatcher.asi", blob("OptiPatcher.asi"))
     shutil.copytree(
         REPO_ROOT / "py_modules" / bundle.CORE_PACKAGE,
         root / bundle.CORE_PACKAGE,
@@ -163,25 +172,9 @@ def fgmod(home, fake_variants) -> Path:
     )
     for name in ("fgmod", "fgmod-uninstaller.sh", "update-optiscaler-config.py"):
         write(root / name, blob(name))
-
-    for variant_id, variant in fake_variants.items():
-        variant_dir = root / variant["dir_name"]
-        upscaler = NATIVE_UPSCALER if variant["uses_archive_native"] else INT8_UPSCALER
-        write(variant_dir / bundle.FSR4_UPSCALER_FILENAME, blob(upscaler))
-        for extra in variant.get("extra_files", []):
-            write(variant_dir / extra["name"], blob(EXTRA_FILE_BLOBS[(variant_id, extra["name"])]))
-        if variant.get("injector"):
-            write(variant_dir / variant["injector"]["name"], blob(PRE10_INJECTOR))
-            for name in bundle.PROXY_DLL_BACKUPS:
-                write(variant_dir / "renames" / name, blob(PRE10_INJECTOR))
-
-    write(root / bundle.FSR4_UPSCALER_FILENAME, blob(INT8_UPSCALER))
-    manifest = {
-        "schema_version": 1,
-        "optiscaler": {"version": "test-0.9.4"},
-        "selected_default_variant": bundle.DEFAULT_FSR4_VARIANT,
-    }
-    write(root / bundle.INSTALL_MANIFEST_FILENAME, json.dumps(manifest).encode())
+    install_version(root, STABLE, "0.9", STABLE_FILES, STABLE_INI)
+    install_version(root, NIGHTLY, "10", NIGHTLY_FILES, NIGHTLY_INI)
+    write(root / "library" / "settings.json", json.dumps({"default_version": STABLE}).encode())
     return root
 
 
@@ -228,7 +221,7 @@ def steam_library(home) -> SteamLibrary:
     return SteamLibrary(steamapps=steamapps)
 
 
-# ── Installer world ──────────────────────────────────────────────────────────
+# ── 7-Zip ────────────────────────────────────────────────────────────────────
 
 FAKE_7Z = f"""#!{sys.executable}
 import sys, zipfile
@@ -239,58 +232,7 @@ archive, members = args[3], args[4:]
 with zipfile.ZipFile(archive) as zf:
     zf.extractall(out_dir, members or None)
 """
-
-ARCHIVE_INI = (
-    "[FrameGen]\nEnabled=auto\nFGInput=auto\nFGOutput=auto\n\n"
-    "[FSR]\nFsr4Update=auto\n\n[Plugins]\nLoadAsiPlugins=auto\n\n[Menu]\nUseHQFont=auto\n"
-)
-
-# Bundled asset table entry → placeholder blob it is staged as.
-ASSET_BLOBS = {
-    "FSR4_INT8_ASSET": INT8_UPSCALER,
-    "FSR4_OFFICIAL_411_ASSET": "official amdxcffx64.dll",
-    "FSR4_VALVE_411_ASSET": "valve amdxcffx64.dll",
-    "AMDXC64_RDNA2_ASSET": "valve amdxc64.dll",
-    "OPTISCALER_PRE10_ASSET": PRE10_INJECTOR,
-    "OPTIPATCHER_ASSET": "OptiPatcher.asi",
-}
-
-
-@pytest.fixture
-def release_assets(home, fake_variants, tmp_path, monkeypatch) -> Path:
-    """The plugin directory as Decky installs it: bin/ with every bundled asset, assets/ with scripts.
-
-    The installer verifies assets by sha256 and unpacks the OptiScaler archive
-    with the bundled 7-Zip, so the asset table is pointed at the placeholders' hashes
-    and a stand-in tools/7zzs unpacks a zip with the same command line.
-    """
-    plugin_dir = tmp_path / "plugin"
-    bin_dir = plugin_dir / "bin"
-
-    archive = bin_dir / bundle.OPTISCALER_ARCHIVE_ASSET["name"]
-    archive.parent.mkdir(parents=True)
-    members = {
-        "OptiScaler.dll": blob("OptiScaler.dll"),
-        "OptiScaler.ini": ARCHIVE_INI.encode(),
-        **{name: blob(name) for name in bundle.SUPPORT_FILES},
-        bundle.FSR4_UPSCALER_FILENAME: blob(NATIVE_UPSCALER),
-        "D3D12_Optiscaler/D3D12Core.dll": blob("D3D12Core.dll"),
-    }
-    with zipfile.ZipFile(archive, "w") as zf:
-        for name, data in members.items():
-            # A fixed timestamp keeps the archive, and so its hash, identical across runs.
-            zf.writestr(zipfile.ZipInfo(name, date_time=(2026, 1, 1, 0, 0, 0)), data)
-    monkeypatch.setitem(bundle.OPTISCALER_ARCHIVE_ASSET, "sha256", sha256(archive.read_bytes()))
-
-    for table_name, blob_name in ASSET_BLOBS.items():
-        asset = getattr(bundle, table_name)
-        write(bin_dir / asset["name"], blob(blob_name))
-        monkeypatch.setitem(asset, "sha256", sha256(blob(blob_name)))
-
-    shutil.copytree(REPO_ROOT / "defaults" / "assets", plugin_dir / "assets")
-
-    install_tools(plugin_dir / "tools", {"7zzs": FAKE_7Z})
-    return plugin_dir
+"""A stand-in for tools/7zzs: it unpacks zips with 7-Zip's command line."""
 
 
 # ── GitHub ───────────────────────────────────────────────────────────────────

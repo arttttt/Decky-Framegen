@@ -15,9 +15,8 @@ from . import bundle
 from .patch_plan import (
     BACKUP_SUFFIX,
     INI_FILENAME,
-    CopyFromBundle,
+    Copy,
     DeleteFile,
-    MergeTreeFromBundle,
     Move,
     Operation,
 )
@@ -60,7 +59,7 @@ def record(
     """The record of a patch plan, made before it runs.
 
     `entries` is the game directory before the patch; `bundle_hashes` maps every bundle file the
-    plan copies (directories expanded to their files) to its sha256. `carried_over` names files a
+    plan copies to its sha256. `carried_over` names files a
     previous patch placed that this one keeps as they are (the user's OptiScaler.ini settings).
     """
     placed: dict[str, Placed] = {path: Placed(path, None) for path in sorted(carried_over)}
@@ -69,13 +68,9 @@ def record(
         match operation:
             case Move(source, destination) if destination == source + BACKUP_SUFFIX:
                 backups.append(Backup(source, destination))
-            case CopyFromBundle(source, destination):
+            case Copy(source, destination):
                 sha = None if destination == INI_FILENAME else bundle_hashes[source]
                 placed[destination] = Placed(destination, sha)
-            case MergeTreeFromBundle(name):
-                for path, sha in sorted(bundle_hashes.items()):
-                    if path.startswith(f"{name}/"):
-                        placed[path] = Placed(path, sha)
     created = sorted(
         {
             str(parent)

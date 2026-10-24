@@ -10,7 +10,6 @@ from pathlib import Path
 import decky
 
 from framegen.application.dev_updates import DevUpdates, Report
-from framegen.application.installer import Installer
 from framegen.application.library import Library
 from framegen.application.patcher import Patcher
 from framegen.domain import bundle
@@ -41,9 +40,6 @@ class Plugin:
     def _home_path(self) -> Path:
         return Path(str(decky.HOME))
 
-    def _installer(self) -> Installer:
-        return Installer(self._home_path(), Path(decky.DECKY_PLUGIN_DIR))
-
     def _patcher(self) -> Patcher:
         return Patcher(self._home_path())
 
@@ -56,19 +52,11 @@ class Plugin:
             report,
         )
 
-    # ── OptiScaler bundle ─────────────────────────────────────────────────────
-
-    async def run_install_fgmod(self, selected_default_variant: str = bundle.DEFAULT_FSR4_VARIANT) -> dict:
-        return self._installer().install(selected_default_variant)
-
-    async def run_uninstall_fgmod(self) -> dict:
-        return self._installer().uninstall()
-
-    async def set_default_fsr4_variant(self, selected_default_variant: str = bundle.DEFAULT_FSR4_VARIANT) -> dict:
-        return self._installer().switch_default(selected_default_variant)
+    # ── OptiScaler ────────────────────────────────────────────────────────────
 
     async def check_fgmod_path(self) -> dict:
-        return self._installer().status()
+        """Whether games can be patched: a default OptiScaler version is in the library."""
+        return self._library().status()
 
     # ── Game patching ─────────────────────────────────────────────────────────
 
@@ -79,9 +67,10 @@ class Plugin:
         self,
         directory: str,
         dll_name: str = bundle.DEFAULT_PROXY_DLL,
-        fsr4_variant: str = bundle.DEFAULT_FSR4_VARIANT,
+        fsr4_variant: str = "",
+        version_id: str = "",
     ) -> dict:
-        return self._patcher().patch_user_directory(directory, dll_name, fsr4_variant)
+        return self._patcher().patch_user_directory(directory, dll_name, fsr4_variant, version_id or None)
 
     async def manual_unpatch_directory(self, directory: str) -> dict:
         return self._patcher().unpatch_user_directory(directory)
@@ -94,9 +83,10 @@ class Plugin:
         appid: str,
         dll_name: str = bundle.DEFAULT_PROXY_DLL,
         current_launch_options: str = "",
-        fsr4_variant: str = bundle.DEFAULT_FSR4_VARIANT,
+        fsr4_variant: str = "",
+        version_id: str = "",
     ) -> dict:
-        return self._patcher().patch_game(appid, dll_name, current_launch_options, fsr4_variant)
+        return self._patcher().patch_game(appid, dll_name, current_launch_options, fsr4_variant, version_id or None)
 
     async def unpatch_game(self, appid: str) -> dict:
         return self._patcher().unpatch_game(appid)

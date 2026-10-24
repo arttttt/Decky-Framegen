@@ -53,7 +53,7 @@ def tools(tmp_path) -> Path:
 
 @pytest.fixture
 def wrapper_fgmod(fgmod) -> Path:
-    """The fake bundle with the real launcher scripts installed, as the installer does."""
+    """~/fgmod with the real launch scripts in it, as installing a library version leaves it."""
     for installed, source in (
         ("fgmod", "fgmod.sh"),
         ("fgmod-uninstaller.sh", "fgmod-uninstaller.sh"),
@@ -145,18 +145,30 @@ def test_game_shipped_files_across_patch_and_uninstall(wrapper, tmp_path):
     )
 
 
-def test_variant_from_env_and_repatch_on_every_launch(wrapper, tmp_path):
+def test_version_and_variant_from_env_and_repatch_on_every_launch(wrapper, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Variant Game")
 
-    first = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_FSR4_VARIANT": "rdna2-valve-411-pre10"})
-    after_valve = describe_tree(game)
-    second = wrapper.run("fgmod", str(game / "Game.exe"))  # manifest default: rdna23-int8
+    first = wrapper.run(
+        "fgmod", str(game / "Game.exe"), env={"FGMOD_VERSION": "nightly-20261023", "FGMOD_FSR4_VARIANT": "int8"}
+    )
+    after_nightly = describe_tree(game)
+    second = wrapper.run("fgmod", str(game / "Game.exe"))  # the library's default version and variant
 
     scenario(
         "wrapper_variant_and_repatch",
         game,
-        [("patch valve", {**first, "tree": after_valve}), ("patch default", second)],
+        [("patch nightly int8", {**first, "tree": after_nightly}), ("patch default", second)],
     )
+
+
+def test_a_version_missing_from_the_library_is_an_error_not_a_fallback(wrapper, tmp_path):
+    game = make_game_dir(tmp_path / "games" / "Missing Version Game")
+
+    result = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_VERSION": "nightly-20260101"})
+
+    assert result == {"exit_code": 1}
+    assert "OptiScaler nightly-20260101 is not in the library." in (tmp_path / "wrapper.log").read_text()
+    assert sorted(p.name for p in game.iterdir()) == ["Game.exe"]
 
 
 def test_existing_ini_is_migrated_and_env_overrides_applied(wrapper, tmp_path):
@@ -208,17 +220,18 @@ def test_steams_install_path_is_the_fallback_and_separators_are_dropped(wrapper,
     scenario("wrapper_steam_install_path_fallback", game, [("launch", launched)])
 
 
-def test_a_game_proxy_identical_to_ours_and_other_variants(wrapper, fgmod, tmp_path):
-    game = make_game_dir(tmp_path / "games" / "Proxy Game", {"dxgi.dll": (fgmod / "renames" / "dxgi.dll").read_bytes()})
+def test_a_game_proxy_identical_to_ours_and_another_variant(wrapper, fgmod, tmp_path):
+    ours = (fgmod / "library" / "versions" / "stable-0.9.4" / "files" / "OptiScaler.dll").read_bytes()
+    game = make_game_dir(tmp_path / "games" / "Proxy Game", {"dxgi.dll": ours})
 
-    native = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_FSR4_VARIANT": "rdna4-native"})
-    after_native = describe_tree(game)
-    override = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_FSR4_VARIANT": "rdna34-official-411"})
+    sdk = wrapper.run("fgmod", str(game / "Game.exe"))
+    after_sdk = describe_tree(game)
+    forced = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_FSR4_VARIANT": "sdk-int8"})
 
     scenario(
         "wrapper_identical_proxy_and_variants",
         game,
-        [("patch rdna4-native", {**native, "tree": after_native}), ("patch rdna34-official-411", override)],
+        [("patch sdk", {**sdk, "tree": after_sdk}), ("patch sdk-int8", forced)],
     )
 
 
@@ -251,7 +264,7 @@ def test_uninstaller_refuses_to_run_on_the_bundle_itself(wrapper):
     result = wrapper.run("fgmod-uninstaller.sh", str(wrapper.fgmod / "Game.exe"))
 
     assert result["exit_code"] == 1
-    assert (wrapper.fgmod / "OptiScaler.dll").exists()
+    assert (wrapper.fgmod / "library" / "versions").is_dir()
 
 
 def test_uninstaller_launch_mode_starts_the_game(wrapper, tmp_path):
@@ -271,8 +284,9 @@ def test_the_wrapper_and_the_plugin_patch_a_game_identically(wrapper, plugin, tm
     by_wrapper = make_game_dir(tmp_path / "games" / "A" / "Game", shipped)
     by_plugin = make_game_dir(tmp_path / "games" / "B" / "Game", shipped)
 
-    wrapper.run("fgmod", str(by_wrapper / "Game.exe"), env={"DLL": "winmm.dll", "FGMOD_FSR4_VARIANT": "rdna4-native"})
-    run(plugin.manual_patch_directory(str(by_plugin), "winmm.dll", "rdna4-native"))
+    env = {"DLL": "winmm.dll", "FGMOD_VERSION": "nightly-20261023", "FGMOD_FSR4_VARIANT": "int8-lite"}
+    wrapper.run("fgmod", str(by_wrapper / "Game.exe"), env=env)
+    run(plugin.manual_patch_directory(str(by_plugin), "winmm.dll", "int8-lite", "nightly-20261023"))
 
     assert describe_tree(by_wrapper) == describe_tree(by_plugin)
 

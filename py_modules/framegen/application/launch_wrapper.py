@@ -44,9 +44,13 @@ class LaunchWrapper:
         log.info(f"Target directory: {directory}")
         return directory
 
-    def patch(self, command: list[str], dll_name: str, fsr4_variant: str, reset_ini: bool = False) -> Path:
+    def patch(
+        self, command: list[str], dll_name: str, fsr4_variant: str, version_id: str = "", reset_ini: bool = False
+    ) -> Path:
         directory = self.locate(command)
-        result = self.patcher.patch_directory(directory, dll_name, fsr4_variant, reset_ini=reset_ini)
+        result = self.patcher.patch_directory(
+            directory, dll_name, fsr4_variant, version_id=version_id or None, reset_ini=reset_ini
+        )
         if result["status"] != "success":
             raise WrapperError(result["message"])
         return directory

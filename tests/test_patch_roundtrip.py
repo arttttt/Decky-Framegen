@@ -5,23 +5,19 @@ import asyncio
 from conftest import snapshot
 
 
-def test_fgmod_fixture_is_a_complete_install(plugin, fgmod):
-    # Guards the harness itself: if the fixture drifts from the real bundle
-    # layout, every other test would be exercising a broken install.
-    info = asyncio.run(plugin.check_fgmod_path())
-
-    assert info["exists"] is True
-    assert info["selected_fsr4_variant"] == "rdna23-int8"
+def test_the_fixture_has_a_default_optiscaler_version(plugin, fgmod):
+    # Guards the harness itself: every other test patches with this library.
+    assert asyncio.run(plugin.check_fgmod_path()) == {"exists": True, "version": "stable-0.9.4"}
 
 
 def test_manual_patch_then_unpatch_restores_clean_game_dir(plugin, fgmod, game_dir):
     before = snapshot(game_dir)
 
-    patched = asyncio.run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", "rdna23-int8"))
+    patched = asyncio.run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", ""))
     assert patched["status"] == "success", patched
-    assert (game_dir / "dxgi.dll").read_bytes() == (fgmod / "renames" / "dxgi.dll").read_bytes()
+    version_files = fgmod / "library" / "versions" / "stable-0.9.4" / "files"
+    assert (game_dir / "dxgi.dll").read_bytes() == (version_files / "OptiScaler.dll").read_bytes()
     assert (game_dir / "OptiScaler.ini").exists()
-    assert (game_dir / "plugins" / "OptiPatcher.asi").exists()
 
     unpatched = asyncio.run(plugin.manual_unpatch_directory(str(game_dir)))
     assert unpatched["status"] == "success", unpatched
@@ -33,14 +29,14 @@ def test_steam_patch_then_unpatch_restores_game_and_launch_options(plugin, fgmod
     before = snapshot(game_root)
     user_options = "mangohud %command%"
 
-    patched = asyncio.run(plugin.patch_game("1234", "dxgi.dll", user_options, "rdna23-int8"))
+    patched = asyncio.run(plugin.patch_game("1234", "dxgi.dll", user_options, ""))
     assert patched["status"] == "success", patched
     assert patched["target_dir"] == str(game_root)
     assert patched["launch_options"] == "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%"
 
     status = asyncio.run(plugin.get_game_status("1234"))
     assert status["patched"] is True
-    assert status["fsr4_variant"] == "rdna23-int8"
+    assert (status["optiscaler_version"], status["fsr4_variant"]) == ("stable-0.9.4", "sdk")
 
     unpatched = asyncio.run(plugin.unpatch_game("1234"))
     assert unpatched["status"] == "success", unpatched

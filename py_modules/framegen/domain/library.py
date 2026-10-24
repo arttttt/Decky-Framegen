@@ -55,22 +55,72 @@ CHANNELS = {
 
 
 @dataclass(frozen=True)
+class Variant:
+    """A way to run FSR 4 with a version: OptiScaler.ini settings, nothing more."""
+
+    label: str
+    ini: dict[str, str]
+    """`Section.Key` → value."""
+
+
+@dataclass(frozen=True)
 class Family:
-    """How the versions of one OptiScaler generation are laid out."""
+    """One OptiScaler generation: what its archive must hold and how the plugin configures it.
+
+    A version's archive is already laid out as the game needs it (0.9 keeps everything next to
+    OptiScaler.dll, 10 puts the support files in an OptiScaler/ subfolder), so placing it is the
+    same for every family.
+    """
 
     id: str
-    support_dir: str
-    """Where the files next to OptiScaler.dll go in a game: "" for the game directory itself."""
     required: frozenset[str]
     """Files an archive of this family must contain, or it is not added to the library."""
+    ini_defaults: dict[str, str]
+    """Settings a freshly placed OptiScaler.ini gets (`Section.Key` → value)."""
+    variants: dict[str, Variant]
+    """FSR 4 variants by id, the default first."""
+
+    @property
+    def default_variant(self) -> str:
+        return next(iter(self.variants))
+
+    def resolve_variant(self, requested: str | None) -> str:
+        """The variant to use: the one asked for when this family has it, else its default."""
+        return requested if requested in self.variants else self.default_variant
+
+    def other_variant_keys(self, variant: str) -> set[str]:
+        """Keys the other variants set and `variant` does not: switching to it puts them back to auto,
+        so a kept OptiScaler.ini keeps nothing of the previous variant."""
+        chosen = self.variants[variant].ini
+        return {key for each in self.variants.values() for key in each.ini if key not in chosen}
 
 
 FAMILIES = {
-    "0.9": Family("0.9", "", frozenset({"OptiScaler.dll", "OptiScaler.ini", "amd_fidelityfx_upscaler_dx12.dll"})),
+    "0.9": Family(
+        "0.9",
+        frozenset({"OptiScaler.dll", "OptiScaler.ini", "amd_fidelityfx_upscaler_dx12.dll"}),
+        {
+            # Nukem's frame generation drives both sides by default.
+            "FrameGen.FGInput": "nukems",
+            "FrameGen.FGOutput": "nukems",
+            "FSR.Fsr4Update": "true",
+            # The HQ font's auto mode asserts on Proton when its font file is missing.
+            "Menu.UseHQFont": "false",
+        },
+        {
+            "sdk": Variant("FSR 4.1.1 SDK", {}),
+            "sdk-int8": Variant("FSR 4.1.1 SDK, INT8 forced", {"FSR.Fsr4ForceEnableInt8": "true"}),
+        },
+    ),
     "10": Family(
         "10",
-        "OptiScaler",
         frozenset({"OptiScaler.dll", "OptiScaler.ini", "OptiScaler/amd_fidelityfx_upscaler_dx12.dll"}),
+        {"Menu.UseHQFont": "false"},
+        {
+            "auto": Variant("Automatic (the best model the GPU supports)", {}),
+            "int8": Variant("INT8 (RDNA 3, also integrated)", {"FSR.Fsr4GpuSupport": "2", "FSR.Fsr4Model": "1"}),
+            "int8-lite": Variant("INT8 Lite (any GPU)", {"FSR.Fsr4Model": "3"}),
+        },
     ),
 }
 

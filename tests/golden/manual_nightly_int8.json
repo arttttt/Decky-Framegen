@@ -1,0 +1,79 @@
+[
+  {
+    "step": "initial",
+    "tree": {
+      "Game.exe": "game:Game.exe"
+    }
+  },
+  {
+    "result": {
+      "fsr4_variant": "int8",
+      "fsr4_variant_label": "INT8 (RDNA 3, also integrated)",
+      "message": "OptiScaler 10.0.0-pre1 (INT8 (RDNA 3, also integrated)) is in <root>/games/Game.",
+      "optiscaler_version": "nightly-20261023",
+      "status": "success"
+    },
+    "step": "patch dxgi.dll nightly-20261023 int8",
+    "tree": {
+      "FRAMEGEN_PATCH": {
+        "appid": "",
+        "backed_up_files": [],
+        "backups": [],
+        "complete": true,
+        "created_dirs": [
+          "OptiScaler/D3D12_OptiScaler",
+          "OptiScaler"
+        ],
+        "dll_name": "dxgi.dll",
+        "family": "10",
+        "format": 2,
+        "fsr4_variant": "int8",
+        "fsr4_variant_label": "INT8 (RDNA 3, also integrated)",
+        "game_name": "",
+        "optiscaler_version": "nightly-20261023",
+        "original_launch_options": "",
+        "placed": [
+          {
+            "path": "dxgi.dll",
+            "sha256": "f5609871045a41fc81c64efd358ee3e571c83d819fea2dfc56ea16ed3e330676"
+          },
+          {
+            "path": "OptiScaler.ini",
+            "sha256": null
+          },
+          {
+            "path": "OptiScaler/D3D12_OptiScaler/D3D12Core.dll",
+            "sha256": "52ad4daf719d0c44039ceb05a5519d8353fb5b6e494359e813e1a13c8909dbcf"
+          },
+          {
+            "path": "OptiScaler/amd_fidelityfx_upscaler_dx12.dll",
+            "sha256": "0f91675ccc2cea0f17cc0adce5083e86a2dd0977dd8626d504fae03725c461d6"
+          },
+          {
+            "path": "OptiScaler/libxess.dll",
+            "sha256": "09d0f85efd9e311beedb55ce23be91152282c0259c28c1ceee7cd78bce7d3936"
+          }
+        ],
+        "target_dir": "<root>"
+      },
+      "Game.exe": "game:Game.exe",
+      "OptiScaler": "<dir>",
+      "OptiScaler.ini": "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=2\nFsr4Model=1\n\n[Menu]\nUseHQFont=false\n",
+      "OptiScaler/D3D12_OptiScaler": "<dir>",
+      "OptiScaler/D3D12_OptiScaler/D3D12Core.dll": "bundle:v10 D3D12Core.dll",
+      "OptiScaler/amd_fidelityfx_upscaler_dx12.dll": "bundle:v10 amd_fidelityfx_upscaler_dx12.dll",
+      "OptiScaler/libxess.dll": "bundle:v10 libxess.dll",
+      "dxgi.dll": "bundle:v10 OptiScaler.dll"
+    }
+  },
+  {
+    "result": {
+      "message": "OptiScaler files removed from <root>/games/Game",
+      "status": "success"
+    },
+    "step": "unpatch",
+    "tree": {
+      "Game.exe": "game:Game.exe"
+    }
+  }
+]

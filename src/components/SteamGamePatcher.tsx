@@ -5,7 +5,6 @@ import { listInstalledGames, getGameStatus, patchGame, unpatchGame } from "../ap
 import { getAppLaunchOptions, setAppLaunchOptions } from "../api/steamClient";
 import { ResetToStock } from "./ResetToStock";
 import { patchButton } from "../presentation/patching";
-import { FSR4_VARIANT_OPTIONS } from "../utils/constants";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -22,7 +21,6 @@ type GameStatus = {
   optiscaler_version?: string | null;
   fsr4_variant?: string | null;
   fsr4_variant_label?: string | null;
-  fsr4_upscaler_sha256?: string | null;
 };
 
 // ─── Module-level state persistence ──────────────────────────────────────────
@@ -33,11 +31,10 @@ let lastSelectedAppId = "";
 
 interface SteamGamePatcherProps {
   dllName: string;
-  fsr4Variant: string;
   bundleInstalled: boolean;
 }
 
-export function SteamGamePatcher({ dllName, fsr4Variant, bundleInstalled }: SteamGamePatcherProps) {
+export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherProps) {
   const [games, setGames] = useState<GameEntry[]>([]);
   const [gamesLoading, setGamesLoading] = useState(true);
   const [selectedAppId, setSelectedAppId] = useState<string>(() => lastSelectedAppId);
@@ -112,10 +109,6 @@ export function SteamGamePatcher({ dllName, fsr4Variant, bundleInstalled }: Stea
     [games, selectedAppId]
   );
 
-  const selectedVariantLabel = useMemo(
-    () => FSR4_VARIANT_OPTIONS.find((option) => option.value === fsr4Variant)?.label ?? fsr4Variant,
-    [fsr4Variant]
-  );
 
   const isPatchedWithDifferentDll =
     gameStatus?.patched && gameStatus?.dll_name && gameStatus.dll_name !== dllName;
@@ -146,7 +139,8 @@ export function SteamGamePatcher({ dllName, fsr4Variant, bundleInstalled }: Stea
       } catch {
         // non-fatal: proceed without current launch options
       }
-      const result = await patchGame(selectedAppId, dllName, currentLaunchOptions, fsr4Variant);
+      // The library's default version and its default FSR 4 variant, until the library section offers a choice.
+      const result = await patchGame(selectedAppId, dllName, currentLaunchOptions, "");
       if (result.status !== "success") throw new Error(result.message || "Patch failed.");
       setAppLaunchOptions(Number(selectedAppId), result.launch_options || "");
       const msg = result.message || `Patched ${selectedGame.name}.`;
@@ -160,7 +154,7 @@ export function SteamGamePatcher({ dllName, fsr4Variant, bundleInstalled }: Stea
     } finally {
       setBusyAction(null);
     }
-  }, [busyAction, dllName, fsr4Variant, loadStatus, selectedAppId, selectedGame]);
+  }, [busyAction, dllName, loadStatus, selectedAppId, selectedGame]);
 
   const handleUnpatch = useCallback(async () => {
     if (!selectedGame || !selectedAppId || busyAction) return;
@@ -240,10 +234,10 @@ export function SteamGamePatcher({ dllName, fsr4Variant, bundleInstalled }: Stea
           </PanelSectionRow>
 
           <PanelSectionRow>
-            <Field {...focusableFieldProps} label="FSR4 runtime">
+            <Field {...focusableFieldProps} label="OptiScaler">
               {gameStatus?.patched
-                ? (gameStatus?.fsr4_variant_label || "Unknown")
-                : `Will patch with ${selectedVariantLabel}`}
+                ? `${gameStatus?.optiscaler_version ?? "?"}: ${gameStatus?.fsr4_variant_label || "Unknown"}`
+                : "Will patch with the default version"}
             </Field>
           </PanelSectionRow>
 

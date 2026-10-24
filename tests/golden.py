@@ -12,43 +12,9 @@ import json
 import os
 from pathlib import Path
 
-from conftest import KNOWN_CONTENT, REPO_ROOT, sha256
+from conftest import KNOWN_CONTENT, sha256
 
 GOLDEN_DIR = Path(__file__).parent / "golden"
-
-# Copies of the plugin's own files (its Python core, its launcher scripts) are
-# named by their source path, so golden files do not change whenever that code does.
-for _label, _root, _pattern in (("core", "py_modules", "*.py"), ("asset", "defaults/assets", "*")):
-    for _source in (REPO_ROOT / _root).rglob(_pattern):
-        if _source.is_file():
-            KNOWN_CONTENT[sha256(_source.read_bytes())] = f"{_label}:{_source.relative_to(REPO_ROOT / _root).as_posix()}"
-
-_CORE_SOURCES = frozenset(
-    path.relative_to(REPO_ROOT / "py_modules").as_posix()
-    for path in (REPO_ROOT / "py_modules" / "framegen").rglob("*.py")
-)
-COMPLETE_CORE = "core: a complete copy of py_modules/framegen"
-
-
-def _collapse_core(tree: dict[str, object]) -> dict[str, object]:
-    """Show a complete copy of the core as one line, so adding a module does not change every golden.
-
-    An incomplete or altered copy keeps its per-file lines and shows up as a difference.
-    """
-    copies = {
-        key: value[len("core:"):]
-        for key, value in tree.items()
-        if isinstance(value, str) and value.startswith("core:") and key.endswith(value[len("core:"):])
-    }
-    for prefix in {key[: len(key) - len(source)] for key, source in copies.items()}:
-        package = f"{prefix}framegen"
-        inside = {key for key in tree if key == package or key.startswith(package + "/")}
-        files = {key for key in inside if tree[key] != "<dir>"}
-        if {copies.get(key) for key in files} == set(_CORE_SOURCES):
-            tree = {key: value for key, value in tree.items() if key not in inside}
-            tree[package] = COMPLETE_CORE
-    return tree
-
 
 # Fields that differ between runs and say nothing about behaviour.
 _VOLATILE_FIELDS = ("patched_at", "installed_at", "updated_at")
@@ -87,7 +53,7 @@ def describe_tree(root: Path) -> dict[str, object]:
             tree[rel] = data.decode()
         else:
             tree[rel] = f"sha256:{sha256(data)[:16]}"
-    return _collapse_core(tree)
+    return tree
 
 
 def normalize_result(result: dict, root: Path) -> dict:

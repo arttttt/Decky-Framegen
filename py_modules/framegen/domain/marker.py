@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import bundle
 from .launch_options import is_managed
 
 
@@ -23,14 +22,17 @@ def build(
     dll_name: str,
     target_dir: Path,
     backed_up_files: list[str],
-    optiscaler_version: str | None,
-    fsr4_variant: str | None,
-    fsr4_upscaler_sha256: str | None,
+    optiscaler_version: str,
+    family: str,
+    fsr4_variant: str,
+    fsr4_variant_label: str,
     patched_at: str,
     steam_game: SteamGame | None = None,
 ) -> dict:
-    """The marker's JSON payload; every patch writes one, a Steam patch also records the game."""
-    variant = bundle.normalize_variant(fsr4_variant)
+    """The marker's details; every patch writes one, a Steam patch also records the game.
+
+    `optiscaler_version` is the library version's id (stable-0.9.4, nightly-20261023).
+    """
     return {
         "appid": steam_game.appid if steam_game else "",
         "game_name": steam_game.name if steam_game else "",
@@ -39,17 +41,9 @@ def build(
         "original_launch_options": steam_game.original_launch_options if steam_game else "",
         "backed_up_files": backed_up_files,
         "optiscaler_version": optiscaler_version,
-        "fsr4_variant": variant,
-        "fsr4_variant_label": bundle.FSR4_VARIANTS[variant]["label"],
-        "fsr4_upscaler_sha256": fsr4_upscaler_sha256,
-        "managed_files": [
-            {
-                "path": str(target_dir / bundle.FSR4_UPSCALER_FILENAME),
-                "sha256": fsr4_upscaler_sha256,
-                "kind": "fsr4-upscaler",
-                "variant": variant,
-            }
-        ],
+        "family": family,
+        "fsr4_variant": fsr4_variant,
+        "fsr4_variant_label": fsr4_variant_label,
         "patched_at": patched_at,
     }
 
