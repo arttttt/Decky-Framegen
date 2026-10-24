@@ -2,7 +2,7 @@
 
 Plans are pure: they read facts about the directory and return operations; a service executes
 them. Names are relative to the game directory; copy sources are relative to the files a version
-of OptiScaler provides. `plan_unpatch` keeps what earlier plugin versions placed, for resetting
+of OptiScaler provides. `plan_unpatch` keeps what the original Decky Framegen placed, for resetting
 games they patched to stock.
 """
 

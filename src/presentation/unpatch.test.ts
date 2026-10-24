@@ -26,7 +26,7 @@ describe("unpatch step", () => {
     });
   });
 
-  it("asks before resetting an older version's patch: why, where, what is restored and removed, and the launch options", () => {
+  it("asks before resetting a Decky Framegen patch: why, where, what is restored and removed, and the launch options", () => {
     expect(unpatchStep(reset(), "Old Game")).toEqual({
       kind: "confirm",
       title: "Unpatch Old Game?",

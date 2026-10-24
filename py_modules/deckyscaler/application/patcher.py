@@ -571,7 +571,7 @@ class Patcher:
         if not game.install_path.exists():
             raise LookupError("Game install directory does not exist.")
         marker_path = self.find_marker(game.install_path)
-        # The marker sits in the directory it patched. The path an older version wrote into it is not
+        # The marker sits in the directory it patched. The path Decky Framegen wrote into it is not
         # trusted: it can name a mount point or a library location that no longer exists.
         target = marker_path.parent if marker_path is not None else self._patch_target(game)[0]
         return game, target, marker_path

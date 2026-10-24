@@ -100,7 +100,7 @@ def to_json(patch: PatchRecord, complete: bool) -> dict:
 
 
 def parse(marker: dict) -> PatchRecord | None:
-    """The record in a marker; None for a marker an earlier plugin version wrote."""
+    """The record in a marker; None for a marker the original Decky Framegen wrote."""
     if marker.get("format") != FORMAT:
         return None
     try:
