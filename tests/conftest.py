@@ -41,6 +41,7 @@ sys.path[:0] = [str(REPO_ROOT / "py_modules"), str(REPO_ROOT)]
 
 import main  # noqa: E402
 from framegen.domain import bundle  # noqa: E402
+from framegen.infrastructure import proton  # noqa: E402
 
 
 # sha256 → label of every placeholder handed out, so snapshots can name content.
@@ -108,7 +109,23 @@ def home(tmp_path, monkeypatch) -> Path:
     monkeypatch.setattr(_decky, "HOME", str(home_dir))
     monkeypatch.setattr(_decky, "DECKY_PLUGIN_DIR", str(tmp_path / "plugin"))
     monkeypatch.setattr(_decky, "DECKY_PLUGIN_RUNTIME_DIR", str(tmp_path / "runtime"))
+    # The machine running the tests has its own GPU and Proton tools; the fake world has none unless a test adds them.
+    monkeypatch.setattr(proton, "SYSFS", tmp_path / "sys")
+    monkeypatch.setattr(proton, "SYSTEM_TOOLS", tmp_path / "system-compatibilitytools.d")
     return home_dir
+
+
+def add_gpu(sysfs: Path, card: str, vendor: str, boot_vga: bool | None = None) -> None:
+    """A GPU under a fake /sys: its DRM card node and PCI vendor (and boot_vga, when the machine says)."""
+    device = sysfs / "class" / "drm" / card / "device"
+    write(device / "vendor", f"{vendor}\n".encode())
+    if boot_vga is not None:
+        write(device / "boot_vga", b"1\n" if boot_vga else b"0\n")
+
+
+@pytest.fixture
+def amd_gpu(tmp_path) -> None:
+    add_gpu(tmp_path / "sys", "card0", "0x1002")
 
 
 @pytest.fixture
@@ -211,6 +228,46 @@ class SteamLibrary:
         game_root = make_game_dir(self.steamapps / "common" / install_dir, files)
         self.games[appid] = game_root
         return game_root
+
+    @property
+    def root(self) -> Path:
+        return self.steamapps.parent
+
+    def set_compat_tools(self, mapping: dict[str, str]) -> None:
+        """Steam's CompatToolMapping in config.vdf: appid ("0" for every game) → tool's internal name."""
+        entries = "".join(
+            f'\t\t\t\t\t"{appid}"\n\t\t\t\t\t{{\n\t\t\t\t\t\t"name"\t\t"{name}"\n'
+            f'\t\t\t\t\t\t"config"\t\t""\n\t\t\t\t\t\t"priority"\t\t"250"\n\t\t\t\t\t}}\n'
+            for appid, name in mapping.items()
+        )
+        config = (
+            '"InstallConfigStore"\n{\n\t"Software"\n\t{\n\t\t"Valve"\n\t\t{\n\t\t\t"Steam"\n\t\t\t{\n'
+            f'\t\t\t\t"CompatToolMapping"\n\t\t\t\t{{\n{entries}\t\t\t\t}}\n'
+            "\t\t\t}\n\t\t}\n\t}\n}\n"
+        )
+        write(self.root / "config" / "config.vdf", config.encode())
+
+    def add_tool(self, name: str, reads_fsr4_variable: bool, tools_dir: Path | None = None) -> Path:
+        """A custom Proton in compatibilitytools.d whose proton script reads (or not) the FSR 4 variable."""
+        directory = (tools_dir or self.root / "compatibilitytools.d") / name
+        manifest = (
+            '"compatibilitytools"\n{\n  "compat_tools"\n  {\n'
+            f'    "{name}" // Internal name of this tool\n    {{\n'
+            f'      "install_path" "."\n      "display_name" "{name}"\n'
+            '      "from_oslist"  "windows"\n      "to_oslist"    "linux"\n    }\n  }\n}\n'
+        )
+        write(directory / "compatibilitytool.vdf", manifest.encode())
+        script = 'if os.environ.get("PROTON_FSR4_UPGRADE"):\n    pass\n' if reads_fsr4_variable else "print('proton')\n"
+        write(directory / "proton", script.encode())
+        return directory
+
+    def add_fsr4_to_prefix(self, appid: str, version: str | None) -> None:
+        """What protonfixes leaves after fetching FSR 4: the DLL in the prefix, and its version when tracked."""
+        compatdata = self.steamapps / "compatdata" / appid
+        write(compatdata / "pfx" / "drive_c" / "windows" / "system32" / "amdxcffx64.dll", b"amd fsr4 driver")
+        if version is not None:
+            tracking = {"fsr4_files": {"drive_c/windows/system32/amdxcffx64.dll": {"version": version, "md5_hash": "x"}}}
+            write(compatdata / "upscaler_files", json.dumps(tracking).encode())
 
 
 @pytest.fixture

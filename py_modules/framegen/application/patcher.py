@@ -11,9 +11,9 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from framegen.domain import bundle, exe_target, launch_options, library, marker, patch_record, steam, stock_reset, version_placement
+from framegen.domain import bundle, exe_target, fsr4, launch_options, library, marker, patch_record, steam, stock_reset, version_placement
 from framegen.domain import patch_plan as plan
-from framegen.infrastructure import files, game_directory, processes
+from framegen.infrastructure import files, game_directory, processes, proton
 from framegen.infrastructure.library_store import LibraryStore
 from framegen.infrastructure.patch_index import PatchIndex
 from framegen.infrastructure import steam as steam_library
@@ -33,6 +33,10 @@ RESET = "reset"
 
 def _error(message: str) -> dict:
     return {"status": "error", "message": message}
+
+
+def _fsr4_json(state: fsr4.State | None) -> dict | None:
+    return None if state is None else {"state": state.kind, "tool": state.tool, "version": state.version}
 
 
 class Patcher:
@@ -261,6 +265,16 @@ class Patcher:
     def _is_running(self, game: steam_library.InstalledGame) -> bool:
         return self._running_executable(steam_library.executables(game.install_path)) is not None
 
+    def _fsr4(self, game: steam_library.InstalledGame) -> tuple[fsr4.State | None, bool]:
+        """The game's FSR 4 under Proton, and whether its launch options should ask Proton to fetch it."""
+        amd = proton.amd_gpu()
+        tool = proton.compat_tool(self.home, game.appid)
+        tool_dir = proton.tool_directory(self.home, tool) if tool else None
+        reads_variable = tool_dir is not None and proton.reads_upgrade_variable(tool_dir)
+        prefix = proton.compatdata(game.library_path, game.appid)
+        state = fsr4.state(amd, tool, reads_variable, proton.dll_in_prefix(prefix), proton.tracked_version(prefix))
+        return state, fsr4.wants_upgrade_variable(amd, reads_variable)
+
     def _patch_target(self, game: steam_library.InstalledGame) -> tuple[Path, Path | None]:
         candidates = steam_library.executables(game.install_path)
         running = self._running_executable(candidates)
@@ -291,11 +305,14 @@ class Patcher:
             "dll_name": None,
             "target_dir": None,
             "newer_version": None,
+            "fsr4": None,
         }
         if game is None:
             return {**unpatched, "install_found": False, "message": "Game not found in Steam library."}
         if not game.install_path.exists():
             return {**unpatched, "name": game.name, "install_found": False, "message": "Game install directory not found."}
+        # FSR 4 is the Proton's business, so it is told whether the game is patched or not.
+        unpatched["fsr4"] = _fsr4_json(self._fsr4(game)[0])
         marker_path = self._find_marker(game.install_path)
         if marker_path is None:
             return {**unpatched, "name": game.name, "install_found": True, "message": "Not patched."}
@@ -326,6 +343,7 @@ class Patcher:
             "patched_at": metadata.get("patched_at"),
             "optiscaler_version": version,
             "newer_version": library.newer_in_channel(self.library.installed(), version),
+            "fsr4": unpatched["fsr4"],
             "message": message,
         }
 
@@ -370,7 +388,7 @@ class Patcher:
         if result["status"] != "success":
             return result
 
-        managed_options = launch_options.managed(dll_name)
+        managed_options = launch_options.managed(dll_name, self._fsr4(game)[1])
         log.info(f"[Framegen] patch_game success: appid={appid} launch_options={managed_options}")
         return {
             "status": "success",

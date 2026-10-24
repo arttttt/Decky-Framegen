@@ -3,6 +3,7 @@
     "result": {
       "appid": "100",
       "dll_name": null,
+      "fsr4": null,
       "install_found": true,
       "message": "Not patched.",
       "name": "Version Game",
@@ -84,6 +85,7 @@
     "result": {
       "appid": "100",
       "dll_name": "dxgi.dll",
+      "fsr4": null,
       "install_found": true,
       "message": "Patched with OptiScaler nightly-20261023 using dxgi.dll.",
       "name": "Version Game",
@@ -236,6 +238,7 @@
     "result": {
       "appid": "100",
       "dll_name": "dxgi.dll",
+      "fsr4": null,
       "install_found": true,
       "message": "Patched with OptiScaler stable-0.9.4 using dxgi.dll.",
       "name": "Version Game",
