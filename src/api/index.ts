@@ -45,7 +45,8 @@ export const getGameStatus = callable<
 >("get_game_status");
 
 export const patchGame = callable<
-  [appid: string, dll_name: string, current_launch_options: string, version_id: string],
+  /** current_launch_options is null when Steam didn't say what they are. */
+  [appid: string, dll_name: string, current_launch_options: string | null, version_id: string],
   {
     status: string;
     message?: string;

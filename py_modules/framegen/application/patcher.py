@@ -25,6 +25,10 @@ BUNDLE_IS_NOT_A_GAME = "The target directory is the OptiScaler bundle itself. Ab
 PATCHED_BY_AN_OLDER_VERSION = (
     "This game was patched by an older version of the plugin. Unpatch it first: the plugin shows what that removes."
 )
+LAUNCH_OPTIONS_UNKNOWN = (
+    "Steam didn't say what this game's launch options are, so Unpatch couldn't put them back. "
+    "Nothing was changed; try patching again."
+)
 RECORD = "record"
 """How a directory is unpatched: by its patch record, exactly as the patch recorded it."""
 RESET = "reset"
@@ -354,8 +358,9 @@ class Patcher:
         }
 
     def patch_game(
-        self, appid: str, dll_name: str, current_launch_options: str, version_id: str | None = None
+        self, appid: str, dll_name: str, current_launch_options: str | None, version_id: str | None = None
     ) -> dict:
+        """Patch a Steam game. `current_launch_options` is None when Steam didn't say what they are."""
         try:
             return self._patch_game(appid, dll_name, current_launch_options, version_id)
         except Exception as exc:
@@ -363,7 +368,7 @@ class Patcher:
             return _error(str(exc))
 
     def _patch_game(
-        self, appid: str, dll_name: str, current_launch_options: str, version_id: str | None
+        self, appid: str, dll_name: str, current_launch_options: str | None, version_id: str | None
     ) -> dict:
         game = steam_library.find_game(self.home, str(appid))
         if game is None:
@@ -374,9 +379,10 @@ class Patcher:
             return _error("Close the game before patching.")
         existing_marker = self._find_marker(game.install_path)
         existing = files.read_json(existing_marker) if existing_marker else {}
-        original_options = marker.original_launch_options(
-            current_launch_options, str(existing.get("original_launch_options") or "")
-        )
+        stored = str(existing.get("original_launch_options") or "") if existing_marker else None
+        original_options = marker.original_launch_options(current_launch_options, stored)
+        if original_options is None:
+            return _error(LAUNCH_OPTIONS_UNKNOWN)
 
         target_dir, target_exe = self._patch_target(game)
         if existing_marker and existing_marker.parent != target_dir:
