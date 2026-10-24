@@ -22,6 +22,7 @@ def bundle_hashes(source: Path, operations: tuple[plan.Operation, ...]) -> dict[
             case plan.Copy(origin, _):
                 hashes[origin] = files.sha256(source / origin)
             case plan.Link(origin, _):
+                # An absolute origin (the FSR 4 driver DLL in the game's prefix) wins the join: it is its own target.
                 hashes[origin] = _link_identity(str((source / origin).absolute()))
     return hashes
 
@@ -77,6 +78,7 @@ def execute(operations: tuple, directory: Path, copy_root: Path) -> None:
                 shutil.copy2(copy_root / origin, directory / destination)
                 log.info(f"Copied {origin} → {destination} in {directory}")
             case plan.Link(origin, destination):
+                # As in bundle_hashes, an absolute origin points the link outside the library.
                 (directory / destination).parent.mkdir(parents=True, exist_ok=True)
                 os.symlink((copy_root / origin).absolute(), directory / destination)
                 log.info(f"Linked {destination} → {copy_root / origin} in {directory}")
