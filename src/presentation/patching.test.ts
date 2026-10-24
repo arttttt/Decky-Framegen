@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { InstalledLibrary } from "../api";
-import { gameVersionLine, libraryReady, patchButton, patchChoice } from "./patching";
+import { GameStatus, gameVersionLine, libraryReady, patchButton, patchChoice, steamGameView } from "./patching";
 
 const LIBRARY: InstalledLibrary = {
   default: "stable-0.9.4",
@@ -99,5 +99,57 @@ describe("game version line", () => {
     );
     expect(gameVersionLine({ patched: false })).toBeNull();
     expect(gameVersionLine(null)).toBeNull();
+  });
+});
+
+describe("steam game view", () => {
+  const base = { gameSelected: true, statusLoading: false, busy: null, dllName: "dxgi.dll", ready: true };
+  const patched: GameStatus = {
+    status: "success", install_found: true, patched: true, dll_name: "dxgi.dll",
+    optiscaler_version: "stable-0.9.4", fsr4_variant_label: "SDK",
+  };
+
+  it("offers patching an unpatched game and reinstalling or switching a patched one", () => {
+    const unpatched = steamGameView({ ...base, status: { status: "success", install_found: true, patched: false } });
+    expect(unpatched).toMatchObject({
+      status: { text: "Not patched", tone: "neutral" }, versionLine: null,
+      patch: { label: "Patch with dxgi.dll", enabled: true }, unpatchVisible: false,
+    });
+
+    expect(steamGameView({ ...base, status: patched })).toMatchObject({
+      status: { text: "Patched (dxgi.dll)", tone: "good" }, versionLine: "stable-0.9.4: SDK",
+      patch: { label: "Reinstall (dxgi.dll)", enabled: true }, unpatchVisible: true,
+      unpatch: { label: "Unpatch this game", enabled: true },
+    });
+
+    expect(steamGameView({ ...base, dllName: "winmm.dll", status: patched })).toMatchObject({
+      status: { text: "Patched (dxgi.dll) — switch available", tone: "warning" },
+      patch: { label: "Switch to winmm.dll" },
+    });
+  });
+
+  it("holds patching without an install, a game, a library version, or while busy", () => {
+    expect(steamGameView({ ...base, status: { status: "success", install_found: false } })).toMatchObject({
+      status: { text: "Install not found", tone: "warning" }, patch: { label: "Install not found", enabled: false },
+    });
+    expect(steamGameView({ ...base, gameSelected: false, status: null })).toMatchObject({
+      status: { text: "—" }, patch: { label: "Patch this game", enabled: false }, unpatchVisible: false,
+    });
+    expect(steamGameView({ ...base, ready: false, status: patched }).patch).toEqual({
+      label: "Patch: no OptiScaler version installed", enabled: false,
+    });
+    expect(steamGameView({ ...base, busy: "patch", status: patched })).toMatchObject({
+      patch: { label: "Patching...", enabled: false }, unpatch: { enabled: false },
+    });
+    expect(steamGameView({ ...base, busy: "unpatch", status: patched }).unpatch).toEqual({
+      label: "Unpatching...", enabled: false,
+    });
+  });
+
+  it("shows loading and errors in the status line and no version while loading", () => {
+    expect(steamGameView({ ...base, statusLoading: true, status: patched })).toMatchObject({
+      status: { text: "Loading..." }, versionLine: null,
+    });
+    expect(steamGameView({ ...base, status: { status: "error", message: "Steam is gone" } }).status.text).toBe("Steam is gone");
   });
 });
