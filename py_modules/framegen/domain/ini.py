@@ -10,25 +10,6 @@ import re
 
 _SECTION = re.compile(r"^\s*\[(?P<section>[^\]]+)\]\s*$")
 
-def split_override_key(raw_key: str) -> tuple[str | None, str]:
-    """`Section.Key` → (section, key); a key without a section → (None, key)."""
-    key = str(raw_key).strip()
-    if "." in key:
-        section, section_key = (part.strip() for part in key.split(".", 1))
-        if section and section_key:
-            return section, section_key
-    return None, key
-
-
-def apply_overrides(content: str, overrides: dict) -> str:
-    """Set each `Section.Key` (or bare `Key`) to its value, stripped; see set_values."""
-    values = []
-    for raw_key, raw_value in overrides.items():
-        section, key = split_override_key(str(raw_key))
-        if key:
-            values.append((section, key, str(raw_value).strip()))
-    return set_values(content, values)
-
 
 def set_values(content: str, values: list[tuple[str | None, str, str]]) -> str:
     """Set each (section, key) to its value verbatim, keeping everything else intact.

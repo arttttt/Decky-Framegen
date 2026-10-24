@@ -89,7 +89,7 @@
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
-      "OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n\n[FSR]\nFsr4Update=true\nFsr4ForceEnableInt8=auto\n\n[Menu]\nUseHQFont=false\n",
+      "OptiScaler.ini": "[FrameGen]\n; nofg, dlssg, nukems, fsrfg, upscaler, fsrfg30 - Default (auto) is nofg\nFGInput=nukems\n\n; nofg, fsrfg, xefg, nukems - Default (auto) is nofg\nFGOutput=nukems\n\n[FSR]\n; true or false - Default (auto) is false\nFsr4Update=true\n\n; true or false - Default (auto) is false\nFsr4ForceEnableInt8=auto\n\n[Menu]\n; true or false - Default (auto) is true\nUseHQFont=false\n",
       "amd_fidelityfx_dx12.dll": "-> <library>/stable-0.9.4/files/amd_fidelityfx_dx12.dll",
       "amd_fidelityfx_upscaler_dx12.dll": "-> <library>/stable-0.9.4/files/amd_fidelityfx_upscaler_dx12.dll",
       "dlssg_to_fsr3_amd_is_better.dll": "-> <library>/stable-0.9.4/files/dlssg_to_fsr3_amd_is_better.dll",

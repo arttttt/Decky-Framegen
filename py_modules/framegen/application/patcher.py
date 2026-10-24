@@ -11,11 +11,26 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-from framegen.domain import bundle, exe_target, fsr4, launch_options, library, marker, patch_record, steam, stock_reset, version_placement
+from framegen.domain import (
+    bundle,
+    exe_target,
+    fsr4,
+    ini,
+    ini_schema,
+    launch_options,
+    library,
+    marker,
+    patch_record,
+    settings_layers,
+    steam,
+    stock_reset,
+    version_placement,
+)
 from framegen.domain import patch_plan as plan
 from framegen.infrastructure import files, game_directory, processes, proton
 from framegen.infrastructure.library_store import LibraryStore
 from framegen.infrastructure.patch_index import PatchIndex
+from framegen.infrastructure.settings_store import SettingsStore
 from framegen.infrastructure import steam as steam_library
 
 log = logging.getLogger(__name__)
@@ -48,6 +63,7 @@ class Patcher:
         self.home = home
         self.fgmod_path = home / "fgmod"
         self.library = LibraryStore(self.fgmod_path / "library")
+        self.settings = SettingsStore(self.fgmod_path / "settings")
         self.patches = PatchIndex(self.fgmod_path / "patched.json")
 
     # ── directories ──────────────────────────────────────────────────────────
@@ -73,6 +89,7 @@ class Patcher:
         steam_game: marker.SteamGame | None = None,
         fsr4_driver: Path | None = None,
         unless_current: bool = False,
+        settings_appid: str | None = None,
     ) -> dict:
         """Patch a directory with a library version and record it in a marker. A patch that names no
         version (the launch wrapper's, unless FGMOD_VERSION is set) keeps the one the directory is
@@ -92,8 +109,11 @@ class Patcher:
                 return _error(NO_VERSION)
         family = library.FAMILIES[entry.family]
         source = self.library.version_dir(entry.id) / library.FILES_DIRNAME
+        settings_appid = steam_game.appid if steam_game else settings_appid
         if unless_current and not reset_ini and self._patched_as(directory, entry.id, dll_name):
             log.info(f"{directory} is already patched with OptiScaler {entry.id}, {dll_name}")
+            if patch_record.placed_by(patch_record.parse(files.read_json(marker_path)), plan.INI_FILENAME):
+                self.apply_settings(directory, source, settings_appid)
             return {"status": "success", "message": f"OptiScaler {entry.version} is in {directory}.", "optiscaler_version": entry.id}
 
         carried_over: frozenset[str] = frozenset()
@@ -136,6 +156,8 @@ class Patcher:
             self._remember(directory, steam_game.name if steam_game else str(directory))
             game_directory.execute(operations, directory, source)
             files.write_json(marker_path, {**details, **patch_record.to_json(recorded, complete=True)})
+            if patch_record.placed_by(recorded, plan.INI_FILENAME):
+                self.apply_settings(directory, source, settings_appid)
         except plan.PlanError as exc:
             return _error(str(exc))
         except PermissionError as exc:
@@ -149,6 +171,20 @@ class Patcher:
             "message": f"OptiScaler {entry.version} is in {directory}.",
             "optiscaler_version": entry.id,
         }
+
+    def apply_settings(self, directory: Path, source: Path, appid: str | None) -> None:
+        """Write the user's settings into a game's OptiScaler.ini: the global ones with the game's own over
+        them, as far as the version's own OptiScaler.ini (`source`) offers each key and value. Only an
+        ini the patch placed gets them: one the game had before is someone else's, and unpatching must
+        leave it as it was."""
+        try:
+            schema = ini_schema.parse(files.read_text(source / plan.INI_FILENAME))
+        except OSError as exc:
+            log.warning(f"Reading the version's OptiScaler.ini failed, settings left as they are: {exc}")
+            return
+        game = self.settings.game_layer(appid) if appid else {}
+        values = settings_layers.to_write(schema, self.settings.global_layer(), game)
+        game_directory.edit_ini(directory / plan.INI_FILENAME, lambda text: ini.set_values(text, values), "the user's settings")
 
     def _patched_as(self, directory: Path, version_id: str, dll_name: str) -> bool:
         details = files.read_json(directory / bundle.MARKER_FILENAME)

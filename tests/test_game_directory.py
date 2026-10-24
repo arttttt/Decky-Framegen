@@ -29,7 +29,6 @@ def test_execute_carries_out_every_operation_kind(tmp_path):
             plan.RemoveTree("tree"),
             plan.Copy("OptiScaler.dll", "dxgi.dll"),
             plan.Copy("OptiScaler/libxess.dll", "OptiScaler/libxess.dll"),
-            plan.EditIni("set X", lambda content: content.replace("X=1", "X=2")),
             patch_record.RemoveDirIfEmpty("empty"),
             patch_record.RemoveDirIfEmpty("plugins"),
         ),
@@ -46,17 +45,15 @@ def test_execute_carries_out_every_operation_kind(tmp_path):
         "plugins",
         "plugins/OtherMod.asi",
     ]
-    assert (game / "OptiScaler.ini").read_text() == "[A]\nX=2\n"
+    assert (game / "OptiScaler.ini").read_text() == "[A]\nX=1\n"
 
 
-def test_a_failing_ini_edit_is_logged_and_does_not_abort_the_plan(tmp_path, caplog):
-    game = tmp_path / "Game"
-    write(game / "OptiScaler.ini", b"X=1\n")
+def test_a_failing_ini_edit_is_logged_and_leaves_the_file_as_it_was(tmp_path, caplog):
+    ini_file = write(tmp_path / "Game" / "OptiScaler.ini", b"X=1\n")
 
     def broken(_content):
         raise ValueError("bad edit")
 
-    game_directory.execute((plan.EditIni("break", broken), plan.DeleteFile("OptiScaler.ini")), game, tmp_path)
-
-    assert not (game / "OptiScaler.ini").exists()
+    assert game_directory.edit_ini(ini_file, broken, "break") is False
+    assert ini_file.read_bytes() == b"X=1\n"
     assert "bad edit" in caplog.text

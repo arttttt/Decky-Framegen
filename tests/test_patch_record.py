@@ -8,7 +8,7 @@ import pytest
 
 from conftest import STABLE, game_file, make_game_dir, run, snapshot, write
 from framegen.domain import patch_record
-from framegen.domain.patch_plan import Copy, DeleteFile, EditIni, Move
+from framegen.domain.patch_plan import Copy, DeleteFile, Move
 from framegen.domain.patch_record import Backup, PatchRecord, Placed, RemoveDirIfEmpty
 from framegen.infrastructure import game_directory
 
@@ -29,7 +29,6 @@ def test_a_plan_is_recorded_as_placed_files_backups_and_created_directories():
         DeleteFile("nvngx.ini"),
         Copy("OptiScaler.dll", "dxgi.dll"),
         Copy("OptiScaler.ini", "OptiScaler.ini"),
-        EditIni("x", lambda text: text),
         Copy("plugins/OptiPatcher.asi", "plugins/OptiPatcher.asi"),
         Copy("D3D12_Optiscaler/D3D12Core.dll", "D3D12_Optiscaler/D3D12Core.dll"),
         Copy("libxess.dll", "libxess.dll"),
@@ -260,3 +259,9 @@ def test_a_marker_describes_a_finished_patch_of_this_version_under_this_name():
     assert not marker.describes(details, "nightly-2", "dxgi.dll")
     assert not marker.describes(details, "nightly-1", "winmm.dll")
     assert not marker.describes({**details, "placement": "copy"}, "nightly-1", "dxgi.dll")
+
+
+def test_a_patch_placed_only_what_its_record_lists():
+    assert patch_record.placed_by(RECORD, "OptiScaler.ini")
+    assert not patch_record.placed_by(RECORD, "game.ini")
+    assert not patch_record.placed_by(None, "OptiScaler.ini")

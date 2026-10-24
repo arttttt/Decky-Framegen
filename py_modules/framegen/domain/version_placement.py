@@ -12,10 +12,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import PurePosixPath
 
-from . import fsr4, ini
+from . import fsr4
 from .bundle import VALID_DLL_NAMES
 from .library import Family
-from .patch_plan import BACKUP_SUFFIX, INI_FILENAME, Copy, EditIni, Link, Move, Operation, PlanError, preserving_existing
+from .patch_plan import BACKUP_SUFFIX, INI_FILENAME, Copy, Link, Move, Operation, PlanError, preserving_existing
 
 INJECTOR = "OptiScaler.dll"
 
@@ -59,8 +59,8 @@ def plan_patch(entries: frozenset[str], files: frozenset[str], family: Family, r
 
     fresh_ini = request.reset_ini or INI_FILENAME not in entries
     if fresh_ini:
+        # The user's settings go into it after placing (Patcher, domain settings_layers).
         operations.append(Copy(INI_FILENAME, INI_FILENAME))
-        operations.append(EditIni("apply the plugin's defaults", lambda text: ini.apply_overrides(text, family.ini_defaults)))
 
     for path in sorted(files):
         if path not in (INJECTOR, INI_FILENAME) and is_for_the_game(path):

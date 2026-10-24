@@ -56,7 +56,7 @@ CHANNELS = {
 
 @dataclass(frozen=True)
 class Family:
-    """One OptiScaler generation: what its archive must hold and how the plugin configures it.
+    """One OptiScaler generation: what its archive must hold and where OptiScaler looks for its files.
 
     A version's archive is already laid out as the game needs it (0.9 keeps everything next to
     OptiScaler.dll, 10 puts the support files in an OptiScaler/ subfolder), so placing it is the
@@ -66,8 +66,6 @@ class Family:
     id: str
     required: frozenset[str]
     """Files an archive of this family must contain, or it is not added to the library."""
-    ini_defaults: dict[str, str]
-    """Settings a freshly placed OptiScaler.ini gets (`Section.Key` → value)."""
     main_dir: str
     """Where OptiScaler looks for its own files, such as AMD's FSR 4 driver DLL, relative to the game's
     directory: its OptiScaler/ subfolder when there is one, else the directory itself (dllmain.cpp, MainDllPath)."""
@@ -77,20 +75,11 @@ FAMILIES = {
     "0.9": Family(
         "0.9",
         frozenset({"OptiScaler.dll", "OptiScaler.ini", "amd_fidelityfx_upscaler_dx12.dll"}),
-        {
-            # Nukem's frame generation drives both sides by default.
-            "FrameGen.FGInput": "nukems",
-            "FrameGen.FGOutput": "nukems",
-            "FSR.Fsr4Update": "true",
-            # The HQ font's auto mode asserts on Proton when its font file is missing.
-            "Menu.UseHQFont": "false",
-        },
         "",
     ),
     "10": Family(
         "10",
         frozenset({"OptiScaler.dll", "OptiScaler.ini", "OptiScaler/amd_fidelityfx_upscaler_dx12.dll"}),
-        {"Menu.UseHQFont": "false"},
         "OptiScaler",
     ),
 }

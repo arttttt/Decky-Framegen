@@ -82,8 +82,6 @@ def execute(operations: tuple, directory: Path, copy_root: Path) -> None:
                 (directory / destination).parent.mkdir(parents=True, exist_ok=True)
                 os.symlink((copy_root / origin).absolute(), directory / destination)
                 log.info(f"Linked {destination} → {copy_root / origin} in {directory}")
-            case plan.EditIni(action, transform):
-                edit_ini(directory / plan.INI_FILENAME, transform, action)
             case patch_record.RemoveDirIfEmpty(name):
                 path = directory / name
                 if path.is_dir() and not any(path.iterdir()):

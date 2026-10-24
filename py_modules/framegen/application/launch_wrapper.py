@@ -51,7 +51,13 @@ class LaunchWrapper:
         directory = self.locate(command)
         # Run on every launch: a game already patched this way starts at once, untouched.
         result = self.patcher.patch_directory(
-            directory, dll_name, version_id=version_id or None, reset_ini=reset_ini, unless_current=True
+            directory,
+            dll_name,
+            version_id=version_id or None,
+            reset_ini=reset_ini,
+            unless_current=True,
+            # Steam names the game it starts; its own settings then go in on top of the global ones.
+            settings_appid=self.environ.get("SteamAppId") or None,
         )
         if result["status"] != "success":
             raise WrapperError(result["message"])

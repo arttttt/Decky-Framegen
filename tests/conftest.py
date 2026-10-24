@@ -158,8 +158,20 @@ NIGHTLY_FILES = {
     "OptiScaler/Streamlined_fetcher_windows.bat": "fetcher",
     "setup_windows.bat": "setup_windows.bat",
 }
-STABLE_INI = "[FrameGen]\nFGInput=auto\nFGOutput=auto\n\n[FSR]\nFsr4Update=auto\nFsr4ForceEnableInt8=auto\n\n[Menu]\nUseHQFont=auto\n"
-NIGHTLY_INI = "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=auto\nFsr4Model=auto\n\n[Menu]\nUseHQFont=auto\n"
+# Cut from the real files (tests/fixtures/optiscaler-ini): their comments are what the settings are read from.
+STABLE_INI = (
+    "[FrameGen]\n; nofg, dlssg, nukems, fsrfg, upscaler, fsrfg30 - Default (auto) is nofg\nFGInput=auto\n\n"
+    "; nofg, fsrfg, xefg, nukems - Default (auto) is nofg\nFGOutput=auto\n\n"
+    "[FSR]\n; true or false - Default (auto) is false\nFsr4Update=auto\n\n"
+    "; true or false - Default (auto) is false\nFsr4ForceEnableInt8=auto\n\n"
+    "[Menu]\n; true or false - Default (auto) is true\nUseHQFont=auto\n"
+)
+NIGHTLY_INI = (
+    "[FrameGen]\n; nofg, dlssg, nvngxfg, fsrfg, upscaler, fsrfg30, xefg - Default (auto) is nofg\nFGInput=auto\n\n"
+    "[FSR]\n; 0 = No override | 1 = FP8 | 2 = INT8 | 3 = INT8-2 | 4 = INT8 Lite\n; From 0 to 4 - Default (auto) is 0\nFsr4GpuSupport=auto\n\n"
+    "; 0 = FP8 | 1 = INT8 | 2 = INT8 RDNA2 | 3 = INT8 Lite\n; Default (auto) is the best one the GPU supports\nFsr4Model=auto\n\n"
+    "[Menu]\n; true or false - Default (auto) is true\nUseHQFont=auto\n"
+)
 STABLE, NIGHTLY = "stable-0.9.4", "nightly-20261023"
 
 
