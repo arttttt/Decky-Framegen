@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xXJSONDeruloXx/Decky-Framegen.git"
+    "url": "git+https://github.com/arttttt/Decky-Framegen.git"
   },
   "keywords": [
     "decky",
@@ -25,9 +25,9 @@
   "author": "no@thankyou.com",
   "license": "BSD-3-Clause",
   "bugs": {
-    "url": "https://github.com/xXJSONDeruloXx/Decky-Framegen.git/issues"
+    "url": "https://github.com/arttttt/Decky-Framegen/issues"
   },
-  "homepage": "https://github.com/xXJSONDeruloXx/Decky-Framegen.git",
+  "homepage": "https://github.com/arttttt/Decky-Framegen",
   "devDependencies": {
     "@decky/rollup": "^1.0.1",
     "@decky/ui": "^4.7.2",
