@@ -1,41 +1,18 @@
-import { ConfirmModal, DialogBody, DialogHeader, Field, Menu, MenuItem, ModalRoot, showContextMenu, showModal } from "@decky/ui";
+import { DialogBody, DialogHeader, Field, Menu, MenuItem, ModalRoot, showContextMenu } from "@decky/ui";
 import { useManageVersions } from "../hooks/useManageVersions";
 import { MANAGE_MENU } from "../presentation/library";
+import { Confirmation } from "./Confirmation";
 import { VersionRows } from "./VersionRows";
 
 /** The OptiScaler versions on the device: download one again, remove one. */
 export function ManageVersionsModal({ closeModal, onChanged }: { closeModal?: () => void; onChanged: () => void }) {
-  const { view, run, removalOf } = useManageVersions(onChanged);
-
-  const confirmRemoval = async (id: string) => {
-    const confirmation = await removalOf(id);
-    if (!confirmation) return;
-    showModal(
-      <ConfirmModal
-        strTitle={confirmation.title}
-        strDescription={
-          <>
-            {confirmation.lines.map((line) => (
-              <div key={line}>{line}</div>
-            ))}
-          </>
-        }
-        strOKButtonText={confirmation.okLabel}
-        bAlertDialog={!confirmation.removes}
-        onOK={() => confirmation.removes && run(id, "remove")}
-      />
-    );
-  };
+  const { view, onSelect, confirmation, onConfirm, onCancel } = useManageVersions(onChanged);
 
   const openMenu = (id: string, label: string) =>
     showContextMenu(
       <Menu label={label}>
         {MANAGE_MENU.map((item) => (
-          <MenuItem
-            key={item.action}
-            tone={item.destructive ? "destructive" : undefined}
-            onSelected={() => (item.action === "remove" ? void confirmRemoval(id) : run(id, item.action))}
-          >
+          <MenuItem key={item.action} tone={item.destructive ? "destructive" : undefined} onSelected={() => onSelect(id, item)}>
             {item.label}
           </MenuItem>
         ))}
@@ -50,6 +27,7 @@ export function ManageVersionsModal({ closeModal, onChanged }: { closeModal?: ()
         <VersionRows rows={view.rows} onAction={openMenu} />
         {view.usage && <Field description={view.usage} />}
       </DialogBody>
+      <Confirmation confirmation={confirmation} onConfirm={onConfirm} onCancel={onCancel} />
     </ModalRoot>
   );
 }

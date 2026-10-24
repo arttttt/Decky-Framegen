@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { InstalledLibrary } from "../api";
-import { GameStatus, fsr4Line, gamePageTitle, gamePickerView, gameVersionLine, quickPatchWith, libraryReady, patchButton, patchChoice, steamGameView } from "./patching";
+import { GameStatus, fsr4Line, gameToShow, toneColor, gamePageTitle, gamePickerView, gameVersionLine, quickPatchWith, libraryReady, patchButton, patchChoice, steamGameView } from "./patching";
 
 const LIBRARY: InstalledLibrary = {
   installed_bytes: 500_000_000,
@@ -189,5 +189,23 @@ describe("Quick Access panel", () => {
   it("titles a game page with the game's name once known", () => {
     expect(gamePageTitle(null)).toBe("Loading…");
     expect(gamePageTitle({ status: "success", name: "Cyberpunk 2077" })).toBe("Cyberpunk 2077");
+  });
+});
+
+describe("status tone", () => {
+  it("colours a warning yellow and a good state green, and leaves neutral plain", () => {
+    expect(toneColor("warning")).toBe("#ffd866");
+    expect(toneColor("good")).toBe("#3fb950");
+    expect(toneColor("neutral")).toBeNull();
+  });
+});
+
+describe("the game the panel shows", () => {
+  const games = [{ appid: "1" }, { appid: "2" }];
+  it("is the one picked last while it is installed, else the first, else none", () => {
+    expect(gameToShow(games, "2")).toBe("2");
+    expect(gameToShow(games, "9")).toBe("1");
+    expect(gameToShow(games, "")).toBe("1");
+    expect(gameToShow([], "2")).toBe("");
   });
 });

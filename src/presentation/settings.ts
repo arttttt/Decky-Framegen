@@ -23,7 +23,7 @@ export type SettingRow = {
 export type SettingsSectionView = { name: string; rows: SettingRow[] };
 
 export type SettingsPageView =
-  | { kind: "loading"; title: string }
+  | { kind: "loading"; title: string; message: string }
   | { kind: "error"; title: string; message: string }
   | {
       kind: "ready";
@@ -115,7 +115,7 @@ const OVERLAY_NOTICE =
 export const settingsPageView = (scope: string, answer: SettingsAnswer | null): SettingsPageView => {
   const global = isGlobal(scope);
   const title = global ? "Global settings" : answer?.name ? `${answer.name} settings` : "Game settings";
-  if (answer === null) return { kind: "loading", title };
+  if (answer === null) return { kind: "loading", title, message: "Loading…" };
   if (answer.status !== "success" || !answer.sections) {
     return { kind: "error", title, message: answer.message || "Couldn't read the settings." };
   }

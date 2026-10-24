@@ -105,7 +105,7 @@ export function SettingsPage() {
       <DialogBody>
         <PanelSection title={view.title}>
           <PanelSectionRow>
-            <Field label={view.kind === "loading" ? "Loading…" : view.message} />
+            <Field label={view.message} />
           </PanelSectionRow>
         </PanelSection>
       </DialogBody>

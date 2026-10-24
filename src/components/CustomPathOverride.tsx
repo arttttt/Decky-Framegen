@@ -1,7 +1,7 @@
 import { ButtonItem, Field, PanelSectionRow } from "@decky/ui";
 import { useManualPatch } from "../hooks/useManualPatch";
 import { SmartClipboardButton } from "./SmartClipboardButton";
-import { UnpatchConfirmation } from "./UnpatchConfirmation";
+import { Confirmation } from "./Confirmation";
 
 interface ManualPatchControlsProps {
   ready: boolean;
@@ -62,7 +62,7 @@ export const ManualPatchControls = ({ ready, dllName, launchOptions, patchWith }
               {view.unpatch.label}
             </ButtonItem>
           </PanelSectionRow>
-          <UnpatchConfirmation confirmation={unpatch.confirmation} onConfirm={unpatch.onConfirm} onCancel={unpatch.onCancel} />
+          <Confirmation confirmation={unpatch.confirmation} onConfirm={unpatch.onConfirm} onCancel={unpatch.onCancel} />
         </>
       )}
 

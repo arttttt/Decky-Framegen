@@ -144,10 +144,10 @@ describe("manage dialog", () => {
     expect(manageView(manageState({ message: "Removing failed: busy" })).message).toBe("Removing failed: busy");
   });
 
-  it("offers downloading a version again and removing it, the removal marked destructive", () => {
+  it("offers downloading a version again and removing it, the removal destructive and asked first", () => {
     expect(MANAGE_MENU).toEqual([
-      { action: "reinstall", label: "Download again", destructive: false },
-      { action: "remove", label: "Remove", destructive: true },
+      { action: "reinstall", label: "Download again", destructive: false, confirms: false },
+      { action: "remove", label: "Remove", destructive: true, confirms: true },
     ]);
   });
 
@@ -161,6 +161,7 @@ describe("manage dialog", () => {
       ],
       okLabel: "Remove",
       removes: true,
+      alert: false,
     });
     expect(removeConfirmation(LIBRARY.versions[0], removal(null, [])).lines).toEqual(["No game is patched with it."]);
   });
@@ -171,10 +172,12 @@ describe("manage dialog", () => {
       lines: ["Game use it through links. Unpatch them first."],
       okLabel: "OK",
       removes: false,
+      alert: true,
     });
     expect(removeConfirmation(LIBRARY.versions[0], null)).toMatchObject({
       lines: ["The plugin backend did not answer."],
       removes: false,
+      alert: true,
     });
   });
 
