@@ -6,7 +6,6 @@ from __future__ import annotations
 import re
 from datetime import date
 
-TAG_PREFIX = "v"
 
 
 def day(today: date) -> str:
@@ -16,12 +15,13 @@ def day(today: date) -> str:
 
 def next_release(today: date, existing_tags: list[str]) -> str:
     """The version a release made today gets: the day, or the day with the next count when releases
-    were already made that day. `existing_tags` are the repository's tags (v2026.10.24, ...)."""
+    were already made that day. `existing_tags` are the repository's tags: a release's tag is its version."""
     base = day(today)
-    taken = re.compile(rf"^{re.escape(TAG_PREFIX + base)}(?:\.(\d+))?$")
+    taken = re.compile(rf"^{re.escape(base)}(?:\.(\d+))?$")
     counts = [int(match.group(1) or 0) for tag in existing_tags if (match := taken.match(tag.strip()))]
     return base if not counts else f"{base}.{max(counts) + 1}"
 
 
 def tag(version: str) -> str:
-    return f"{TAG_PREFIX}{version}"
+    """A release's tag: the bare version, 2026.10.24."""
+    return version

@@ -87,7 +87,7 @@ Run **Actions → Release → Run workflow** on `main`. Nothing to type: the rel
 day, as a calendar version (`2026.10.24`; a second release that day is `2026.10.24.1`). The workflow
 stamps that version into the build (`scripts/stamp_release.py`, `framegen.domain.release_version`),
 builds a release build (no Developer section), checks the package, and publishes `Decky-Framegen.zip`
-as the GitHub Release `v<version>` on main's current commit, with generated notes.
+as the GitHub Release tagged with the bare version (`2026.10.24`) on main's current commit, with generated notes.
 
 `package.json`'s `version` stays `0.0.0`: every published build gets its version stamped. Development
 builds carry the build day too, then their channel and commit (`2026.10.24-dev.1a2b3c4`).

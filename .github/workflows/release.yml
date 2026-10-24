@@ -30,7 +30,7 @@ jobs:
         id: stamp
         shell: bash
         run: |
-          mapfile -t tags < <(git tag --list 'v*')
+          mapfile -t tags < <(git tag --list '[0-9]*')
           args=()
           for tag in "${tags[@]}"; do args+=(--existing-tag "$tag"); done
           python scripts/stamp_release.py "${args[@]}" | tee -a "$GITHUB_OUTPUT"
