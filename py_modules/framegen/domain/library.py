@@ -281,7 +281,7 @@ UNSUPPORTED = "unsupported"
 
 @dataclass(frozen=True)
 class Row:
-    """One version as the library section lists it."""
+    """One version of a channel as the download dialog lists it."""
 
     id: str
     version: str

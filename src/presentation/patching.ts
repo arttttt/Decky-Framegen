@@ -40,7 +40,7 @@ export const patchChoice = (library: InstalledLibrary | null, picked: string | n
       label: `${versionLabel(v)} (${v.channel})${v.id === library?.default ? ", default" : ""}`,
     })),
     versionId: version?.id ?? null,
-    versionHint: version ? null : "No OptiScaler version is installed. Download one in the OptiScaler library section.",
+    versionHint: version ? null : "No OptiScaler version is downloaded. Use Download versions… under OptiScaler versions.",
     ready: version !== undefined,
     patchWith: { versionId: version?.id ?? "" },
   };

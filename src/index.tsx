@@ -9,7 +9,7 @@ function MainContent() {
   return (
     <>
       <OptiScalerControls library={library} />
-      <LibrarySection onChanged={reload} />
+      <LibrarySection library={library} onChanged={reload} />
       <DeveloperSection />
     </>
   );

@@ -20,7 +20,7 @@ from framegen.infrastructure import steam as steam_library
 
 log = logging.getLogger(__name__)
 
-NO_VERSION = "No OptiScaler version is installed. Download one in the OptiScaler section first."
+NO_VERSION = "No OptiScaler version is downloaded. Download one under OptiScaler versions first."
 BUNDLE_IS_NOT_A_GAME = "The target directory is the OptiScaler bundle itself. Aborting to prevent accidental deletion."
 PATCHED_BY_AN_OLDER_VERSION = (
     "This game was patched by an older version of the plugin. Unpatch it first: the plugin shows what that removes."

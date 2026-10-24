@@ -1,47 +1,15 @@
-import type { LibraryChannel, LibraryListing, LibraryVersion } from "../api";
-
-/** What the library section is doing to one version right now. */
-export type LibraryBusy = { id: string; action: "download" | "remove" | "default" };
+import type { InstalledLibrary, InstalledVersion, LibraryChannel, LibraryListing, LibraryVersion } from "../api";
 
 /** Bytes of the version being downloaded received so far, and the total when GitHub said it. */
 export type LibraryDownload = { received: number; total: number | null };
 
-export type LibraryState = {
-  channel: LibraryChannel;
-  listing: LibraryListing | null;
-  checking: boolean;
-  busy: LibraryBusy | null;
-  download: LibraryDownload | null;
-  /** What the last action came to (installed, removed, failed and why); cleared by the next one. */
-  message: string | null;
-};
-
-/** A version's row: tapping it downloads it, or opens what can be done with an installed one. */
+/** A version's row in either dialog: tapping it downloads it, or opens what can be done with it. */
 export type LibraryRowView = {
   id: string;
   label: string;
   description: string;
-  action: { intent: "download" | "manage"; label: string; enabled: boolean } | null;
+  action: { label: string; enabled: boolean } | null;
 };
-
-export type LibraryView = {
-  channelOptions: { data: LibraryChannel; label: string }[];
-  channel: LibraryChannel;
-  /** The channel stays put while a version is downloaded or removed: the action reloads its listing. */
-  channelEnabled: boolean;
-  checkLabel: string;
-  checkEnabled: boolean;
-  usage: string | null;
-  rows: LibraryRowView[];
-  message: string | null;
-};
-
-export type LibraryMenuItem = { intent: "default" | "remove"; label: string; destructive: boolean };
-
-export const CHANNEL_OPTIONS: { data: LibraryChannel; label: string }[] = [
-  { data: "stable", label: "Stable releases" },
-  { data: "nightly", label: "Nightly builds" },
-];
 
 const megabytes = (bytes: number): string => `${Math.max(1, Math.round(bytes / 1_000_000))} MB`;
 
@@ -59,75 +27,153 @@ const downloadProgress = (download: LibraryDownload | null): string => {
   return `Downloading: ${percent}% of ${megabytes(download.total)}`;
 };
 
-const busyDescription = (busy: LibraryBusy, download: LibraryDownload | null): string =>
-  busy.action === "download" ? downloadProgress(download) : busy.action === "remove" ? "Removing…" : "Making it the default…";
+/** A dialog's note once an action ends: the backend's words, or a fallback when it did not answer. */
+export const actionOutcome = (answer: { status: string; message?: string } | null, done: string): string =>
+  answer?.message ?? (answer?.status === "success" ? done : "The plugin backend did not answer.");
 
-const describe = (version: LibraryVersion): string => {
-  if (version.state === "installed")
-    return `Installed · ${megabytes(version.size)}${version.default ? " · default for new patches" : ""}`;
-  if (version.state === "unsupported") return `Can't be installed: ${version.reason ?? "unknown reason"}`;
-  return `${megabytes(version.size)} download`;
+// ── The panel ────────────────────────────────────────────────────────────────
+
+/** One line in the panel: how many versions are on the device and which one new patches use. */
+export const librarySummary = (library: InstalledLibrary | null): string => {
+  if (library === null) return "Loading…";
+  const count = library.versions.length;
+  if (count === 0) return "No version is downloaded yet.";
+  const chosen = library.versions.find((v) => v.id === library.default);
+  const downloaded = `${count} ${count === 1 ? "version" : "versions"} downloaded`;
+  return chosen ? `${downloaded}. New patches use ${versionLabel(chosen)}.` : `${downloaded}.`;
 };
 
-const row = (version: LibraryVersion, state: LibraryState): LibraryRowView => {
-  const idle = state.busy === null;
-  const description =
-    state.busy?.id === version.id ? busyDescription(state.busy, state.download) : describe(version);
-  const action =
-    version.state === "installed"
-      ? { intent: "manage" as const, label: "Manage", enabled: idle }
-      : version.state === "available"
-        ? { intent: "download" as const, label: "Download", enabled: idle }
-        : null;
-  return { id: version.id, label: versionLabel(version), description, action };
+// ── Download dialog ──────────────────────────────────────────────────────────
+
+export type DownloadState = {
+  channel: LibraryChannel;
+  listing: LibraryListing | null;
+  checking: boolean;
+  /** The version being downloaded. */
+  busy: string | null;
+  download: LibraryDownload | null;
+  /** What the last download came to; cleared by the next action. */
+  message: string | null;
+};
+
+export type DownloadView = {
+  channelOptions: { data: LibraryChannel; label: string }[];
+  channel: LibraryChannel;
+  /** The channel stays put during a download: its end reloads the channel's listing. */
+  channelEnabled: boolean;
+  checkLabel: string;
+  checkEnabled: boolean;
+  rows: LibraryRowView[];
+  message: string | null;
+};
+
+export const CHANNEL_OPTIONS: { data: LibraryChannel; label: string }[] = [
+  { data: "stable", label: "Stable releases" },
+  { data: "nightly", label: "Nightly builds" },
+];
+
+const describePublished = (version: LibraryVersion): string => {
+  if (version.state === "installed") return "Downloaded";
+  if (version.state === "unsupported") return `Can't be downloaded: ${version.reason ?? "unknown reason"}`;
+  return `${megabytes(version.size)} download`;
 };
 
 const listingMessage = (listing: LibraryListing | null, channel: LibraryChannel): string | null => {
   if (listing?.status === "error") return listing.message;
-  if (listing?.listing_error)
-    return `Could not list what OptiScaler publishes (${listing.listing_error}). Installed versions are shown.`;
+  if (listing?.listing_error) return `Could not list what OptiScaler publishes (${listing.listing_error}).`;
   if (listing?.versions.length === 0) return `No ${channel} versions are published.`;
   return null;
 };
 
-export const libraryView = (state: LibraryState): LibraryView => {
+export const downloadView = (state: DownloadState): DownloadView => {
   const { listing, checking, busy, channel } = state;
+  const idle = busy === null;
   return {
     channelOptions: CHANNEL_OPTIONS,
     channel,
-    channelEnabled: busy === null,
+    channelEnabled: idle,
     checkLabel: checking ? "Checking…" : "Check for new versions",
-    checkEnabled: !checking && busy === null,
-    usage:
-      listing?.status === "success" && listing.installed_bytes > 0
-        ? `The library takes ${megabytes(listing.installed_bytes)}.`
-        : null,
-    rows: listing?.status === "success" ? listing.versions.map((version) => row(version, state)) : [],
+    checkEnabled: !checking && idle,
+    rows:
+      listing?.status === "success"
+        ? listing.versions.map((version) => ({
+            id: version.id,
+            label: versionLabel(version),
+            description: busy === version.id ? downloadProgress(state.download) : describePublished(version),
+            action: version.state === "available" ? { label: "Download", enabled: idle } : null,
+          }))
+        : [],
     message: state.message ?? listingMessage(listing, channel),
   };
 };
 
-/** What can be done with an installed version. */
-export const libraryMenu = (version: LibraryVersion): LibraryMenuItem[] => [
-  ...(version.default ? [] : [{ intent: "default" as const, label: "Use for new patches", destructive: false }]),
-  { intent: "remove" as const, label: "Remove", destructive: true },
+// ── Manage dialog ────────────────────────────────────────────────────────────
+
+export type ManageAction = "default" | "reinstall" | "remove";
+
+export type ManageState = {
+  library: InstalledLibrary | null;
+  busy: { id: string; action: ManageAction } | null;
+  download: LibraryDownload | null;
+  /** What the last action came to; cleared by the next one. */
+  message: string | null;
+};
+
+export type ManageView = {
+  rows: LibraryRowView[];
+  usage: string | null;
+  message: string | null;
+};
+
+export type ManageMenuItem = { action: ManageAction; label: string; destructive: boolean };
+
+const describeInstalled = (version: InstalledVersion, isDefault: boolean): string =>
+  `${version.channel === "nightly" ? "Nightly" : "Stable"} · ${megabytes(version.size)}${
+    isDefault ? " · used for new patches" : ""
+  }`;
+
+const busyDescription = (action: ManageAction, download: LibraryDownload | null): string => {
+  if (action === "reinstall") return downloadProgress(download);
+  return action === "remove" ? "Removing…" : "Making it the version for new patches…";
+};
+
+export const manageView = (state: ManageState): ManageView => {
+  const { library, busy } = state;
+  const versions = library?.versions ?? [];
+  return {
+    rows: versions.map((version) => ({
+      id: version.id,
+      label: versionLabel(version),
+      description:
+        busy?.id === version.id
+          ? busyDescription(busy.action, state.download)
+          : describeInstalled(version, version.id === library?.default),
+      action: { label: "Manage", enabled: busy === null },
+    })),
+    usage: library && library.installed_bytes > 0 ? `Downloaded versions take ${megabytes(library.installed_bytes)}.` : null,
+    message: state.message ?? (library && versions.length === 0 ? "No version is downloaded yet." : null),
+  };
+};
+
+/** What the dialog says when an action succeeded and the backend gave no words of its own. */
+export const manageDone = (action: ManageAction, id: string): string =>
+  action === "default" ? `New patches use ${id}.` : action === "reinstall" ? `${id} is downloaded again.` : `${id} is removed.`;
+
+/** What can be done with a downloaded version. */
+export const manageMenu = (isDefault: boolean): ManageMenuItem[] => [
+  ...(isDefault ? [] : [{ action: "default" as const, label: "Use for new patches", destructive: false }]),
+  { action: "reinstall" as const, label: "Download again", destructive: false },
+  { action: "remove" as const, label: "Remove", destructive: true },
 ];
 
 /** Asked before removing a version; games patched with it keep working, they just can't be patched with it again. */
 export const removeConfirmation = (
-  version: LibraryVersion,
+  version: InstalledVersion,
   games: string[],
 ): { title: string; lines: string[]; okLabel: string } => ({
   title: `Remove OptiScaler ${versionLabel(version)}?`,
   lines: games.length
-    ? [
-        "These stay patched with it and keep working; patching them again needs another version:",
-        ...games,
-      ]
+    ? ["These stay patched with it and keep working; patching them again needs another version:", ...games]
     : ["No game is patched with it."],
   okLabel: "Remove",
 });
-
-/** The section's note once an action ends: the backend's words, or a fallback when it did not answer. */
-export const actionOutcome = (answer: { status: string; message?: string } | null, done: string): string =>
-  answer?.message ?? (answer?.status === "success" ? done : "The plugin backend did not answer.");

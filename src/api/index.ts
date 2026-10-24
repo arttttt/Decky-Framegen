@@ -74,9 +74,11 @@ export type InstalledVersion = {
   version: string;
   channel: LibraryChannel;
   date: string;
+  /** Bytes on disk. */
+  size: number;
 };
 
-export type InstalledLibrary = { default: string | null; versions: InstalledVersion[] };
+export type InstalledLibrary = { default: string | null; versions: InstalledVersion[]; installed_bytes: number };
 
 export type LibraryVersion = {
   id: string;
@@ -101,6 +103,7 @@ export const libraryInstalled = callable<[], InstalledLibrary>("library_installe
 export const libraryVersions = callable<[channel: LibraryChannel], LibraryListing>("library_versions");
 /** Download progress arrives as "library_download" events: version id, bytes received, total bytes or null. */
 export const libraryInstall = callable<[channel: LibraryChannel, version_id: string], LibraryResult>("library_install");
+export const libraryReinstall = callable<[version_id: string], LibraryResult>("library_reinstall");
 export const libraryRemove = callable<[version_id: string], LibraryResult>("library_remove");
 export const librarySetDefault = callable<[version_id: string], LibraryResult>("library_set_default");
 export const libraryGamesUsing = callable<[version_id: string], { status: "success"; games: string[] }>(
