@@ -22,12 +22,10 @@ This plugin uses OptiScaler to replace DLSS calls with FSR3/FSR3.1, giving you:
 
 ## How to Use
 
-1. **Install the Plugin**: Download and install through Decky Loader "install from zip" option in developer settings
-2. **Setup OptiScaler**: Open the plugin and click "Setup OptiScaler Mod" 
-3. **Configure Games**: For each game you want to enhance:
-   - Click "Copy launch options" in the plugin for the standard direct launch-options method
-   - Go to your game's Properties → Launch Options in Steam
-   - Paste the copied command
+1. **Install the Plugin**: Download `Decky-Framegen.zip` from this repository's [Releases](https://github.com/arttttt/Decky-Framegen/releases) and install it with Decky Loader's "Install Plugin from Zip" in its developer settings
+2. **Get OptiScaler**: Open the plugin, go to **OptiScaler versions** → *Download versions…* and download a version
+3. **Patch Games**: Pick a game in the plugin's Steam games section and patch it; the plugin sets the game's launch options and puts them back when you unpatch
+   - For a game outside Steam, use Advanced Mode to patch its directory, then paste "Manual launch cmd" into its launch options
    - If you want the wrapper commands instead, enable Manual Mode and use "Copy Patch Command" / "Copy Unpatch Command"
 4. **Enable Features**: Launch your game and enable DLSS in the graphics settings
 5. **Advanced Options**: Press the Insert key in-game for additional OptiScaler settings

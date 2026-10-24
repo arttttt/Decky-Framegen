@@ -80,3 +80,12 @@ Run on the device before merging anything that changes what the device sees:
 3. `~/fgmod`, patched games and their `FRAMEGEN_PATCH` markers are unchanged by the install.
 4. Switch back to `main` from the Developer section.
 5. Gamepad only: every row of the changed sections can be reached and used.
+
+## Releasing
+
+1. In a pull request, set `version` in `package.json` to the new version (`X.Y.Z`), the one Decky shows.
+2. Once it is merged and CI on `main` is green, tag that commit and push the tag:
+   `git tag vX.Y.Z origin/main && git push origin vX.Y.Z`.
+3. The Release workflow checks that the tag names `package.json`'s version and points at a commit on
+   `main`, builds the plugin as a release build (no Developer section), checks the package, and
+   publishes `Decky-Framegen.zip` as the GitHub Release `vX.Y.Z` with generated notes.
