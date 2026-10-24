@@ -342,7 +342,7 @@ class Patcher:
         running = self._running_executable(candidates)
         return exe_target.patch_target(game.install_path, game.name, candidates, running)
 
-    def _find_marker(self, install_root: Path) -> Path | None:
+    def find_marker(self, install_root: Path) -> Path | None:
         """The game's patch marker: where the patch index says the plugin patched it, else by searching
         the whole install (a patch by an older plugin version, or a game the plugin never patched)."""
         if not install_root.exists():
@@ -380,7 +380,7 @@ class Patcher:
             return {**unpatched, "name": game.name, "install_found": False, "message": "Game install directory not found."}
         # FSR 4 is the Proton's business, so it is told whether the game is patched or not.
         unpatched["fsr4"] = _fsr4_json(self._fsr4(game)[0])
-        marker_path = self._find_marker(game.install_path)
+        marker_path = self.find_marker(game.install_path)
         if marker_path is None:
             return {**unpatched, "name": game.name, "install_found": True, "message": "Not patched."}
 
@@ -435,7 +435,7 @@ class Patcher:
         candidates = steam_library.executables(game.install_path)
         if self._running_executable(candidates) is not None:
             return _error("Close the game before patching.")
-        existing_marker = self._find_marker(game.install_path)
+        existing_marker = self.find_marker(game.install_path)
         existing = files.read_json(existing_marker) if existing_marker else {}
         stored = str(existing.get("original_launch_options") or "") if existing_marker else None
         original_options = marker.original_launch_options(current_launch_options, stored)
@@ -492,7 +492,7 @@ class Patcher:
             return {**not_patched, "message": "Game install directory does not exist."}
         if self._is_running(game):
             return _error("Close the game before unpatching.")
-        marker_path = self._find_marker(game.install_path)
+        marker_path = self.find_marker(game.install_path)
         if self._unpatch_mode(marker_path) == RESET:
             if confirmed_reset:
                 return self._reset_game(appid, current_launch_options)
@@ -524,7 +524,7 @@ class Patcher:
             raise LookupError("Game not found in Steam library.")
         if not game.install_path.exists():
             raise LookupError("Game install directory does not exist.")
-        marker_path = self._find_marker(game.install_path)
+        marker_path = self.find_marker(game.install_path)
         # The marker sits in the directory it patched. The path an older version wrote into it is not
         # trusted: it can name a mount point or a library location that no longer exists.
         target = marker_path.parent if marker_path is not None else self._patch_target(game)[0]

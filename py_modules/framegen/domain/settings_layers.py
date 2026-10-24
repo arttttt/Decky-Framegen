@@ -117,3 +117,40 @@ def parse_layer(data: object) -> Layer:
         for key, value in keys.items()
         if isinstance(value, (str, int, float, bool))
     }
+
+
+def view_json(sections: tuple[Section, ...], resolved: dict[Key, Resolved]) -> list[dict]:
+    """The schema with each setting's value and its source, as the settings pages show it."""
+    return [
+        {
+            "name": section.name,
+            "settings": [
+                {
+                    "key": setting.key,
+                    "kind": setting.kind,
+                    "description": setting.description,
+                    "help": setting.help,
+                    "default": setting.default,
+                    "choices": [{"value": c.value, "label": c.label} for c in setting.choices],
+                    "minimum": setting.minimum,
+                    "maximum": setting.maximum,
+                    "integer": setting.integer,
+                    "value": resolved[(section.name, setting.key)].value,
+                    "source": resolved[(section.name, setting.key)].source,
+                }
+                for setting in section.settings
+            ],
+        }
+        for section in sections
+    ]
+
+
+def with_value(layer: Layer, key: Key, value: str | None) -> Layer:
+    """A layer with a key set, or cleared with None so the key falls through to the layer below. "auto"
+    is a value like any other: a game set to auto ignores a global value for that key."""
+    changed = dict(layer)
+    if value is None:
+        changed.pop(key, None)
+    else:
+        changed[key] = value
+    return changed
