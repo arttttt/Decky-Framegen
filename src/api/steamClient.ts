@@ -1,3 +1,5 @@
+import type { LifetimeNotification } from "@decky/ui";
+
 /** Steam's own client API, for the launch options of a game. */
 
 /** The game's launch options; rejects when Steam doesn't say, which is not the same as having none. */
@@ -34,15 +36,23 @@ export const setAppLaunchOptions = (appId: number, options: string): void => {
   }
 };
 
-type AppLifetimeNotification = { unAppID: number; bRunning: boolean };
+/** Steam reports a stopped non-Steam shortcut with appid 0, which names no game. */
+const NO_APPID = 0;
+/** After Steam says a game stopped, a straggling Proton process may still hold its files for a moment. */
+const STOPPED_GRACE_MS = 2000;
 
-/** Calls back with a game's appid whenever Steam says it stopped running; returns the unsubscribe. A
- *  no-op where Steam's client API doesn't offer it. */
+/** Calls back with a game's appid shortly after Steam says it stopped running; returns the unsubscribe.
+ *  A no-op where Steam's client API doesn't offer it. */
 export const onGameStopped = (callback: (appid: number) => void): (() => void) => {
-  const sessions = typeof SteamClient === "undefined" ? undefined : SteamClient?.GameSessions;
-  if (!sessions?.RegisterForAppLifetimeNotifications) return () => {};
-  const registration = sessions.RegisterForAppLifetimeNotifications((notification: AppLifetimeNotification) => {
-    if (!notification.bRunning) callback(notification.unAppID);
-  });
-  return () => registration?.unregister?.();
+  try {
+    const registration = SteamClient?.GameSessions?.RegisterForAppLifetimeNotifications?.(
+      (notification: LifetimeNotification) => {
+        if (notification.bRunning || notification.unAppID === NO_APPID) return;
+        window.setTimeout(() => callback(notification.unAppID), STOPPED_GRACE_MS);
+      },
+    );
+    return () => registration?.unregister?.();
+  } catch {
+    return () => {};
+  }
 };
