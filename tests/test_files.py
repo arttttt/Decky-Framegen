@@ -36,3 +36,14 @@ def test_files_match_compares_content_and_requires_both_files(tmp_path):
     b.write_bytes(b"different")
     assert files.files_match(a, b) is False
     assert files.files_match(a, tmp_path / "missing.dll") is False
+
+
+def test_rewriting_a_text_file_keeps_its_line_endings(tmp_path):
+    from framegen.infrastructure import files
+
+    path = tmp_path / "OptiScaler.ini"
+    path.write_bytes(b"[Menu]\r\nUseHQFont=auto\r\n")
+
+    files.rewrite_text(path, lambda text: text.replace("auto", "false"))
+
+    assert path.read_bytes() == b"[Menu]\r\nUseHQFont=false\r\n"
