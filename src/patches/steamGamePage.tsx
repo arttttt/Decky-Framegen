@@ -11,7 +11,7 @@ import { FC, useEffect, useRef, useState } from "react";
 import { MdOutlineAutoAwesomeMotion } from "react-icons/md";
 import { routerHook } from "@decky/api";
 import { openGamePage } from "../api/framegenPage";
-import { GAME_PAGE_BUTTON_LABEL, appIdFromLibraryPath } from "../presentation/steamGamePage";
+import { CHIP_LEFT, GAME_PAGE_BUTTON_LABEL, Overlay, appIdFromLibraryPath, chipTop } from "../presentation/steamGamePage";
 
 const STEAM_GAME_ROUTE = "/library/app/:appid";
 
@@ -56,11 +56,28 @@ function topCapsule(chip: HTMLElement | null): Element | null {
 
 const FULLSCREEN_CLASSES = ["FullscreenEnterStart", "FullscreenEnterActive", "FullscreenEnterDone", "FullscreenExitStart", "FullscreenExitActive"] as const;
 
-/** A chip on Steam's game page, beside other plugins' badges, that opens the game's page in the plugin.
- *  It carries no other logic, and hides while Steam shows the header fullscreen. */
+/** The badges other plugins placed before the chip in the header, relative to the header. */
+function overlaysBefore(chip: HTMLElement): { overlays: Overlay[]; width: number } {
+  const parent = chip.parentElement;
+  if (!parent) return { overlays: [], width: 0 };
+  const origin = parent.getBoundingClientRect();
+  const overlays: Overlay[] = [];
+  for (let node = chip.previousElementSibling; node; node = node.previousElementSibling) {
+    if (getComputedStyle(node).position !== "absolute") continue;
+    const rect = node.getBoundingClientRect();
+    overlays.push({ left: rect.left - origin.left, top: rect.top - origin.top, bottom: rect.bottom - origin.top });
+  }
+  return { overlays, width: origin.width };
+}
+
+/** A chip on Steam's game page that opens the game's page in the plugin; it carries no other logic.
+ *  It stacks under the badges other plugins put in the header and comes right before the play section,
+ *  so Up from Play reaches it first and the next Up the badge above it. It hides while Steam shows
+ *  the header fullscreen. */
 function GamePageButton({ appid }: { appid: string }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [shown, setShown] = useState(true);
+  const [top, setTop] = useState<number | null>(null);
 
   useEffect(() => {
     const capsule = topCapsule(ref.current);
@@ -74,13 +91,38 @@ function GamePageButton({ appid }: { appid: string }) {
     return () => observer.disconnect();
   }, []);
 
-  // On the row ProtonDB Badges uses by default (top-left, 40px): level with it, the gamepad moves
-  // between the two with left and right.
+  // Other plugins' badges appear and grow as their data loads: the chip follows them.
+  useEffect(() => {
+    const chip = ref.current;
+    const parent = chip?.parentElement;
+    if (!chip || !parent) return;
+    const place = () => {
+      const { overlays, width } = overlaysBefore(chip);
+      setTop(chipTop(overlays, width));
+    };
+    place();
+    const resizes = new ResizeObserver(place);
+    const watchSiblings = () => {
+      resizes.disconnect();
+      for (let node = chip.previousElementSibling; node; node = node.previousElementSibling) resizes.observe(node);
+    };
+    watchSiblings();
+    const children = new MutationObserver(() => {
+      watchSiblings();
+      place();
+    });
+    children.observe(parent, { childList: true, subtree: true });
+    return () => {
+      resizes.disconnect();
+      children.disconnect();
+    };
+  }, []);
+
   const FocusableButton = chipButton();
   return (
-    <div ref={ref} style={{ position: "absolute", top: "40px", right: "20px", zIndex: 7 }}>
+    <div ref={ref} style={{ position: "absolute", top: `${top ?? 40}px`, left: `${CHIP_LEFT}px`, zIndex: 7 }}>
       <style>{CHIP_CSS}</style>
-      {shown && (
+      {shown && top !== null && (
         <FocusableButton className="decky-framegen-chip" onClick={() => openGamePage(appid)}>
           <MdOutlineAutoAwesomeMotion />
           <span>{GAME_PAGE_BUTTON_LABEL}</span>
@@ -109,8 +151,12 @@ export function patchSteamGamePage(): () => void {
           );
           const appid = appIdFromLibraryPath(window.location.pathname);
           if (!container || !appid) return ret;
-          container.props.children = container.props.children.filter((child: any) => child?.type !== GamePageButton);
-          container.props.children.splice(1, 0, <GamePageButton key="decky-framegen" appid={appid} />);
+          const children = container.props.children.filter((child: any) => child?.type !== GamePageButton);
+          // Right before the play section (found by its props, as MoonDeck finds it), after any badge
+          // another plugin put at the top: Up from Play reaches the chip first, whatever loaded first.
+          const playSection = children.findIndex((x: any) => x?.props?.overview && x?.props?.onShowLaunchingDetails);
+          children.splice(playSection > 0 ? playSection : 1, 0, <GamePageButton key="decky-framegen" appid={appid} />);
+          container.props.children = children;
         } catch (err) {
           console.error("Decky Framegen: the button on Steam's game page", err);
         }

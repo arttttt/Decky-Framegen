@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appIdFromLibraryPath, isSteamGame } from "./steamGamePage";
+import { appIdFromLibraryPath, chipTop } from "./steamGamePage";
 
 describe("Steam game page", () => {
   it("reads the game from a library page's path, and nothing from other pages", () => {
@@ -10,10 +10,12 @@ describe("Steam game page", () => {
   });
 });
 
-describe("game context menu", () => {
-  it("is offered for Steam games, not for non-Steam shortcuts", () => {
-    expect(isSteamGame(1091500)).toBe(true);
-    expect(isSteamGame(0x80000000 + 12345)).toBe(false);
-    expect(isSteamGame(0)).toBe(false);
+describe("game page chip", () => {
+  it("stacks under other plugins' badges in the header's left half, else takes their usual place", () => {
+    expect(chipTop([], 1280)).toBe(40);
+    expect(chipTop([{ left: 20, top: 40, bottom: 76 }], 1280)).toBe(84);
+    expect(chipTop([{ left: 20, top: 40, bottom: 76 }, { left: 20, top: 84, bottom: 110 }], 1280)).toBe(118);
+    expect(chipTop([{ left: 1100, top: 60, bottom: 96 }], 1280)).toBe(40); // a badge on the right doesn't count
+    expect(chipTop([{ left: 20, top: 40, bottom: 40 }], 1280)).toBe(40); // nor one with nothing in it yet
   });
 });
