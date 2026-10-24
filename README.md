@@ -2,7 +2,7 @@
 
 A Steam Deck plugin that enables DLSS upscaling and Frame Generation on handhelds by utilizing the latest OptiScaler and supporting modification software. This plugin automatically installs and manages all necessary components for FSR-based frame generation in games that support DLSS, or OptiFG for adding FG to games that do not have any existing FG pathway (highly experimental)
 
-> **Work in progress.** Builds from this repository no longer include OptiScaler: games are patched from versions in the plugin's OptiScaler library (`~/fgmod/library`), downloaded straight from OptiScaler's releases. Download a version under **OptiScaler versions** → *Download versions…* before patching a game. The rework is not yet checked on devices; for a settled build, use the last release of the upstream plugin (xXJSONDeruloXx/Decky-Framegen), which still bundles OptiScaler.
+> This is a continuation of [xXJSONDeruloXx/Decky-Framegen](https://github.com/xXJSONDeruloXx/Decky-Framegen). Its builds don't include OptiScaler: games are patched from versions in the plugin's OptiScaler library (`~/fgmod/library`), downloaded straight from OptiScaler's releases. Download a version under **OptiScaler versions** → *Download versions…* before patching a game. Report problems in [this repository's issues](https://github.com/arttttt/Decky-Framegen/issues).
 
 ## What This Plugin Does
 
