@@ -72,10 +72,12 @@ class Patcher:
         reset_ini: bool = False,
         steam_game: marker.SteamGame | None = None,
         fsr4_driver: Path | None = None,
+        unless_current: bool = False,
     ) -> dict:
         """Patch a directory with a library version and record it in a marker. A patch that names no
         version (the launch wrapper's, unless FGMOD_VERSION is set) keeps the one the directory is
-        patched with, else takes the newest downloaded."""
+        patched with, else takes the newest downloaded. `unless_current` leaves a directory alone when
+        it is already patched exactly as this patch would patch it (the wrapper patches on every launch)."""
         if dll_name not in bundle.VALID_DLL_NAMES:
             return _error(f"Invalid proxy DLL name: {dll_name}")
         marker_path = directory / bundle.MARKER_FILENAME
@@ -90,6 +92,9 @@ class Patcher:
                 return _error(NO_VERSION)
         family = library.FAMILIES[entry.family]
         source = self.library.version_dir(entry.id) / library.FILES_DIRNAME
+        if unless_current and not reset_ini and self._patched_as(directory, entry.id, dll_name):
+            log.info(f"{directory} is already patched with OptiScaler {entry.id}, {dll_name}")
+            return {"status": "success", "message": f"OptiScaler {entry.version} is in {directory}.", "optiscaler_version": entry.id}
 
         carried_over: frozenset[str] = frozenset()
         if marker_path.exists():
@@ -144,6 +149,15 @@ class Patcher:
             "message": f"OptiScaler {entry.version} is in {directory}.",
             "optiscaler_version": entry.id,
         }
+
+    def _patched_as(self, directory: Path, version_id: str, dll_name: str) -> bool:
+        details = files.read_json(directory / bundle.MARKER_FILENAME)
+        recorded = patch_record.parse(details)
+        return (
+            recorded is not None
+            and marker.describes(details, version_id, dll_name)
+            and patch_record.intact(recorded, game_directory.current_state(directory, recorded))
+        )
 
     def _is_bundle(self, directory: Path) -> bool:
         """Whether `directory` is ~/fgmod or inside it: never a game, never to be unpatched or reset."""

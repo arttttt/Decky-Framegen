@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -9,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import REPO_ROOT, STABLE, game_file, make_game_dir, put_tools_on_path, write
+from conftest import NIGHTLY, REPO_ROOT, STABLE, game_file, make_game_dir, put_tools_on_path, write
 from framegen.application.launch_wrapper import LaunchWrapper, WrapperError
 from framegen.domain import launch_target
 from framegen.infrastructure import game_locator
@@ -184,3 +185,40 @@ def test_the_wrapper_applies_settings_from_environment_variables_on_every_patch(
 
     assert first == b"[Upscalers]\r\nDx12Upscaler=C:\\Games\\x\r\n"  # verbatim, line endings kept
     assert (game / "OptiScaler.ini").read_bytes() == b"[Upscalers]\r\nDx12Upscaler=fsr31\r\n"
+
+
+def test_the_wrapper_leaves_a_game_already_patched_the_same_way_untouched(fgmod, home, tmp_path):
+    from framegen.application.launch_wrapper import LaunchWrapper
+
+    game = make_game_dir(tmp_path / "games" / "Again Game")
+    command = [str(game / "Game.exe")]
+    LaunchWrapper(home, {}).patch(command, "dxgi.dll", STABLE)
+    marker_path = game / "FRAMEGEN_PATCH"
+    first = (marker_path.stat().st_mtime_ns, marker_path.read_text(), os.readlink(game / "dxgi.dll"))
+
+    LaunchWrapper(home, {}).patch(command, "dxgi.dll")
+
+    assert (marker_path.stat().st_mtime_ns, marker_path.read_text(), os.readlink(game / "dxgi.dll")) == first
+
+
+def test_the_wrapper_patches_again_when_anything_differs(fgmod, home, tmp_path):
+    from framegen.application.launch_wrapper import LaunchWrapper
+
+    game = make_game_dir(tmp_path / "games" / "Changed Game")
+    command = [str(game / "Game.exe")]
+    wrapper = LaunchWrapper(home, {})
+    wrapper.patch(command, "dxgi.dll", STABLE)
+
+    wrapper.patch(command, "winmm.dll")  # another proxy name
+    assert (game / "winmm.dll").is_symlink() and not (game / "dxgi.dll").exists()
+
+    wrapper.patch(command, "winmm.dll", NIGHTLY)  # another version
+    assert json.loads((game / "FRAMEGEN_PATCH").read_text())["optiscaler_version"] == NIGHTLY
+
+    (game / "winmm.dll").unlink()  # a placed file went missing
+    wrapper.patch(command, "winmm.dll")
+    assert (game / "winmm.dll").is_symlink()
+
+    (game / "OptiScaler.ini").write_text("[Mine]\n")
+    wrapper.patch(command, "winmm.dll", reset_ini=True)  # asked to reset the ini
+    assert (game / "OptiScaler.ini").read_text() != "[Mine]\n"

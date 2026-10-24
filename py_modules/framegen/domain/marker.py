@@ -50,6 +50,17 @@ def build(
     }
 
 
+def describes(details: dict, version_id: str, dll_name: str) -> bool:
+    """Whether a marker records a finished patch with this version under this proxy name, placed the way
+    patches are placed now: patching again would place the same."""
+    return (
+        details.get("complete") is True
+        and details.get("optiscaler_version") == version_id
+        and details.get("dll_name") == dll_name
+        and details.get("placement") == LINK
+    )
+
+
 def original_launch_options(current: str | None, stored: str | None) -> str | None:
     """The user's own launch options to restore on unpatch.
 

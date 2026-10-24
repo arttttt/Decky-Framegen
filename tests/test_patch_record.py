@@ -238,3 +238,25 @@ def test_a_patched_game_whose_marker_names_a_stale_path_still_reads_as_patched(p
     status = run(plugin.get_game_status("740"))
 
     assert status["patched"] is True and status["target_dir"] == str(root)
+
+
+def test_a_patch_is_intact_while_everything_it_placed_is_there_as_placed():
+    whole = {"dxgi.dll": "a" * 64, "libxess.dll": "c" * 64, "OptiScaler.ini": "rewritten by OptiScaler",
+             "D3D12_Optiscaler/D3D12Core.dll": "e" * 64}
+
+    assert patch_record.intact(RECORD, whole)
+    assert not patch_record.intact(RECORD, {k: v for k, v in whole.items() if k != "dxgi.dll"})
+    assert not patch_record.intact(RECORD, {**whole, "libxess.dll": "1" * 64})
+    assert not patch_record.intact(RECORD, {k: v for k, v in whole.items() if k != "OptiScaler.ini"})
+
+
+def test_a_marker_describes_a_finished_patch_of_this_version_under_this_name():
+    from framegen.domain import marker
+
+    details = {"complete": True, "optiscaler_version": "nightly-1", "dll_name": "dxgi.dll", "placement": "link"}
+
+    assert marker.describes(details, "nightly-1", "dxgi.dll")
+    assert not marker.describes({**details, "complete": False}, "nightly-1", "dxgi.dll")
+    assert not marker.describes(details, "nightly-2", "dxgi.dll")
+    assert not marker.describes(details, "nightly-1", "winmm.dll")
+    assert not marker.describes({**details, "placement": "copy"}, "nightly-1", "dxgi.dll")
