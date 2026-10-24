@@ -315,3 +315,51 @@ def test_a_game_status_names_a_newer_version_of_its_channel(plugin, fgmod, steam
     install_version(fgmod, "nightly-20261101", "10", NIGHTLY_FILES, NIGHTLY_INI)
 
     assert run(plugin.get_game_status("1234"))["newer_version"] == "nightly-20261101"
+
+
+def test_downloading_a_version_again_swaps_in_a_fresh_copy(world):
+    world.library().install(library.NIGHTLY, NEWEST)
+    files = world.fgmod / "library" / "versions" / NEWEST / "files"
+    write(files / "OptiScaler.dll", b"corrupted")
+    (files / "OptiScaler.ini").unlink()
+
+    result = world.library().reinstall(NEWEST)
+
+    assert result == {"status": "success", "id": NEWEST, "message": "OptiScaler 10.0.0-pre1 is downloaded again."}
+    assert (files / "OptiScaler.dll").read_bytes() == b"opti"
+    assert (files / "OptiScaler.ini").exists()
+    assert not (world.fgmod / "library" / ".partial").exists()
+
+
+def test_a_failed_download_again_keeps_the_copy_the_library_has(world):
+    world.library().install(library.NIGHTLY, NEWEST)
+    before = world.tree()
+
+    result = world.library(FakeDownload(b"not the published archive")).reinstall(NEWEST)
+
+    assert result["status"] == "error" and "did not match its checksum" in result["message"]
+    assert world.tree() == before
+
+
+def test_a_failed_swap_puts_the_old_copy_back(world, monkeypatch):
+    world.library().install(library.NIGHTLY, NEWEST)
+    before = world.tree()
+    from framegen.infrastructure.library_store import LibraryStore
+
+    def fail(self, stage, installed):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(LibraryStore, "commit", fail)
+    result = world.library().reinstall(NEWEST)
+
+    assert result["status"] == "error" and "disk full" in result["message"]
+    assert world.tree() == before
+
+
+def test_only_a_version_in_the_library_is_downloaded_again(world):
+    download = FakeDownload(world.archive)
+
+    result = world.library(download).reinstall(NEWEST)
+
+    assert result == {"status": "error", "message": f"{NEWEST} is not in the library."}
+    assert download.urls == []

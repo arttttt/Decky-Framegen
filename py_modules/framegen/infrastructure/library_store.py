@@ -61,6 +61,19 @@ class LibraryStore:
         self.versions_dir.mkdir(parents=True, exist_ok=True)
         stage.replace(self.version_dir(installed.id))
 
+    def replace(self, stage: Path, installed: library.Installed) -> None:
+        """Commit a fresh copy of a version that is already in the library. The old copy is moved
+        aside first and comes back if the new one can't be moved in."""
+        current = self.version_dir(installed.id)
+        aside = self.partial_dir / f"{installed.id}.old"
+        current.replace(aside)
+        try:
+            self.commit(stage, installed)
+        except OSError:
+            aside.replace(current)
+            raise
+        shutil.rmtree(aside, ignore_errors=True)
+
     def remove(self, version_id: str) -> None:
         shutil.rmtree(self.version_dir(version_id))
 

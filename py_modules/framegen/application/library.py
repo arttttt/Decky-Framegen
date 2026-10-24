@@ -86,6 +86,19 @@ class Library:
             return _error(f"Unknown channel: {channel}")
         if any(entry.id == version_id for entry in self.store.installed()):
             return _error(f"{version_id} is already in the library.")
+        return self._fetch(channel, version_id, replacing=False)
+
+    def reinstall(self, version_id: str) -> dict:
+        """Download a version in the library again and swap it in, for a copy that went bad.
+
+        Anything that goes wrong keeps the copy the library has.
+        """
+        entry = next((e for e in self.store.installed() if e.id == version_id), None)
+        if entry is None:
+            return _error(f"{version_id} is not in the library.")
+        return self._fetch(entry.channel, version_id, replacing=True)
+
+    def _fetch(self, channel: str, version_id: str, replacing: bool) -> dict:
         try:
             version = next((v for v in self._published(channel) if v.id == version_id), None)
         except ReleasesUnavailable as exc:
@@ -112,7 +125,7 @@ class Library:
             if missing:
                 return _error(f"The {version_id} archive lacks {', '.join(sorted(missing))}; not added.")
             installed = library.entry(version, datetime.now(timezone.utc).isoformat())
-            self.store.commit(stage, installed)
+            (self.store.replace if replacing else self.store.commit)(stage, installed)
         except (ReleasesUnavailable, RuntimeError, OSError) as exc:
             log.error(f"Installing {version_id} failed: {exc}")
             return _error(f"Installing {version_id} failed: {exc}")
@@ -120,8 +133,8 @@ class Library:
             self.store.clear_partial()
         if self.store.default_version() is None:
             self.store.set_default_version(version_id)
-        log.info(f"Installed OptiScaler {version_id}")
-        message = f"OptiScaler {version.version} is installed."
+        log.info(f"{'Reinstalled' if replacing else 'Installed'} OptiScaler {version_id}")
+        message = f"OptiScaler {version.version} is {'downloaded again' if replacing else 'installed'}."
         try:
             self.refresh_core()
         except OSError as exc:

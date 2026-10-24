@@ -115,6 +115,11 @@ class Plugin:
         library = self._library(_decky_events("library_download"))
         return await asyncio.to_thread(library.install, channel, version_id)
 
+    async def library_reinstall(self, version_id: str) -> dict:
+        # Progress goes to the frontend as "library_download" events, as for an install.
+        library = self._library(_decky_events("library_download"))
+        return await asyncio.to_thread(library.reinstall, version_id)
+
     async def library_remove(self, version_id: str) -> dict:
         # Deleting an unpacked version (hundreds of MB) takes a moment on handheld storage.
         return await asyncio.to_thread(self._library().remove, version_id)
