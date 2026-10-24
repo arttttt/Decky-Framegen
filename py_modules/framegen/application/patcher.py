@@ -310,7 +310,8 @@ class Patcher:
                 "target_dir": str(marker_path.parent), "message": PATCHED_BY_AN_OLDER_VERSION,
             }
         dll_name = metadata.get("dll_name", bundle.DEFAULT_PROXY_DLL)
-        target_dir = Path(metadata.get("target_dir", str(marker_path.parent)))
+        # The marker sits in the directory it patched; the path written into it can go stale.
+        target_dir = marker_path.parent
         dll_present = (target_dir / dll_name).exists()
         version = metadata.get("optiscaler_version")
         if dll_present:
@@ -439,10 +440,9 @@ class Patcher:
         if not game.install_path.exists():
             raise LookupError("Game install directory does not exist.")
         marker_path = self._find_marker(game.install_path)
-        if marker_path is not None:
-            target = Path(files.read_json(marker_path).get("target_dir") or marker_path.parent)
-        else:
-            target, _ = self._patch_target(game)
+        # The marker sits in the directory it patched. The path an older version wrote into it is not
+        # trusted: it can name a mount point or a library location that no longer exists.
+        target = marker_path.parent if marker_path is not None else self._patch_target(game)[0]
         return game, target, marker_path
 
     def _reset_plan(
@@ -514,5 +514,5 @@ class Patcher:
             log.info(f"[Framegen] reset_directory: {target}")
             return {**preview, "message": f"{target} is back to how it shipped."}
         except Exception as exc:
-            log.error(f"[Framegen] reset_directory failed for {directory}: {exc}")
+            log.error(f"[Framegen] reset_directory failed for {target}: {exc}")
             return _error(str(exc))
