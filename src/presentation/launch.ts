@@ -27,10 +27,27 @@ export const proxyDllView = (setup: LaunchSetup | null, picked: string | null): 
 export const patchReady = (versionReady: boolean, launch: ProxyDllView): boolean => versionReady && launch.selected !== null;
 
 /** Asked before the wrapper's patch command is copied: the wrapper keeps patching until it's taken out. */
-export type CopyConfirmation = { title: string; description: string; okLabel: string };
+export type CopyConfirmation = { title: string; lines: string[]; okLabel: string };
 export const WRAPPER_PATCH_CONFIRMATION: CopyConfirmation = {
   title: "Patch Game with OptiScaler?",
-  description:
+  lines: [
     "WARNING: Decky Framegen does not unpatch games when uninstalled. Be sure to unpatch the game or run the OptiScaler uninstall script inside the game files if you choose to uninstall the plugin or the game has issues.",
+  ],
   okLabel: "Copy Patch Command",
+};
+
+/** How long a copy button says it copied before it can copy again. */
+export const COPIED_SHOWN_MS = 3000;
+
+export const COPY_FAILED = "Couldn't copy to the clipboard.";
+
+export type CopyState = "idle" | "copying" | "copied";
+
+export type ClipboardButtonView = { label: string; icon: "clipboard" | "check"; pulsing: boolean; color: string | null; enabled: boolean };
+
+/** What a copy button shows: its own label, then copying, then a green "copied" for a while. */
+export const clipboardButtonView = (state: CopyState, label: string): ClipboardButtonView => {
+  if (state === "copying") return { label: "Copying...", icon: "clipboard", pulsing: true, color: null, enabled: false };
+  if (state === "copied") return { label: "Copied to clipboard", icon: "check", pulsing: false, color: "#4CAF50", enabled: false };
+  return { label, icon: "clipboard", pulsing: false, color: null, enabled: true };
 };

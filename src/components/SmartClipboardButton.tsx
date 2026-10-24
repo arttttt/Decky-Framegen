@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
-import { PanelSectionRow, ButtonItem, ConfirmModal, showModal } from "@decky/ui";
-import { FaClipboard, FaCheck } from "react-icons/fa";
-import { toaster } from "@decky/api";
+import { ButtonItem, PanelSectionRow } from "@decky/ui";
+import { FaCheck, FaClipboard } from "react-icons/fa";
+import { useClipboardCopy } from "../hooks/useClipboardCopy";
 import type { CopyConfirmation } from "../presentation/launch";
+import { Confirmation } from "./Confirmation";
 
 interface SmartClipboardButtonProps {
   command: string;
@@ -11,140 +11,23 @@ interface SmartClipboardButtonProps {
   confirmation?: CopyConfirmation;
 }
 
+const PULSE = { animation: "framegen-pulse 1s ease-in-out infinite", opacity: 0.7 };
+
 export function SmartClipboardButton({ command, buttonText, confirmation }: SmartClipboardButtonProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-
-  // Reset success state after 3 seconds
-  useEffect(() => {
-    if (showSuccess) {
-      const timer = setTimeout(() => {
-        setShowSuccess(false);
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-    return undefined;
-  }, [showSuccess]);
-
-  const copyToClipboard = async () => {
-    if (isLoading || showSuccess) return;
-    
-    if (confirmation) {
-      showModal(
-        <ConfirmModal
-          strTitle={confirmation.title}
-          strDescription={confirmation.description}
-          strOKButtonText={confirmation.okLabel}
-          strCancelButtonText="Cancel"
-          onOK={async () => {
-            await performCopy();
-          }}
-        />
-      );
-      return;
-    }
-    
-    await performCopy();
-  };
-
-  const performCopy = async () => {
-    if (isLoading || showSuccess) return;
-    
-    setIsLoading(true);
-    try {
-      const text = command;
-      
-      // Use the proven input simulation method
-      const tempInput = document.createElement('input');
-      tempInput.value = text;
-      tempInput.style.position = 'absolute';
-      tempInput.style.left = '-9999px';
-      document.body.appendChild(tempInput);
-      
-      // Focus and select the text
-      tempInput.focus();
-      tempInput.select();
-      
-      // Try copying using execCommand first (most reliable in gaming mode)
-      let copySuccess = false;
-      try {
-        if (document.execCommand('copy')) {
-          copySuccess = true;
-        }
-      } catch (e) {
-        // If execCommand fails, try navigator.clipboard as fallback
-        try {
-          await navigator.clipboard.writeText(text);
-          copySuccess = true;
-        } catch (clipboardError) {
-          console.error('Both copy methods failed:', e, clipboardError);
-        }
-      }
-      
-      // Clean up
-      document.body.removeChild(tempInput);
-      
-      if (copySuccess) {
-        // Show success feedback in the button instead of toast
-        setShowSuccess(true);
-        // Verify the copy worked by reading back
-        try {
-          const readBack = await navigator.clipboard.readText();
-          if (readBack !== text) {
-            // Copy worked but verification failed - still show success
-            console.log('Copy verification failed but copy likely worked');
-          }
-        } catch (e) {
-          // Verification failed but copy likely worked
-          console.log('Copy verification unavailable but copy likely worked');
-        }
-      } else {
-        toaster.toast({
-          title: "Copy Failed",
-          body: "Unable to copy to clipboard"
-        });
-      }
-
-    } catch (error) {
-      toaster.toast({
-        title: "Copy Failed",
-        body: `Error: ${String(error)}`
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  const copy = useClipboardCopy(command, buttonText, confirmation);
+  const { view } = copy;
+  const Icon = view.icon === "check" ? FaCheck : FaClipboard;
   return (
     <PanelSectionRow>
-      <ButtonItem
-        layout="below"
-        onClick={copyToClipboard}
-        disabled={isLoading || showSuccess}
-      >
+      <ButtonItem layout="below" onClick={copy.onClick} disabled={!view.enabled}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          {showSuccess ? (
-            <FaCheck style={{ 
-              color: "#4CAF50" // Green color for success
-            }} />
-          ) : isLoading ? (
-            <FaClipboard style={{ 
-              animation: "pulse 1s ease-in-out infinite",
-              opacity: 0.7 
-            }} />
-          ) : (
-            <FaClipboard />
-          )}
-          <div style={{ 
-            color: showSuccess ? "#4CAF50" : "inherit",
-            fontWeight: showSuccess ? "bold" : "normal"
-          }}>
-            {showSuccess ? "Copied to clipboard" : isLoading ? "Copying..." : buttonText}
-          </div>
+          <Icon style={{ ...(view.pulsing ? PULSE : {}), ...(view.color ? { color: view.color } : {}) }} />
+          <div style={view.color ? { color: view.color, fontWeight: "bold" } : undefined}>{view.label}</div>
         </div>
       </ButtonItem>
+      <Confirmation confirmation={copy.confirmation} onConfirm={copy.onConfirm} onCancel={copy.onCancel} />
       <style>{`
-        @keyframes pulse {
+        @keyframes framegen-pulse {
           0% { opacity: 0.7; }
           50% { opacity: 1; }
           100% { opacity: 0.7; }
