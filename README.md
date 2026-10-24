@@ -85,7 +85,7 @@ The plugin does not pick an FSR 4 model: OptiScaler does. OptiScaler 10.x choose
 ## Technical Details
 
 ### Where OptiScaler comes from
-Builds of this plugin don't include OptiScaler. **OptiScaler versions** → *Download versions…* fetches versions straight from OptiScaler's own releases ([stable](https://github.com/optiscaler/OptiScaler/releases), [nightly](https://github.com/optiscaler/OptiScaler-nightly/releases)), checks each download against its published checksum, and keeps it in `~/fgmod/library`; *Manage downloaded…* downloads one again or removes one. A patch copies the version picked for it (the newest, unless you pick another) into the game's directory, backs up any game file it replaces, and records what it did so Unpatch undoes exactly that.
+Builds of this plugin don't include OptiScaler. **OptiScaler versions** → *Download versions…* fetches versions straight from OptiScaler's own releases ([stable](https://github.com/optiscaler/OptiScaler/releases), [nightly](https://github.com/optiscaler/OptiScaler-nightly/releases)), checks each download against its published checksum, and keeps it in `~/fgmod/library`; *Manage downloaded…* downloads one again or removes one. A patch places the version picked for it (the newest, unless you pick another) in the game's directory as symlinks into the library, so games hold no copies of OptiScaler; only `OptiScaler.ini` is copied, since OptiScaler saves each game's settings there. It backs up any game file it replaces and records what it did, so Unpatch undoes exactly that. A version games are linked to can't be removed until they are unpatched.
 
 ## Development
 

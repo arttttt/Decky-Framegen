@@ -11,7 +11,6 @@
     "appid": "999",
     "dll_name": null,
     "install_found": false,
-    "linked": false,
     "message": "Game not found in Steam library.",
     "newer_version": null,
     "patched": false,

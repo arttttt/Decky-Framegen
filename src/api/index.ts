@@ -13,7 +13,7 @@ export const getPathDefaults = callable<
 >("get_path_defaults");
 
 export const runManualPatch = callable<
-  [directory: string, dll_name: string, version_id: string, link: boolean],
+  [directory: string, dll_name: string, version_id: string],
   {
     status: string;
     message?: string;
@@ -41,13 +41,11 @@ export const getGameStatus = callable<
     optiscaler_version?: string | null;
     /** A later build of the game's version channel that is in the library. */
     newer_version?: string | null;
-    /** The version's files are symlinks into the library (experimental placement). */
-    linked?: boolean;
   }
 >("get_game_status");
 
 export const patchGame = callable<
-  [appid: string, dll_name: string, current_launch_options: string, version_id: string, link: boolean],
+  [appid: string, dll_name: string, current_launch_options: string, version_id: string],
   {
     status: string;
     message?: string;

@@ -9,7 +9,6 @@ import { ManualPatchControls } from "./CustomPathOverride";
 import { SteamGamePatcher } from "./SteamGamePatcher";
 import type { InstalledLibrary } from "../api";
 import { libraryReady, patchChoice } from "../presentation/patching";
-import { useIsDevBuild } from "../hooks/useIsDevBuild";
 
 interface OptiScalerControlsProps {
   library: InstalledLibrary | null;
@@ -21,9 +20,7 @@ export function OptiScalerControls({ library }: OptiScalerControlsProps) {
   const [dllName, setDllName] = useState<string>(DEFAULT_PROXY_DLL);
   const [picked, setPicked] = useState<string | null>(null);
   const pathExists = libraryReady(library);
-  const [link, setLink] = useState(false);
-  const devBuild = useIsDevBuild();
-  const choice = patchChoice(library, picked, { offered: devBuild, on: link });
+  const choice = patchChoice(library, picked);
 
   return (
     <PanelSection>
@@ -43,17 +40,6 @@ export function OptiScalerControls({ library }: OptiScalerControlsProps) {
       ) : (
         <PanelSectionRow>
           <Field label="OptiScaler" description={choice.versionHint} focusable={true} highlightOnFocus={true} />
-        </PanelSectionRow>
-      )}
-
-      {choice.linkToggleVisible && (
-        <PanelSectionRow>
-          <ToggleField
-            label="Link instead of copy (experimental)"
-            description="Place symlinks to the library version in the game instead of copies."
-            checked={link}
-            onChange={setLink}
-          />
         </PanelSectionRow>
       )}
 

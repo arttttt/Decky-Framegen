@@ -1,7 +1,8 @@
-"""Experimental placement by symlinks into the library: patch, unpatch and the library's guard (integration)."""
+"""A patch places symlinks into the library: patch, unpatch and the library's guard (integration)."""
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 
@@ -13,10 +14,7 @@ def test_a_linked_patch_points_into_the_library_and_unpatching_restores_the_game
     before = snapshot(game)
     files = fgmod / "library" / "versions" / "stable-0.9.4" / "files"
 
-    patched = run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE, True))
-
-    assert patched["status"] == "success"
-    assert patched["message"] == f"OptiScaler 0.9.4 is linked from the library into {game}."  # the user sees how it went
+    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))["status"] == "success"
 
     assert os.readlink(game / "dxgi.dll") == str(files / "OptiScaler.dll")
     assert os.readlink(game / "libxess.dll") == str(files / "libxess.dll")
@@ -29,7 +27,7 @@ def test_a_linked_patch_points_into_the_library_and_unpatching_restores_the_game
 
 def test_a_link_left_dangling_is_still_removed_on_unpatch(plugin, fgmod, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game")
-    run(plugin.manual_patch_directory(str(game), "dxgi.dll", NIGHTLY, True))
+    run(plugin.manual_patch_directory(str(game), "dxgi.dll", NIGHTLY))
     shutil.rmtree(fgmod / "library" / "versions" / NIGHTLY)
 
     assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"
@@ -38,7 +36,7 @@ def test_a_link_left_dangling_is_still_removed_on_unpatch(plugin, fgmod, tmp_pat
 
 def test_a_link_the_game_replaced_with_its_own_file_stays(plugin, fgmod, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game")
-    run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE, True))
+    run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
     (game / "libxess.dll").unlink()
     write(game / "libxess.dll", b"the game's update")
 
@@ -50,16 +48,17 @@ def test_a_link_the_game_replaced_with_its_own_file_stays(plugin, fgmod, tmp_pat
 def test_a_version_games_are_linked_to_is_not_removed(plugin, fgmod, steam_library, tmp_path):
     steam_library.add_game("1234", "Linked Game")
     copied = make_game_dir(tmp_path / "games" / "Copied")
-    run(plugin.patch_game("1234", "dxgi.dll", "", NIGHTLY, True))
+    run(plugin.patch_game("1234", "dxgi.dll", "", NIGHTLY))
     run(plugin.manual_patch_directory(str(copied), "dxgi.dll", NIGHTLY))
+    # What an earlier plugin version left: the same patch, but with copies. It doesn't hold the version.
+    marker_path = copied / "FRAMEGEN_PATCH"
+    marker_path.write_text(json.dumps({**json.loads(marker_path.read_text()), "placement": "copy"}))
 
     removal = run(plugin.library_removal(NIGHTLY))
     refused = run(plugin.library_remove(NIGHTLY))
-    status = run(plugin.get_game_status("1234"))
 
     reason = f"Linked Game use {NIGHTLY} through links. Unpatch them first."
     assert removal == {"status": "success", "refused": reason, "games": [str(copied), "Linked Game"]}  # told before confirming
     assert refused == {"status": "error", "message": reason}
-    assert status["linked"] is True
     run(plugin.unpatch_game("1234"))
-    assert run(plugin.library_remove(NIGHTLY))["status"] == "success"  # a copy-patched game doesn't hold it
+    assert run(plugin.library_remove(NIGHTLY))["status"] == "success"

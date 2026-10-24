@@ -25,9 +25,6 @@ class Request:
     dll_name: str
     reset_ini: bool = False
     """Replace the game's OptiScaler.ini with the version's instead of keeping it."""
-    link: bool = False
-    """Experimental: place symlinks to the version's files instead of copies (OptiScaler.ini stays a copy,
-    as OptiScaler writes to it)."""
 
 
 def is_for_the_game(path: str) -> bool:
@@ -40,7 +37,10 @@ def is_for_the_game(path: str) -> bool:
 
 
 def plan_patch(entries: frozenset[str], files: frozenset[str], family: Family, request: Request) -> tuple[Operation, ...]:
-    """The operations that patch a directory holding `entries` with a version whose archive holds `files`."""
+    """The operations that patch a directory holding `entries` with a version whose archive holds `files`.
+
+    The version's files are symlinks into the library, so a game holds no copy of OptiScaler. Only
+    OptiScaler.ini is copied: OptiScaler writes the user's settings to it, which stay the game's own."""
     if request.dll_name not in VALID_DLL_NAMES:
         raise PlanError(f"Invalid proxy DLL name: {request.dll_name}")
     missing = family.required - files
@@ -52,8 +52,7 @@ def plan_patch(entries: frozenset[str], files: frozenset[str], family: Family, r
     for name in sorted(VALID_DLL_NAMES):
         if name in entries and name + BACKUP_SUFFIX not in entries:
             operations.append(Move(name, name + BACKUP_SUFFIX))
-    place = Link if request.link else Copy
-    operations.append(place(INJECTOR, request.dll_name))
+    operations.append(Link(INJECTOR, request.dll_name))
 
     fresh_ini = request.reset_ini or INI_FILENAME not in entries
     if fresh_ini:
@@ -62,5 +61,5 @@ def plan_patch(entries: frozenset[str], files: frozenset[str], family: Family, r
 
     for path in sorted(files):
         if path not in (INJECTOR, INI_FILENAME) and is_for_the_game(path):
-            operations.append(place(path, path))
+            operations.append(Link(path, path))
     return preserving_existing(tuple(operations), entries)

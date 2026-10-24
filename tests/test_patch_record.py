@@ -141,6 +141,7 @@ def test_an_interrupted_patch_can_still_be_undone(plugin, fgmod, tmp_path, monke
 def test_a_game_updated_while_patched_keeps_its_new_file(plugin, fgmod, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
     run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
+    (game / "libxess.dll").unlink()  # an update replaces the file; writing through the link would change the library
     write(game / "libxess.dll", b"the game's updated libxess")
 
     assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"

@@ -4,7 +4,7 @@ import { FileSelectionType, openFilePicker } from "@decky/api";
 import { getPathDefaults, runManualPatch } from "../api";
 import { UnpatchConfirmation } from "./UnpatchConfirmation";
 import { useUnpatch } from "../hooks/useUnpatch";
-import { PatchWith, patchButton } from "../presentation/patching";
+import { patchButton } from "../presentation/patching";
 import type { ApiResponse } from "../types/index";
 import { SmartClipboardButton } from "./SmartClipboardButton";
 
@@ -41,7 +41,7 @@ interface ManualPatchControlsProps {
   ready: boolean;
   onManualModeChange?: (enabled: boolean) => void;
   dllName: string;
-  patchWith: PatchWith;
+  patchWith: string;
 }
 
 interface PickerState {
@@ -176,7 +176,7 @@ export const ManualPatchControls = ({
       setOperationResult(null);
 
       try {
-        const response = await runManualPatch(selectedPath, dllName, patchWith.versionId, patchWith.link);
+        const response = await runManualPatch(selectedPath, dllName, patchWith);
         setOperationResult(response ?? { status: "error", message: "No response from backend." });
       } catch (err) {
         setOperationResult({
