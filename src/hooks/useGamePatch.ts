@@ -35,7 +35,11 @@ export const useGamePatch = (appid: string | null, patchWithFor: (status: GameSt
 
   const patchWith = patchWithFor(status);
   const name = status?.name ?? "this game";
-  const unpatch = useUnpatch(appid ? { kind: "game", appid, name } : null, () => void loadStatus());
+  // The last patch's result no longer holds once the game is unpatched.
+  const unpatch = useUnpatch(appid ? { kind: "game", appid, name } : null, () => {
+    setResultMessage("");
+    void loadStatus();
+  });
   const busy = patching ? "patch" : unpatch.busy ? "unpatch" : null;
 
   const onPatch = useCallback(async () => {
