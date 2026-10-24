@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { toaster } from "@decky/api";
+import { notify } from "../utils/notify";
 import { SettingsAnswer, gameSettings, globalSettings, resetGameSettings, setSetting } from "../api";
 import { GLOBAL_SCOPE, changedValue, settingsPageView, skippedMessage } from "../presentation/settings";
-
-const toast = (body: string): void => {
-  toaster.toast({ title: "Decky Framegen", body });
-};
 
 const failure = (err: unknown): SettingsAnswer => ({
   status: "error",
@@ -36,9 +32,9 @@ export const useSettings = (scope: string) => {
       try {
         const result = await setSetting(scope, section, key, changedValue(picked));
         const message = result.status === "success" ? skippedMessage(result.skipped ?? []) : result.message || "Couldn't save the setting.";
-        if (message) toast(message);
+        if (message) notify(message);
       } catch (err) {
-        toast(err instanceof Error ? err.message : "Couldn't save the setting.");
+        notify(err instanceof Error ? err.message : "Couldn't save the setting.");
       }
       await load();
     },
@@ -48,9 +44,9 @@ export const useSettings = (scope: string) => {
   const onReset = useCallback(async () => {
     try {
       const result = await resetGameSettings(scope);
-      if (result.status !== "success") toast(result.message || "Couldn't reset the settings.");
+      if (result.status !== "success") notify(result.message || "Couldn't reset the settings.");
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Couldn't reset the settings.");
+      notify(err instanceof Error ? err.message : "Couldn't reset the settings.");
     }
     await load();
   }, [scope, load]);

@@ -1,5 +1,5 @@
 import { ButtonItem, DialogBody, PanelSection, PanelSectionRow, useParams } from "@decky/ui";
-import { openSettingsPage } from "../api/framegenPage";
+import { openSettingsPage } from "../api/pages";
 import { useGamePatch } from "../hooks/useGamePatch";
 import { useInstalledLibrary } from "../hooks/useInstalledLibrary";
 import { usePatchPickers } from "../hooks/usePatchPickers";

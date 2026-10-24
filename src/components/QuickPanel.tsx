@@ -1,5 +1,5 @@
 import { ButtonItem, DropdownItem, Field, PanelSection, PanelSectionRow } from "@decky/ui";
-import { openFramegenPage, openGamePage } from "../api/framegenPage";
+import { openPluginPage, openGamePage } from "../api/pages";
 import { useGamePatch } from "../hooks/useGamePatch";
 import { useInstalledLibrary } from "../hooks/useInstalledLibrary";
 import { useLaunchSetup } from "../hooks/useLaunchSetup";
@@ -53,8 +53,8 @@ export function QuickPanel() {
         </PanelSectionRow>
       )}
       <PanelSectionRow>
-        <ButtonItem layout="below" onClick={openFramegenPage}>
-          Open Framegen
+        <ButtonItem layout="below" onClick={openPluginPage}>
+          Open DeckyScaler
         </ButtonItem>
       </PanelSectionRow>
     </PanelSection>

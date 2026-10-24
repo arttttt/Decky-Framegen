@@ -21,7 +21,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "py_modules"))
 
-from framegen.domain import dev_build, release_version  # noqa: E402
+from deckyscaler.domain import dev_build, release_version  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:

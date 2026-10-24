@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from framegen.domain import library
-from framegen.domain.patch_plan import Copy, Link, Move, PlanError
-from framegen.domain.version_placement import Request, is_for_the_game, plan_patch
+from deckyscaler.domain import library
+from deckyscaler.domain.patch_plan import Copy, Link, Move, PlanError
+from deckyscaler.domain.version_placement import Request, is_for_the_game, plan_patch
 
 # The files of the real OptiScaler 0.9.4 and nightly-20261023 archives (7zzs l).
 V094 = frozenset({

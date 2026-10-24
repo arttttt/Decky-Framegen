@@ -13,7 +13,7 @@ const running: PluginBuild = {
   is_dev_build: true,
   developer_mode: true,
 };
-const release: PluginBuild = { ...running, channel: "stable", title: "Decky Framegen 2026.10.24", version: "2026.10.24", is_dev_build: false };
+const release: PluginBuild = { ...running, channel: "stable", title: "DeckyScaler 2026.10.24", version: "2026.10.24", is_dev_build: false };
 
 const build = (channel: string, state: "installed" | "available", title: string): AvailableDevBuild => ({
   channel,
@@ -52,7 +52,7 @@ describe("developer section", () => {
   it("in a release with Developer mode on offers the development builds, the first picked", () => {
     const view = visible(state({ build: release, list: { status: "success", builds: [build("dev", "available", "main @ 9999999")] } }));
 
-    expect(view.running).toBe("Running Decky Framegen 2026.10.24");
+    expect(view.running).toBe("Running DeckyScaler 2026.10.24");
     expect(view.selectedChannel).toBe("dev");
     expect(view.installEnabled).toBe(true);
   });

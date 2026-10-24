@@ -13,7 +13,7 @@
       "UnrealGame": "<dir>",
       "UnrealGame/Binaries": "<dir>",
       "UnrealGame/Binaries/Win64": "<dir>",
-      "UnrealGame/Binaries/Win64/FRAMEGEN_PATCH": {
+      "UnrealGame/Binaries/Win64/DECKYSCALER_PATCH": {
         "appid": "",
         "backed_up_files": [],
         "backups": [],
@@ -50,7 +50,6 @@
             "sha256": "link:<library>/nightly-20261023/files/OptiScaler/libxess.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>/UnrealGame/Binaries/Win64"
       },
       "UnrealGame/Binaries/Win64/OptiScaler": "<dir>",

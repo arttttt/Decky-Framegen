@@ -3,7 +3,7 @@
     "exit_code": 0,
     "step": "patch nightly",
     "tree": {
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "",
         "backed_up_files": [],
         "backups": [],
@@ -40,7 +40,6 @@
             "sha256": "link:<library>/nightly-20261023/files/OptiScaler/libxess.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
@@ -59,7 +58,7 @@
   },
   {
     "final_tree": {
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "",
         "backed_up_files": [],
         "backups": [],
@@ -96,7 +95,6 @@
             "sha256": "link:<library>/nightly-20261023/files/OptiScaler/libxess.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",

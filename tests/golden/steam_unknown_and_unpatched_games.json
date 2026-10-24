@@ -21,7 +21,7 @@
   "unpatch never patched": {
     "appid": "400",
     "launch_options": "",
-    "message": "No Framegen patch found for this game.",
+    "message": "No DeckyScaler patch found for this game.",
     "name": "Untouched Game",
     "status": "success"
   },

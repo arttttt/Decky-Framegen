@@ -12,9 +12,9 @@ import pytest
 
 import main
 from conftest import FAKE_7Z, REPO_ROOT, install_tools, run, sha256, write
-from framegen.application.library import Library
-from framegen.domain import library
-from framegen.infrastructure import archive, github_releases
+from deckyscaler.application.library import Library
+from deckyscaler.domain import library
+from deckyscaler.infrastructure import archive, github_releases
 
 FIXTURES = Path(__file__).parent / "fixtures"
 NEWEST = "nightly-20261023"
@@ -40,16 +40,17 @@ def test_installed_versions_stay_listed_even_when_upstream_no_longer_publishes_t
 
 
 @pytest.mark.parametrize(
-    ("version_id", "installed", "linked", "refusal"),
+    ("version_id", "installed", "games", "refusal"),
     [
         ("a", {"a", "b"}, [], None),
         ("a", {"a"}, [], None),  # the last version goes too
         ("c", {"a"}, [], "c is not in the library."),
-        ("a", {"a", "b"}, ["Game", "Other"], "Game, Other use a through links. Unpatch them first."),
+        ("a", {"a", "b"}, ["Game"], "Game is patched with a. Unpatch them first."),
+        ("a", {"a", "b"}, ["Game", "Other"], "Game, Other are patched with a. Unpatch them first."),
     ],
 )
-def test_a_version_is_removed_unless_games_are_linked_to_it(version_id, installed, linked, refusal):
-    assert library.removal_refused(version_id, installed, linked) == refusal
+def test_a_version_is_removed_unless_games_are_patched_with_it(version_id, installed, games, refusal):
+    assert library.removal_refused(version_id, installed, games) == refusal
 
 
 def test_a_patch_naming_no_version_keeps_the_games_else_takes_the_newest():
@@ -127,11 +128,11 @@ class FakeDownload:
 
 @pytest.fixture
 def world(home, tmp_path, github_api):
-    """~/fgmod, the plugin's tools/7zzs (a stand-in), and GitHub publishing the nightly listing
+    """~/deckyscaler, the plugin's tools/7zzs (a stand-in), and GitHub publishing the nightly listing
     with the newest build's digest and size matching `world.archive`."""
 
     class World:
-        fgmod = home / "fgmod"
+        plugin_home = home / "deckyscaler"
         seven_zip = install_tools(tmp_path / "plugin" / "tools", {"7zzs": FAKE_7Z}) / "7zzs"
         reports: list = []
         refreshes: list = []
@@ -145,13 +146,13 @@ def world(home, tmp_path, github_api):
 
         def library(self, download=None) -> Library:
             return Library(
-                self.fgmod, self.seven_zip, github_releases.list_releases,
+                self.plugin_home, self.seven_zip, github_releases.list_releases,
                 download or FakeDownload(self.archive), lambda *args: self.reports.append(args),
                 lambda: self.refreshes.append("core"),
             )
 
         def tree(self) -> list[str]:
-            root = self.fgmod / "library"
+            root = self.plugin_home / "library"
             return sorted(p.relative_to(root).as_posix() for p in root.rglob("*")) if root.exists() else []
 
     world = World()
@@ -163,11 +164,11 @@ def test_installing_adds_the_unpacked_version(world):
     result = world.library().install(library.NIGHTLY, NEWEST)
 
     assert result == {"status": "success", "id": NEWEST, "message": "OptiScaler 10.0.0-pre1 is installed."}
-    files = world.fgmod / "library" / "versions" / NEWEST / "files"
+    files = world.plugin_home / "library" / "versions" / NEWEST / "files"
     assert (files / "OptiScaler" / "amd_fidelityfx_upscaler_dx12.dll").read_bytes() == b"sdk"
-    entry = json.loads((world.fgmod / "library" / "versions" / NEWEST / "entry.json").read_text())
+    entry = json.loads((world.plugin_home / "library" / "versions" / NEWEST / "entry.json").read_text())
     assert entry["id"] == NEWEST and entry["family"] == "10"
-    assert not (world.fgmod / "library" / ".partial").exists()
+    assert not (world.plugin_home / "library" / ".partial").exists()
     assert world.reports[-1] == (NEWEST, len(world.archive), len(world.archive))
     assert world.refreshes == ["core"]
 
@@ -177,7 +178,7 @@ def test_installing_adds_the_unpacked_version(world):
         "state": "installed", "reason": None, "size": 0,
     }
     assert listed["installed_bytes"] == sum(len(data) for data in V10_FILES.values()) + len(
-        (world.fgmod / "library" / "versions" / NEWEST / "entry.json").read_bytes()
+        (world.plugin_home / "library" / "versions" / NEWEST / "entry.json").read_bytes()
     )
 
 
@@ -210,7 +211,7 @@ def test_a_failed_install_leaves_the_library_as_it_was(world, case, message):
 
 def test_an_install_without_room_is_refused_before_downloading(world, monkeypatch):
     download = FakeDownload(world.archive)
-    monkeypatch.setattr("framegen.infrastructure.library_store.LibraryStore.free_bytes", lambda self: 10)
+    monkeypatch.setattr("deckyscaler.infrastructure.library_store.LibraryStore.free_bytes", lambda self: 10)
 
     result = world.library(download).install(library.NIGHTLY, NEWEST)
 
@@ -236,7 +237,7 @@ def test_installing_twice_is_refused_and_a_version_is_removed(world):
 
 
 def test_a_library_directory_without_a_readable_entry_is_not_a_version(world):
-    write(world.fgmod / "library" / "versions" / NEWEST / "files" / "OptiScaler.dll", b"leftover")
+    write(world.plugin_home / "library" / "versions" / NEWEST / "files" / "OptiScaler.dll", b"leftover")
 
     rows = world.library().versions(library.NIGHTLY)["versions"]
 
@@ -268,9 +269,9 @@ def test_the_plugin_installs_with_progress_events(plugin, world, tmp_path, monke
 
     assert result["status"] == "success"
     assert ("library_download", NEWEST, len(world.archive), len(world.archive)) in events
-    # Installing also brings the plugin's core and launch scripts into ~/fgmod.
-    assert (world.fgmod / "framegen" / "__main__.py").is_file()
-    assert (world.fgmod / "fgmod").stat().st_mode & 0o100
+    # Installing also brings the plugin's core and launch scripts into ~/deckyscaler.
+    assert (world.plugin_home / "deckyscaler" / "__main__.py").is_file()
+    assert (world.plugin_home / "patch").stat().st_mode & 0o100
     assert run(plugin.library_versions(library.NIGHTLY))["versions"][0]["state"] == "installed"
 
 
@@ -296,11 +297,11 @@ def test_a_failed_core_refresh_does_not_turn_an_install_into_a_failure(world):
     result = lib.install(library.NIGHTLY, NEWEST)
 
     assert result["status"] == "success"
-    assert result["message"].endswith("Updating the launch scripts in ~/fgmod failed: No space left on device")
-    assert (world.fgmod / "library" / "versions" / NEWEST / "entry.json").exists()
+    assert result["message"].endswith("Updating the launch scripts in ~/deckyscaler failed: No space left on device")
+    assert (world.plugin_home / "library" / "versions" / NEWEST / "entry.json").exists()
 
 
-def test_the_plugin_lists_what_games_can_be_patched_with(plugin, fgmod):
+def test_the_plugin_lists_what_games_can_be_patched_with(plugin, plugin_home):
     from conftest import NIGHTLY, STABLE
 
     installed = run(plugin.library_installed())
@@ -310,21 +311,21 @@ def test_the_plugin_lists_what_games_can_be_patched_with(plugin, fgmod):
     assert installed["installed_bytes"] == sum(version["size"] for version in installed["versions"]) > 0
 
 
-def test_a_game_status_names_a_newer_version_of_its_channel(plugin, fgmod, steam_library):
+def test_a_game_status_names_a_newer_version_of_its_channel(plugin, plugin_home, steam_library):
     from conftest import NIGHTLY, NIGHTLY_FILES, NIGHTLY_INI, install_version
 
     steam_library.add_game("1234", "Test Game")
     run(plugin.patch_game("1234", "dxgi.dll", "", NIGHTLY))
     assert run(plugin.get_game_status("1234"))["newer_version"] is None
 
-    install_version(fgmod, "nightly-20261101", "10", NIGHTLY_FILES, NIGHTLY_INI)
+    install_version(plugin_home, "nightly-20261101", "10", NIGHTLY_FILES, NIGHTLY_INI)
 
     assert run(plugin.get_game_status("1234"))["newer_version"] == "nightly-20261101"
 
 
 def test_downloading_a_version_again_swaps_in_a_fresh_copy(world):
     world.library().install(library.NIGHTLY, NEWEST)
-    files = world.fgmod / "library" / "versions" / NEWEST / "files"
+    files = world.plugin_home / "library" / "versions" / NEWEST / "files"
     write(files / "OptiScaler.dll", b"corrupted")
     (files / "OptiScaler.ini").unlink()
 
@@ -333,7 +334,7 @@ def test_downloading_a_version_again_swaps_in_a_fresh_copy(world):
     assert result == {"status": "success", "id": NEWEST, "message": "OptiScaler 10.0.0-pre1 is downloaded again."}
     assert (files / "OptiScaler.dll").read_bytes() == b"opti"
     assert (files / "OptiScaler.ini").exists()
-    assert not (world.fgmod / "library" / ".partial").exists()
+    assert not (world.plugin_home / "library" / ".partial").exists()
 
 
 def test_a_failed_download_again_keeps_the_copy_the_library_has(world):
@@ -349,7 +350,7 @@ def test_a_failed_download_again_keeps_the_copy_the_library_has(world):
 def test_a_failed_swap_puts_the_old_copy_back(world, monkeypatch):
     world.library().install(library.NIGHTLY, NEWEST)
     before = world.tree()
-    from framegen.infrastructure.library_store import LibraryStore
+    from deckyscaler.infrastructure.library_store import LibraryStore
 
     def fail(self, stage, installed):
         raise OSError("disk full")
@@ -373,7 +374,7 @@ def test_only_a_version_in_the_library_is_downloaded_again(world):
 def test_a_replace_cut_short_between_its_two_moves_gets_the_old_copy_back(world):
     world.library().install(library.NIGHTLY, NEWEST)
     before = world.tree()
-    versions = world.fgmod / "library" / "versions"
+    versions = world.plugin_home / "library" / "versions"
     (versions / NEWEST).replace(versions / f".{NEWEST}.old")  # the device slept right after setting it aside
 
     world.library(FakeDownload(b"not the published archive")).install(library.NIGHTLY, "nightly-20261020")
@@ -385,12 +386,12 @@ def test_a_finished_replace_leaves_no_old_copy_behind(world):
     world.library().install(library.NIGHTLY, NEWEST)
     world.library().reinstall(NEWEST)
 
-    assert not list((world.fgmod / "library" / "versions").glob(".*"))
+    assert not list((world.plugin_home / "library" / "versions").glob(".*"))
 
 
 def test_an_old_copy_left_after_the_new_one_landed_is_cleared_by_the_next_install(world):
     world.library().install(library.NIGHTLY, NEWEST)
-    versions = world.fgmod / "library" / "versions"
+    versions = world.plugin_home / "library" / "versions"
     write(versions / f".{NEWEST}.old" / "files" / "OptiScaler.dll", b"the old copy")  # slept before deleting it
 
     world.library(FakeDownload(b"not the published archive")).install(library.NIGHTLY, "nightly-20261020")

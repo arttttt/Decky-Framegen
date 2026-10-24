@@ -8,13 +8,13 @@ const release: PluginBuild = {
   channel: "stable",
   commit: "1".repeat(40),
   short_commit: "1111111",
-  title: "Decky Framegen 2026.10.24",
+  title: "DeckyScaler 2026.10.24",
   version: "2026.10.24",
   is_dev_build: false,
   developer_mode: false,
 };
 const dev: PluginBuild = { ...release, channel: "dev", title: "Dev build · main @ 1111111", is_dev_build: true, developer_mode: true };
-const NEWER = { version: "2026.10.25", title: "Decky Framegen 2026.10.25", published_at: "2026-10-25T09:00:00Z" };
+const NEWER = { version: "2026.10.25", title: "DeckyScaler 2026.10.25", published_at: "2026-10-25T09:00:00Z" };
 const latest = (offer: "update" | "switch" | "none", r: typeof NEWER | null = NEWER): LatestStable => ({ status: "success", release: r, offer });
 
 const state = (overrides: Partial<UpdatesState> = {}): UpdatesState => ({
@@ -29,15 +29,15 @@ const state = (overrides: Partial<UpdatesState> = {}): UpdatesState => ({
 describe("the Updates section", () => {
   it("names the running build, or why it can't update itself, and checks only a known build", () => {
     expect(updatesView(state({ build: null })).running).toBe("Loading…");
-    expect(updatesView(state()).running).toBe("Running Decky Framegen 2026.10.24");
+    expect(updatesView(state()).running).toBe("Running DeckyScaler 2026.10.24");
     const unknown = updatesView(state({ build: { known: false, version: "", message: "Built by hand." } }));
     expect(unknown).toMatchObject({ running: "Built by hand.", checkEnabled: false, developerMode: { visible: false } });
   });
 
   it("offers a newer release to install, and says when up to date or nothing is released", () => {
     expect(updatesView(state({ latest: latest("update") }))).toMatchObject({
-      releaseLine: "Decky Framegen 2026.10.25 is available.",
-      install: { visible: true, label: "Install Decky Framegen 2026.10.25", enabled: true },
+      releaseLine: "DeckyScaler 2026.10.25 is available.",
+      install: { visible: true, label: "Install DeckyScaler 2026.10.25", enabled: true },
     });
     expect(updatesView(state({ latest: latest("none") }))).toMatchObject({ releaseLine: "Up to date.", install: { visible: false } });
     expect(updatesView(state({ latest: latest("none", null) })).releaseLine).toBe("No release is published yet.");
@@ -47,8 +47,8 @@ describe("the Updates section", () => {
 
   it("offers a development build the switch to the release", () => {
     expect(updatesView(state({ build: dev, latest: latest("switch") }))).toMatchObject({
-      releaseLine: "The newest release is Decky Framegen 2026.10.25.",
-      install: { visible: true, label: "Switch to Decky Framegen 2026.10.25", enabled: true },
+      releaseLine: "The newest release is DeckyScaler 2026.10.25.",
+      install: { visible: true, label: "Switch to DeckyScaler 2026.10.25", enabled: true },
     });
   });
 
@@ -59,7 +59,7 @@ describe("the Updates section", () => {
       install: { enabled: false },
     });
     const downloading = updatesView(state({ latest: latest("update"), install: { phase: "downloading", download: null, error: null } }));
-    expect(downloading).toMatchObject({ checkEnabled: false, install: { enabled: false }, message: "Downloading Decky Framegen 2026.10.25…" });
+    expect(downloading).toMatchObject({ checkEnabled: false, install: { enabled: false }, message: "Downloading DeckyScaler 2026.10.25…" });
     expect(updatesView(state({ latest: latest("update"), install: { ...NO_INSTALL, phase: "unconfirmed" } })).install.enabled).toBe(true);
   });
 
@@ -89,7 +89,7 @@ describe("the Updates section", () => {
 
 describe("the Quick Access update line", () => {
   it("shows only a newer release, not a switch from a development build", () => {
-    expect(updateAvailableLine({ build: release, checking: false, latest: latest("update") })).toBe("Decky Framegen 2026.10.25 is available.");
+    expect(updateAvailableLine({ build: release, checking: false, latest: latest("update") })).toBe("DeckyScaler 2026.10.25 is available.");
     expect(updateAvailableLine({ build: dev, checking: false, latest: latest("switch") })).toBeNull();
     expect(updateAvailableLine({ build: release, checking: false, latest: null })).toBeNull();
   });

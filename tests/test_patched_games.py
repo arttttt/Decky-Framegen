@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 
 from conftest import NIGHTLY, NIGHTLY_FILES, NIGHTLY_INI, STABLE, install_version, make_game_dir, run
-from framegen.domain import patch_record
-from framegen.infrastructure import game_directory
+from deckyscaler.domain import patch_record
+from deckyscaler.infrastructure import game_directory
 
 
 def test_a_marker_says_whether_its_patch_is_whole_unfinished_or_an_older_plugins():
@@ -15,10 +15,10 @@ def test_a_marker_says_whether_its_patch_is_whole_unfinished_or_an_older_plugins
 
     assert patch_record.state(whole) == patch_record.OK
     assert patch_record.state(unfinished) == patch_record.INCOMPLETE
-    assert patch_record.state({"dll_name": "dxgi.dll"}) == patch_record.OLDER_PLUGIN
+    assert patch_record.state({"dll_name": "dxgi.dll"}) == patch_record.UPSTREAM
 
 
-def test_steam_games_and_directories_patched_are_listed_by_name(plugin, fgmod, steam_library, tmp_path):
+def test_steam_games_and_directories_patched_are_listed_by_name(plugin, plugin_home, steam_library, tmp_path):
     steam_library.add_game("1", "Zeta")
     manual = make_game_dir(tmp_path / "games" / "alpha")
     run(plugin.patch_game("1", "winmm.dll", "", STABLE))
@@ -36,15 +36,15 @@ def test_steam_games_and_directories_patched_are_listed_by_name(plugin, fgmod, s
     assert steam["patched_at"]
 
 
-def test_a_newer_build_of_the_games_channel_is_named(plugin, fgmod, tmp_path):
+def test_a_newer_build_of_the_games_channel_is_named(plugin, plugin_home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game")
     run(plugin.manual_patch_directory(str(game), "dxgi.dll", NIGHTLY))
-    install_version(fgmod, "nightly-20261024", "10", NIGHTLY_FILES, NIGHTLY_INI)
+    install_version(plugin_home, "nightly-20261024", "10", NIGHTLY_FILES, NIGHTLY_INI)
 
     assert run(plugin.patched_games())["games"][0]["newer_version"] == "nightly-20261024"
 
 
-def test_a_missing_proxy_and_an_unfinished_patch_are_told(plugin, fgmod, tmp_path, monkeypatch):
+def test_a_missing_proxy_and_an_unfinished_patch_are_told(plugin, plugin_home, tmp_path, monkeypatch):
     broken = make_game_dir(tmp_path / "games" / "Broken")
     run(plugin.manual_patch_directory(str(broken), "dxgi.dll", STABLE))
     (broken / "dxgi.dll").unlink()
@@ -58,16 +58,16 @@ def test_a_missing_proxy_and_an_unfinished_patch_are_told(plugin, fgmod, tmp_pat
     assert games[str(unfinished)]["record"] == "incomplete"
 
 
-def test_a_directory_whose_marker_is_gone_leaves_the_list_and_the_index(plugin, fgmod, tmp_path):
+def test_a_directory_whose_marker_is_gone_leaves_the_list_and_the_index(plugin, plugin_home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game")
     run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
-    (game / "FRAMEGEN_PATCH").unlink()
+    (game / "DECKYSCALER_PATCH").unlink()
 
     assert run(plugin.patched_games())["games"] == []
-    assert json.loads((fgmod / "patched.json").read_text()) == {}
+    assert json.loads((plugin_home / "patched.json").read_text()) == {}
 
 
-def test_games_are_ordered_by_name_whatever_its_case(plugin, fgmod, steam_library):
+def test_games_are_ordered_by_name_whatever_its_case(plugin, plugin_home, steam_library):
     steam_library.add_game("1", "Beta")
     steam_library.add_game("2", "alpha")
     run(plugin.patch_game("1", "dxgi.dll", "", STABLE))

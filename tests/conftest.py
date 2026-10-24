@@ -4,7 +4,7 @@
 module is registered before `main` is imported; each test then points its
 paths at a private temporary directory.
 
-The fixtures build a fake world on disk: a `~/fgmod` with an OptiScaler library
+The fixtures build a fake world on disk: a `~/deckyscaler` with an OptiScaler library
 (a 0.9 stable version and a newer 10 nightly one, laid out as their real
 archives are), game directories and a Steam library. Version files are small
 placeholder blobs — the plugin records and compares them by hash, so size does
@@ -41,8 +41,8 @@ sys.modules["decky"] = _decky
 sys.path[:0] = [str(REPO_ROOT / "py_modules"), str(REPO_ROOT)]
 
 import main  # noqa: E402
-from framegen.domain import bundle  # noqa: E402
-from framegen.infrastructure import proton  # noqa: E402
+from deckyscaler.domain import bundle  # noqa: E402
+from deckyscaler.infrastructure import proton  # noqa: E402
 
 
 # sha256 → label of every placeholder handed out, so snapshots can name content.
@@ -56,7 +56,7 @@ def _labelled(label: str, data: bytes) -> bytes:
 
 def blob(name: str) -> bytes:
     """Deterministic, unique placeholder content for a bundle file."""
-    return _labelled(f"bundle:{name}", f"decky-framegen test blob: {name}\n".encode())
+    return _labelled(f"bundle:{name}", f"deckyscaler test blob: {name}\n".encode())
 
 
 def game_file(name: str) -> bytes:
@@ -177,11 +177,11 @@ NIGHTLY_INI = (
 STABLE, NIGHTLY = "stable-0.9.4", "nightly-20261023"
 
 
-def install_version(fgmod: Path, version_id: str, family: str, files: dict[str, str | None], ini: str) -> Path:
-    """A version in ~/fgmod/library as the library service leaves it."""
-    from framegen.domain import library
+def install_version(plugin_home: Path, version_id: str, family: str, files: dict[str, str | None], ini: str) -> Path:
+    """A version in ~/deckyscaler/library as the library service leaves it."""
+    from deckyscaler.domain import library
 
-    root = fgmod / "library" / "versions" / version_id
+    root = plugin_home / "library" / "versions" / version_id
     for rel, label in files.items():
         write(root / "files" / rel, ini.encode() if label is None else blob(label))
     channel, _, rest = version_id.partition("-")
@@ -192,16 +192,16 @@ def install_version(fgmod: Path, version_id: str, family: str, files: dict[str, 
 
 
 @pytest.fixture
-def fgmod(home) -> Path:
-    """~/fgmod with the plugin's core and launch scripts, and a library holding OptiScaler 0.9.4
+def plugin_home(home) -> Path:
+    """~/deckyscaler with the plugin's core and launch scripts, and a library holding OptiScaler 0.9.4
     and a newer v10 nightly."""
-    root = home / "fgmod"
+    root = home / "deckyscaler"
     shutil.copytree(
         REPO_ROOT / "py_modules" / bundle.CORE_PACKAGE,
         root / bundle.CORE_PACKAGE,
         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
     )
-    for name in ("fgmod", "fgmod-uninstaller.sh"):
+    for name in ("patch", "unpatch"):
         write(root / name, blob(name))
     install_version(root, STABLE, "0.9", STABLE_FILES, STABLE_INI)
     install_version(root, NIGHTLY, "10", NIGHTLY_FILES, NIGHTLY_INI)
@@ -311,7 +311,7 @@ with zipfile.ZipFile(archive) as zf:
 @pytest.fixture
 def github_api(monkeypatch):
     """A local stand-in for api.github.com: every GET answers `.status` and `.body` (a JSON list by default)."""
-    from framegen.infrastructure import github_releases
+    from deckyscaler.infrastructure import github_releases
 
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):

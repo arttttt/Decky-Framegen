@@ -11,7 +11,7 @@ interface SmartClipboardButtonProps {
   confirmation?: CopyConfirmation;
 }
 
-const PULSE = { animation: "framegen-pulse 1s ease-in-out infinite", opacity: 0.7 };
+const PULSE = { animation: "deckyscaler-pulse 1s ease-in-out infinite", opacity: 0.7 };
 
 export function SmartClipboardButton({ command, buttonText, confirmation }: SmartClipboardButtonProps) {
   const copy = useClipboardCopy(command, buttonText, confirmation);
@@ -27,7 +27,7 @@ export function SmartClipboardButton({ command, buttonText, confirmation }: Smar
       </ButtonItem>
       <Confirmation confirmation={copy.confirmation} onConfirm={copy.onConfirm} onCancel={copy.onCancel} />
       <style>{`
-        @keyframes framegen-pulse {
+        @keyframes deckyscaler-pulse {
           0% { opacity: 0.7; }
           50% { opacity: 1; }
           100% { opacity: 0.7; }

@@ -11,9 +11,9 @@ from pathlib import Path
 import pytest
 
 from conftest import NIGHTLY, REPO_ROOT, STABLE, game_file, make_game_dir, put_tools_on_path, write
-from framegen.application.launch_wrapper import LaunchWrapper, WrapperError
-from framegen.domain import launch_target
-from framegen.infrastructure import game_locator
+from deckyscaler.application.launch_wrapper import LaunchWrapper, WrapperError
+from deckyscaler.domain import launch_target
+from deckyscaler.infrastructure import game_locator
 
 # ── unit: rules ──────────────────────────────────────────────────────────────
 
@@ -117,11 +117,11 @@ def test_locate_follows_unreal_layouts_and_rejects_missing_directories(home, tmp
         wrapper.locate([str(tmp_path / "missing" / "Game.exe")])
 
 
-def test_unpatch_refuses_to_touch_the_bundle_itself(fgmod, home):
+def test_unpatch_refuses_to_touch_the_bundle_itself(plugin_home, home):
     with pytest.raises(WrapperError, match="OptiScaler bundle itself"):
-        LaunchWrapper(home, {}).unpatch([str(fgmod)])
+        LaunchWrapper(home, {}).unpatch([str(plugin_home)])
 
-    assert (fgmod / "library" / "versions").is_dir()
+    assert (plugin_home / "library" / "versions").is_dir()
 
 
 # ── integration: the CLI the wrappers run ────────────────────────────────────
@@ -129,14 +129,14 @@ def test_unpatch_refuses_to_touch_the_bundle_itself(fgmod, home):
 
 def run_cli(home: Path, *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
-        [sys.executable, "-m", "framegen", *args],
+        [sys.executable, "-m", "deckyscaler", *args],
         env={**os.environ, "HOME": str(home), "PYTHONPATH": str(REPO_ROOT / "py_modules")},
         capture_output=True,
         text=True,
     )
 
 
-def test_cli_patches_and_unpatches_the_game_a_command_starts(fgmod, home, tmp_path):
+def test_cli_patches_and_unpatches_the_game_a_command_starts(plugin_home, home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Cli Game", {"libxess.dll": game_file("libxess.dll")})
 
     patched = run_cli(home, "patch", "--dll", "winmm.dll", "--", "/proton", str(game / "Game.exe"), "-dx12")
@@ -148,7 +148,7 @@ def test_cli_patches_and_unpatches_the_game_a_command_starts(fgmod, home, tmp_pa
     assert sorted(p.name for p in game.iterdir()) == ["Game.exe", "libxess.dll"]
 
 
-def test_cli_reports_failures_for_the_user_with_exit_code_1(fgmod, home, tmp_path):
+def test_cli_reports_failures_for_the_user_with_exit_code_1(plugin_home, home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Cli Game")
 
     bad_dll = run_cli(home, "patch", "--dll", "d3d11.dll", "--", str(game / "Game.exe"))
@@ -160,7 +160,7 @@ def test_cli_reports_failures_for_the_user_with_exit_code_1(fgmod, home, tmp_pat
     assert no_command.returncode == 1
 
 
-def test_cli_reset_ini_replaces_the_games_ini(fgmod, home, tmp_path):
+def test_cli_reset_ini_replaces_the_games_ini(plugin_home, home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Cli Game", {"OptiScaler.ini": b"[Mine]\nKeep=1\n"})
 
     run_cli(home, "patch", "--version", STABLE, "--", str(game / "Game.exe"))
@@ -174,8 +174,8 @@ def test_cli_reset_ini_replaces_the_games_ini(fgmod, home, tmp_path):
 
 
 
-def test_the_wrapper_applies_settings_from_environment_variables_on_every_patch(fgmod, home, tmp_path):
-    from framegen.application.launch_wrapper import LaunchWrapper
+def test_the_wrapper_applies_settings_from_environment_variables_on_every_patch(plugin_home, home, tmp_path):
+    from deckyscaler.application.launch_wrapper import LaunchWrapper
 
     game = make_game_dir(tmp_path / "games" / "Env Game", {"OptiScaler.ini": b"[Upscalers]\r\nDx12Upscaler=auto\r\n"})
 
@@ -188,13 +188,13 @@ def test_the_wrapper_applies_settings_from_environment_variables_on_every_patch(
     assert (game / "OptiScaler.ini").read_bytes().startswith(b"[Upscalers]\r\nDx12Upscaler=fsr31\r\n")
 
 
-def test_the_wrapper_leaves_a_game_already_patched_the_same_way_untouched(fgmod, home, tmp_path):
-    from framegen.application.launch_wrapper import LaunchWrapper
+def test_the_wrapper_leaves_a_game_already_patched_the_same_way_untouched(plugin_home, home, tmp_path):
+    from deckyscaler.application.launch_wrapper import LaunchWrapper
 
     game = make_game_dir(tmp_path / "games" / "Again Game")
     command = [str(game / "Game.exe")]
     LaunchWrapper(home, {}).patch(command, "dxgi.dll", STABLE)
-    marker_path = game / "FRAMEGEN_PATCH"
+    marker_path = game / "DECKYSCALER_PATCH"
     first = (marker_path.stat().st_mtime_ns, marker_path.read_text(), os.readlink(game / "dxgi.dll"))
 
     LaunchWrapper(home, {}).patch(command, "dxgi.dll")
@@ -202,8 +202,8 @@ def test_the_wrapper_leaves_a_game_already_patched_the_same_way_untouched(fgmod,
     assert (marker_path.stat().st_mtime_ns, marker_path.read_text(), os.readlink(game / "dxgi.dll")) == first
 
 
-def test_the_wrapper_patches_again_when_anything_differs(fgmod, home, tmp_path):
-    from framegen.application.launch_wrapper import LaunchWrapper
+def test_the_wrapper_patches_again_when_anything_differs(plugin_home, home, tmp_path):
+    from deckyscaler.application.launch_wrapper import LaunchWrapper
 
     game = make_game_dir(tmp_path / "games" / "Changed Game")
     command = [str(game / "Game.exe")]
@@ -214,7 +214,7 @@ def test_the_wrapper_patches_again_when_anything_differs(fgmod, home, tmp_path):
     assert (game / "winmm.dll").is_symlink() and not (game / "dxgi.dll").exists()
 
     wrapper.patch(command, "winmm.dll", NIGHTLY)  # another version
-    assert json.loads((game / "FRAMEGEN_PATCH").read_text())["optiscaler_version"] == NIGHTLY
+    assert json.loads((game / "DECKYSCALER_PATCH").read_text())["optiscaler_version"] == NIGHTLY
 
     (game / "winmm.dll").unlink()  # a placed file went missing
     wrapper.patch(command, "winmm.dll")

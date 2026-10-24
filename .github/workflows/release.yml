@@ -52,6 +52,6 @@ jobs:
           TAG: ${{ steps.stamp.outputs.tag }}
           VERSION: ${{ steps.stamp.outputs.version }}
         run: |
-          cp "$(ls out/*.zip)" "$RUNNER_TEMP/Decky-Framegen.zip"
-          gh release create "$TAG" "$RUNNER_TEMP/Decky-Framegen.zip" --target "$GITHUB_SHA" \
-            --title "Decky Framegen $VERSION" --generate-notes
+          cp "$(ls out/*.zip)" "$RUNNER_TEMP/DeckyScaler.zip"
+          gh release create "$TAG" "$RUNNER_TEMP/DeckyScaler.zip" --target "$GITHUB_SHA" \
+            --title "DeckyScaler $VERSION" --generate-notes

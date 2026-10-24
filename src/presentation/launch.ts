@@ -31,7 +31,7 @@ export type CopyConfirmation = { title: string; lines: string[]; okLabel: string
 export const WRAPPER_PATCH_CONFIRMATION: CopyConfirmation = {
   title: "Patch Game with OptiScaler?",
   lines: [
-    "WARNING: Decky Framegen does not unpatch games when uninstalled. Be sure to unpatch the game or run the OptiScaler uninstall script inside the game files if you choose to uninstall the plugin or the game has issues.",
+    "WARNING: DeckyScaler does not unpatch games when uninstalled. Be sure to unpatch the game or run the OptiScaler uninstall script inside the game files if you choose to uninstall the plugin or the game has issues.",
   ],
   okLabel: "Copy Patch Command",
 };

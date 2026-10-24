@@ -1,5 +1,5 @@
 import { ButtonItem, Field, PanelSection, PanelSectionRow } from "@decky/ui";
-import { openGamePage } from "../api/framegenPage";
+import { openGamePage } from "../api/pages";
 import { usePatchedGames } from "../hooks/usePatchedGames";
 import { useUnpatch } from "../hooks/useUnpatch";
 import type { GameRowView } from "../presentation/games";

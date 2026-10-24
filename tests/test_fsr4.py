@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
 from conftest import STABLE, add_gpu, run
-from framegen.domain import fsr4, keyvalues, launch_options
+from deckyscaler.domain import fsr4, keyvalues, launch_options
 
 # ── unit: rules ──────────────────────────────────────────────────────────────
 
@@ -90,7 +91,7 @@ def test_the_launch_options_carry_the_variable_when_asked():
 # ── integration: through the plugin ──────────────────────────────────────────
 
 
-def test_a_game_on_a_proton_that_fetches_fsr4_gets_the_variable_and_says_so(plugin, fgmod, steam_library, amd_gpu):
+def test_a_game_on_a_proton_that_fetches_fsr4_gets_the_variable_and_says_so(plugin, plugin_home, steam_library, amd_gpu):
     steam_library.add_game("730", "Fsr Game")
     steam_library.add_tool("GE-Proton11-11", reads_fsr4_variable=True)
     steam_library.set_compat_tools({"730": "GE-Proton11-11"})
@@ -102,7 +103,7 @@ def test_a_game_on_a_proton_that_fetches_fsr4_gets_the_variable_and_says_so(plug
     assert patched["launch_options"] == "WINEDLLOVERRIDES=dxgi=n,b PROTON_FSR4_UPGRADE=1 SteamDeck=0 %command%"
 
 
-def test_once_fetched_the_status_names_the_version_in_the_prefix(plugin, fgmod, steam_library, amd_gpu):
+def test_once_fetched_the_status_names_the_version_in_the_prefix(plugin, plugin_home, steam_library, amd_gpu):
     steam_library.add_game("730", "Fsr Game")
     steam_library.add_tool("GE-Proton11-11", reads_fsr4_variable=True)
     steam_library.set_compat_tools({"0": "GE-Proton11-11"})
@@ -112,7 +113,7 @@ def test_once_fetched_the_status_names_the_version_in_the_prefix(plugin, fgmod, 
 
 
 @pytest.mark.parametrize("tool", ["proton_experimental", None, "GE-Proton9-20"])
-def test_a_proton_that_cant_fetch_fsr4_gets_no_variable(plugin, fgmod, steam_library, amd_gpu, tool):
+def test_a_proton_that_cant_fetch_fsr4_gets_no_variable(plugin, plugin_home, steam_library, amd_gpu, tool):
     steam_library.add_game("730", "Older Game")
     steam_library.add_tool("GE-Proton9-20", reads_fsr4_variable=False)
     if tool:
@@ -125,7 +126,7 @@ def test_a_proton_that_cant_fetch_fsr4_gets_no_variable(plugin, fgmod, steam_lib
     assert "PROTON_FSR4_UPGRADE" not in patched["launch_options"]
 
 
-def test_off_amd_fsr4_is_not_mentioned_and_not_asked_for(plugin, fgmod, steam_library, tmp_path):
+def test_off_amd_fsr4_is_not_mentioned_and_not_asked_for(plugin, plugin_home, steam_library, tmp_path):
     add_gpu(tmp_path / "sys", "card0", "0x10de")
     steam_library.add_game("730", "Fsr Game")
     steam_library.add_tool("GE-Proton11-11", reads_fsr4_variable=True)
@@ -135,7 +136,7 @@ def test_off_amd_fsr4_is_not_mentioned_and_not_asked_for(plugin, fgmod, steam_li
     assert "PROTON_FSR4_UPGRADE" not in run(plugin.patch_game("730", "dxgi.dll", "", STABLE))["launch_options"]
 
 
-def test_the_boot_gpu_decides_on_a_machine_with_two(plugin, fgmod, steam_library, tmp_path):
+def test_the_boot_gpu_decides_on_a_machine_with_two(plugin, plugin_home, steam_library, tmp_path):
     add_gpu(tmp_path / "sys", "card0", "0x1002", boot_vga=False)
     add_gpu(tmp_path / "sys", "card1", "0x10de", boot_vga=True)
     write_connector = tmp_path / "sys" / "class" / "drm" / "card1-DP-1"
@@ -145,7 +146,7 @@ def test_the_boot_gpu_decides_on_a_machine_with_two(plugin, fgmod, steam_library
     assert run(plugin.get_game_status("730"))["fsr4"] is None
 
 
-def test_a_tool_installed_for_every_user_is_found_too(plugin, fgmod, steam_library, amd_gpu, tmp_path):
+def test_a_tool_installed_for_every_user_is_found_too(plugin, plugin_home, steam_library, amd_gpu, tmp_path):
     steam_library.add_game("730", "Fsr Game")
     steam_library.add_tool("proton-cachyos", reads_fsr4_variable=True, tools_dir=tmp_path / "system-compatibilitytools.d")
     steam_library.set_compat_tools({"730": "proton-cachyos"})
@@ -153,7 +154,7 @@ def test_a_tool_installed_for_every_user_is_found_too(plugin, fgmod, steam_libra
     assert run(plugin.get_game_status("730"))["fsr4"]["state"] == "will-fetch"
 
 
-def test_a_tool_updated_in_place_is_read_again(plugin, fgmod, steam_library, amd_gpu):
+def test_a_tool_updated_in_place_is_read_again(plugin, plugin_home, steam_library, amd_gpu):
     import os
 
     steam_library.add_game("730", "Fsr Game")
@@ -167,14 +168,14 @@ def test_a_tool_updated_in_place_is_read_again(plugin, fgmod, steam_library, amd
     assert run(plugin.get_game_status("730"))["fsr4"]["state"] == "will-fetch"
 
 
-def ge_game(steam_library) -> "Path":
+def ge_game(steam_library) -> Path:
     root = steam_library.add_game("730", "Fsr Game")
     steam_library.add_tool("GE-Proton11-11", reads_fsr4_variable=True)
     steam_library.set_compat_tools({"730": "GE-Proton11-11"})
     return root
 
 
-def test_the_patch_links_the_driver_dll_from_the_prefix_where_optiscaler_looks(plugin, fgmod, steam_library, amd_gpu):
+def test_the_patch_links_the_driver_dll_from_the_prefix_where_optiscaler_looks(plugin, plugin_home, steam_library, amd_gpu):
     import os
 
     from conftest import NIGHTLY, snapshot
@@ -191,7 +192,7 @@ def test_the_patch_links_the_driver_dll_from_the_prefix_where_optiscaler_looks(p
     assert snapshot(root) == before
 
 
-def test_the_users_own_driver_dll_is_left_alone(plugin, fgmod, steam_library, amd_gpu):
+def test_the_users_own_driver_dll_is_left_alone(plugin, plugin_home, steam_library, amd_gpu):
     from conftest import NIGHTLY, write
 
     root = ge_game(steam_library)
@@ -205,7 +206,7 @@ def test_the_users_own_driver_dll_is_left_alone(plugin, fgmod, steam_library, am
     assert (root / "OptiScaler" / "amdxcffx64.dll").read_bytes() == b"the user's FSR 4 build"
 
 
-def test_a_repatch_replaces_its_own_driver_link(plugin, fgmod, steam_library, amd_gpu):
+def test_a_repatch_replaces_its_own_driver_link(plugin, plugin_home, steam_library, amd_gpu):
     from conftest import NIGHTLY
 
     root = ge_game(steam_library)

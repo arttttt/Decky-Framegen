@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from framegen.domain import dev_build
+from deckyscaler.domain import dev_build
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLUGIN_ZIP = os.environ.get("PLUGIN_ZIP")
@@ -69,7 +69,7 @@ def test_defaults_are_installed_at_the_plugin_root(plugin_root):
 
 
 def test_the_package_carries_the_static_7zip_and_its_license(plugin_root):
-    from framegen.infrastructure import archive
+    from deckyscaler.infrastructure import archive
 
     assert (plugin_root / archive.SEVEN_ZIP).is_file()
     assert "GNU LGPL" in (plugin_root / "tools" / "7zzs-License.txt").read_text(errors="replace")
@@ -95,7 +95,7 @@ def test_a_stamped_build_carries_its_identity_and_version(plugin_root):
 
 @pytest.mark.skipif(BUILD_CHANNEL != dev_build.STABLE_CHANNEL, reason="not a release build")
 def test_a_release_build_carries_its_calendar_version(plugin_root):
-    from framegen.domain import release_version
+    from deckyscaler.domain import release_version
 
     assert release_version.is_release(json.loads((plugin_root / "package.json").read_text())["version"])
 

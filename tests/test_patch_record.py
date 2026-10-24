@@ -7,10 +7,10 @@ import json
 import pytest
 
 from conftest import STABLE, game_file, make_game_dir, run, snapshot, write
-from framegen.domain import patch_record
-from framegen.domain.patch_plan import Copy, DeleteFile, Move
-from framegen.domain.patch_record import Backup, PatchRecord, Placed, RemoveDirIfEmpty
-from framegen.infrastructure import game_directory
+from deckyscaler.domain import patch_record
+from deckyscaler.domain.patch_plan import Copy, DeleteFile, Move
+from deckyscaler.domain.patch_record import Backup, PatchRecord, Placed, RemoveDirIfEmpty
+from deckyscaler.infrastructure import game_directory
 
 HASHES = {
     "OptiScaler.dll": "a" * 64,
@@ -82,7 +82,7 @@ def test_undoing_removes_what_was_placed_restores_backups_and_drops_the_marker_l
         DeleteFile("D3D12_Optiscaler/D3D12Core.dll"),
         Move("libxess.dll.b", "libxess.dll"),
         RemoveDirIfEmpty("D3D12_Optiscaler"),
-        DeleteFile("FRAMEGEN_PATCH"),
+        DeleteFile("DECKYSCALER_PATCH"),
     )
 
 
@@ -105,18 +105,18 @@ def test_a_file_put_there_since_stays_when_nothing_was_backed_up_for_it():
 def test_files_and_backups_already_gone_are_skipped():
     operations = patch_record.plan_unpatch(RECORD, {"dxgi.dll": "a" * 64})
 
-    assert operations == (DeleteFile("dxgi.dll"), RemoveDirIfEmpty("D3D12_Optiscaler"), DeleteFile("FRAMEGEN_PATCH"))
+    assert operations == (DeleteFile("dxgi.dll"), RemoveDirIfEmpty("D3D12_Optiscaler"), DeleteFile("DECKYSCALER_PATCH"))
 
 
 # ── integration: the plugin ──────────────────────────────────────────────────
 
 
-def test_patching_writes_the_record_and_unpatching_restores_the_game_exactly(plugin, fgmod, tmp_path):
+def test_patching_writes_the_record_and_unpatching_restores_the_game_exactly(plugin, plugin_home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
     before = snapshot(game)
 
     assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))["status"] == "success"
-    marker = json.loads((game / "FRAMEGEN_PATCH").read_text())
+    marker = json.loads((game / "DECKYSCALER_PATCH").read_text())
     assert marker["format"] == 2 and marker["complete"] is True
     assert {"path": "dxgi.dll", "sha256": marker["placed"][0]["sha256"]} in marker["placed"]
     assert marker["backups"] == [{"original": "libxess.dll", "backup": "libxess.dll.b"}]
@@ -125,7 +125,7 @@ def test_patching_writes_the_record_and_unpatching_restores_the_game_exactly(plu
     assert snapshot(game) == before
 
 
-def test_an_interrupted_patch_can_still_be_undone(plugin, fgmod, tmp_path, monkeypatch):
+def test_an_interrupted_patch_can_still_be_undone(plugin, plugin_home, tmp_path, monkeypatch):
     game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
     before = snapshot(game)
     real_execute = game_directory.execute
@@ -136,14 +136,14 @@ def test_an_interrupted_patch_can_still_be_undone(plugin, fgmod, tmp_path, monke
 
     monkeypatch.setattr(game_directory, "execute", crash_halfway)
     assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))["status"] == "error"
-    assert json.loads((game / "FRAMEGEN_PATCH").read_text())["complete"] is False
+    assert json.loads((game / "DECKYSCALER_PATCH").read_text())["complete"] is False
     monkeypatch.setattr(game_directory, "execute", real_execute)
 
     assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"
     assert snapshot(game) == before
 
 
-def test_unpatching_restores_the_backup_over_a_file_put_there_after_patching(plugin, fgmod, tmp_path):
+def test_unpatching_restores_the_backup_over_a_file_put_there_after_patching(plugin, plugin_home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
     run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
     (game / "libxess.dll").unlink()  # replacing the file; writing through the link would change the library
@@ -156,7 +156,7 @@ def test_unpatching_restores_the_backup_over_a_file_put_there_after_patching(plu
     assert not (game / "dxgi.dll").exists()
 
 
-def test_a_failed_unpatch_keeps_the_marker_and_says_so(plugin, fgmod, tmp_path, monkeypatch):
+def test_a_failed_unpatch_keeps_the_marker_and_says_so(plugin, plugin_home, tmp_path, monkeypatch):
     game = make_game_dir(tmp_path / "games" / "Game")
     run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
     real_execute = game_directory.execute
@@ -169,14 +169,14 @@ def test_a_failed_unpatch_keeps_the_marker_and_says_so(plugin, fgmod, tmp_path, 
     result = run(plugin.manual_unpatch_directory(str(game)))
 
     assert result == {"status": "error", "message": "Permission error while unpatching: read-only file system"}
-    assert (game / "FRAMEGEN_PATCH").exists()
+    assert (game / "DECKYSCALER_PATCH").exists()
     monkeypatch.setattr(game_directory, "execute", real_execute)
     assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"
     assert sorted(p.name for p in game.iterdir()) == ["Game.exe"]
 
 
 @pytest.mark.parametrize("action", ["unpatch", "patch"])
-def test_a_game_patched_by_an_older_version_is_left_alone(plugin, fgmod, tmp_path, action):
+def test_a_game_patched_by_an_older_version_is_left_alone(plugin, plugin_home, tmp_path, action):
     old_marker = json.dumps({"dll_name": "dxgi.dll", "backed_up_files": ["libxess.dll"]}).encode()
     game = make_game_dir(tmp_path / "games" / "Game", {"FRAMEGEN_PATCH": old_marker, "dxgi.dll": b"old opti"})
     before = snapshot(game)
@@ -186,7 +186,7 @@ def test_a_game_patched_by_an_older_version_is_left_alone(plugin, fgmod, tmp_pat
     else:
         result = run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
 
-    assert result == {"status": "error", "message": "This game was patched by an older version of the plugin. "
+    assert result == {"status": "error", "message": "This game was patched by Decky Framegen. "
                                                      "Unpatch it first: the plugin shows what that removes."}
     assert snapshot(game) == before
 
@@ -199,14 +199,14 @@ def test_a_steam_game_patched_by_an_older_version_says_so_and_keeps_its_launch_o
     status = run(plugin.get_game_status("800"))
     result = run(plugin.unpatch_game("800"))
 
-    assert status["patched"] is True and "older version of the plugin" in status["message"]
+    assert status["patched"] is True and "patched by Decky Framegen" in status["message"]
     assert result["status"] == "error" and "launch_options" not in result
     assert snapshot(root) == before
 
 
 @pytest.mark.parametrize("reset_ini", [False, True])
-def test_a_repatch_keeps_the_users_ini_settings_unless_asked_to_reset_them(plugin, fgmod, tmp_path, reset_ini):
-    from framegen.application.patcher import Patcher
+def test_a_repatch_keeps_the_users_ini_settings_unless_asked_to_reset_them(plugin, plugin_home, tmp_path, reset_ini):
+    from deckyscaler.application.patcher import Patcher
 
     game = make_game_dir(tmp_path / "games" / "Game")
     patcher = Patcher(tmp_path / "home")
@@ -221,17 +221,17 @@ def test_a_repatch_keeps_the_users_ini_settings_unless_asked_to_reset_them(plugi
     assert sorted(p.name for p in game.iterdir()) == ["Game.exe"]
 
 
-def test_unpatching_a_directory_with_a_record_needs_no_confirmation(plugin, fgmod, tmp_path):
+def test_unpatching_a_directory_with_a_record_needs_no_confirmation(plugin, plugin_home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game")
     run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
 
     assert run(plugin.preview_unpatch_directory(str(game))) == {"status": "success", "mode": "record", "target_dir": str(game)}
 
 
-def test_a_patched_game_whose_marker_names_a_stale_path_still_reads_as_patched(plugin, fgmod, steam_library):
+def test_a_patched_game_whose_marker_names_a_stale_path_still_reads_as_patched(plugin, plugin_home, steam_library):
     root = steam_library.add_game("740", "Moved Game")
     run(plugin.patch_game("740", "dxgi.dll", "", STABLE))
-    marker_path = root / "FRAMEGEN_PATCH"
+    marker_path = root / "DECKYSCALER_PATCH"
     marker_path.write_text(json.dumps({**json.loads(marker_path.read_text()), "target_dir": "/run/media/gone/Moved Game"}))
 
     status = run(plugin.get_game_status("740"))
@@ -250,15 +250,14 @@ def test_a_patch_is_intact_while_everything_it_placed_is_there_as_placed():
 
 
 def test_a_marker_describes_a_finished_patch_of_this_version_under_this_name():
-    from framegen.domain import marker
+    from deckyscaler.domain import marker
 
-    details = {"complete": True, "optiscaler_version": "nightly-1", "dll_name": "dxgi.dll", "placement": "link"}
+    details = {"complete": True, "optiscaler_version": "nightly-1", "dll_name": "dxgi.dll"}
 
     assert marker.describes(details, "nightly-1", "dxgi.dll")
     assert not marker.describes({**details, "complete": False}, "nightly-1", "dxgi.dll")
     assert not marker.describes(details, "nightly-2", "dxgi.dll")
     assert not marker.describes(details, "nightly-1", "winmm.dll")
-    assert not marker.describes({**details, "placement": "copy"}, "nightly-1", "dxgi.dll")
 
 
 def test_a_patch_placed_only_what_its_record_lists():

@@ -1,5 +1,5 @@
 {
-  "name": "decky-framegen",
+  "name": "deckyscaler",
   "version": "0.0.0",
   "description": "This plugin installs and manages OptiScaler, a tool that enhances upscaling and enables frame generation in a range of DirectX 12 games.",
   "type": "module",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/arttttt/Decky-Framegen.git"
+    "url": "git+https://github.com/arttttt/DeckyScaler.git"
   },
   "keywords": [
     "decky",
@@ -25,9 +25,9 @@
   "author": "no@thankyou.com",
   "license": "BSD-3-Clause",
   "bugs": {
-    "url": "https://github.com/arttttt/Decky-Framegen/issues"
+    "url": "https://github.com/arttttt/DeckyScaler/issues"
   },
-  "homepage": "https://github.com/arttttt/Decky-Framegen",
+  "homepage": "https://github.com/arttttt/DeckyScaler",
   "devDependencies": {
     "@decky/rollup": "^1.0.1",
     "@decky/ui": "^4.7.2",

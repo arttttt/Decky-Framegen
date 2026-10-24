@@ -31,7 +31,7 @@ jobs:
           PULL_REQUEST: ${{ github.event.pull_request.number }}
         run: |
           channel="$(PYTHONPATH=py_modules python3 -c \
-            'import sys; from framegen.domain import dev_build; print(dev_build.channel(int(sys.argv[1])))' "$PULL_REQUEST")"
+            'import sys; from deckyscaler.domain import dev_build; print(dev_build.channel(int(sys.argv[1])))' "$PULL_REQUEST")"
           if gh release view "$channel" >/dev/null 2>&1; then
             gh release delete "$channel" --cleanup-tag --yes
           fi

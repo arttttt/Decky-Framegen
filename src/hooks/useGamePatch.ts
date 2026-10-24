@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { toaster } from "@decky/api";
+import { notify } from "../utils/notify";
 import { getGameStatus, patchGame } from "../api";
 import { getAppLaunchOptions, setAppLaunchOptions } from "../api/steamClient";
 import { GameStatus, PatchWith, steamGameView } from "../presentation/patching";
@@ -54,12 +54,12 @@ export const useGamePatch = (appid: string | null, patchWithFor: (status: GameSt
       setAppLaunchOptions(Number(appid), result.launch_options || "");
       const message = result.message || `Patched ${name}.`;
       setResultMessage(message);
-      toaster.toast({ title: "Decky Framegen", body: message });
+      notify(message);
       await loadStatus();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Patch failed.";
       setResultMessage(`Error: ${message}`);
-      toaster.toast({ title: "Decky Framegen", body: message });
+      notify(message);
     } finally {
       setPatching(false);
     }

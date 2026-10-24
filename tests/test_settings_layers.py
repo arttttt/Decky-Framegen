@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from framegen.domain import ini_schema, settings_layers
-from framegen.domain.settings_layers import AUTO, DEFAULT, GAME, GLOBAL, Resolved, accepts
-from framegen.infrastructure.settings_store import SettingsStore
+from deckyscaler.domain import ini_schema, settings_layers
+from deckyscaler.domain.settings_layers import AUTO, DEFAULT, GAME, GLOBAL, Resolved, accepts
+from deckyscaler.infrastructure.settings_store import SettingsStore
 
 INI = """[FrameGen]
 ; Enables Frame Generation

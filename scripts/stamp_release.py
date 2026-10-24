@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Turn a checkout into a release build before `decky plugin build`.
 
-Names the release by the day (framegen.domain.release_version), writes that version into
+Names the release by the day (deckyscaler.domain.release_version), writes that version into
 package.json and the build's identity on the stable channel into `defaults/build-info.json` (so the
 release knows where its updates are published), and prints `version=`, `tag=` and `channel=` lines for
 $GITHUB_OUTPUT.
@@ -20,7 +20,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "py_modules"))
 
-from framegen.domain import dev_build, release_version  # noqa: E402
+from deckyscaler.domain import dev_build, release_version  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:

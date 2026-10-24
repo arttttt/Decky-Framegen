@@ -1,11 +1,11 @@
-"""Characterization tests for the launch-option wrappers in ~/fgmod.
+"""Characterization tests for the launch-option wrappers in ~/deckyscaler.
 
-`fgmod` (defaults/assets/fgmod.sh) patches the game on every launch and then
-starts it; `fgmod-uninstaller.sh` unpatches and starts it. Both are bash for
+`patch` (defaults/assets/patch.sh) patches the game on every launch and then
+starts it; `unpatch` unpatches and starts it. Both are bash for
 SteamOS-like Linux (bash 5, GNU coreutils), so these tests run on Linux only —
 CI runs them on every PR.
 
-Each scenario runs the real scripts against the fake ~/fgmod (which carries
+Each scenario runs the real scripts against the fake ~/deckyscaler (which carries
 the plugin's Python core, as an install does) with stubs for zenity, logger and
 python on PATH. In launch mode the "game" is a recorder that
 writes the environment and arguments the wrapper started it with. Results are
@@ -52,27 +52,27 @@ def tools(tmp_path) -> Path:
 
 
 @pytest.fixture
-def wrapper_fgmod(fgmod) -> Path:
-    """~/fgmod with the real launch scripts in it, as installing a library version leaves it."""
+def wrapper_home(plugin_home) -> Path:
+    """~/deckyscaler with the real launch scripts in it, as installing a library version leaves it."""
     for installed, source in (
-        ("fgmod", "fgmod.sh"),
-        ("fgmod-uninstaller.sh", "fgmod-uninstaller.sh"),
+        ("patch", "patch.sh"),
+        ("unpatch", "unpatch.sh"),
     ):
-        shutil.copy2(REPO_ROOT / "defaults" / "assets" / source, fgmod / installed)
-        (fgmod / installed).chmod(0o755)
-    return fgmod
+        shutil.copy2(REPO_ROOT / "defaults" / "assets" / source, plugin_home / installed)
+        (plugin_home / installed).chmod(0o755)
+    return plugin_home
 
 
 class Wrapper:
-    def __init__(self, home: Path, fgmod: Path, tools: Path, tmp_path: Path):
-        self.home, self.fgmod, self.tools, self.tmp_path = home, fgmod, tools, tmp_path
+    def __init__(self, home: Path, plugin_home: Path, tools: Path, tmp_path: Path):
+        self.home, self.plugin_home, self.tools, self.tmp_path = home, plugin_home, tools, tmp_path
         self.record_file = tmp_path / "launch-record.txt"
 
     def run(self, script: str, *args: str, env: dict[str, str] | None = None) -> dict:
         """Run a wrapper script; returns its exit code and, in launch mode, what the game received."""
         self.record_file.unlink(missing_ok=True)
         result = subprocess.run(
-            ["bash", str(self.fgmod / script), *args],
+            ["bash", str(self.plugin_home / script), *args],
             env={
                 "HOME": str(self.home),
                 "PATH": f"{self.tools}:/usr/local/bin:/usr/bin:/bin",
@@ -94,22 +94,22 @@ class Wrapper:
 
 
 @pytest.fixture
-def wrapper(home, wrapper_fgmod, tools, tmp_path) -> Wrapper:
-    return Wrapper(home, wrapper_fgmod, tools, tmp_path)
+def wrapper(home, wrapper_home, tools, tmp_path) -> Wrapper:
+    return Wrapper(home, wrapper_home, tools, tmp_path)
 
 
 def scenario(name: str, game: Path, steps: list[tuple[str, dict]]) -> None:
     assert_golden(name, [{"step": step, **observed} for step, observed in steps] + [{"final_tree": describe_tree(game)}])
 
 
-# ── fgmod (patch on launch) ──────────────────────────────────────────────────
+# ── plugin_home (patch on launch) ──────────────────────────────────────────────────
 
 
 def test_patch_standalone_then_uninstall(wrapper, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Clean Game")
-    patched = wrapper.run("fgmod", str(game / "Game.exe"))
+    patched = wrapper.run("patch", str(game / "Game.exe"))
     after_patch = describe_tree(game)
-    unpatched = wrapper.run("fgmod-uninstaller.sh", str(game / "Game.exe"))
+    unpatched = wrapper.run("unpatch", str(game / "Game.exe"))
 
     scenario(
         "wrapper_standalone_patch_then_uninstall",
@@ -121,7 +121,7 @@ def test_patch_standalone_then_uninstall(wrapper, tmp_path):
 def test_launch_mode_patches_then_starts_the_game_with_overrides(wrapper, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Launch Game")
 
-    launched = wrapper.launch("fgmod", game / "Game.exe", env={"DLL": "winmm.dll", "WINEDLLOVERRIDES": "d3d11=n"})
+    launched = wrapper.launch("patch", game / "Game.exe", env={"DLL": "winmm.dll", "WINEDLLOVERRIDES": "d3d11=n"})
 
     scenario("wrapper_launch_mode", game, [("launch", launched)])
 
@@ -133,9 +133,9 @@ def test_game_shipped_files_across_patch_and_uninstall(wrapper, tmp_path):
     }
     game = make_game_dir(tmp_path / "games" / "Shipping Game", {**shipped, "plugins/OtherMod.asi": game_file("OtherMod.asi")})
 
-    patched = wrapper.run("fgmod", str(game / "Game.exe"), env={"DLL": "version.dll"})
+    patched = wrapper.run("patch", str(game / "Game.exe"), env={"DLL": "version.dll"})
     after_patch = describe_tree(game)
-    unpatched = wrapper.run("fgmod-uninstaller.sh", str(game / "Game.exe"))
+    unpatched = wrapper.run("unpatch", str(game / "Game.exe"))
 
     scenario(
         "wrapper_game_shipped_files",
@@ -147,9 +147,9 @@ def test_game_shipped_files_across_patch_and_uninstall(wrapper, tmp_path):
 def test_version_from_env_and_repatch_on_every_launch(wrapper, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Version Game")
 
-    first = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_VERSION": "nightly-20261023"})
+    first = wrapper.run("patch", str(game / "Game.exe"), env={"DECKYSCALER_VERSION": "nightly-20261023"})
     after_nightly = describe_tree(game)
-    second = wrapper.run("fgmod", str(game / "Game.exe"))  # no version: stays on the one the game is patched with
+    second = wrapper.run("patch", str(game / "Game.exe"))  # no version: stays on the one the game is patched with
 
     scenario(
         "wrapper_version_and_repatch",
@@ -161,7 +161,7 @@ def test_version_from_env_and_repatch_on_every_launch(wrapper, tmp_path):
 def test_a_version_missing_from_the_library_is_an_error_not_a_fallback(wrapper, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Missing Version Game")
 
-    result = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_VERSION": "nightly-20260101"})
+    result = wrapper.run("patch", str(game / "Game.exe"), env={"DECKYSCALER_VERSION": "nightly-20260101"})
 
     assert result == {"exit_code": 1}
     assert "OptiScaler nightly-20260101 is not in the library." in (tmp_path / "wrapper.log").read_text()
@@ -172,7 +172,7 @@ def test_existing_ini_is_migrated_and_env_overrides_applied(wrapper, tmp_path):
     ini = b"[Upscalers]\nDx12Upscaler=auto\n\n[FrameGen]\nFGType=nukems\n\n[Menu]\nUseHQFont=auto\n"
     game = make_game_dir(tmp_path / "games" / "Ini Game", {"OptiScaler.ini": ini})
 
-    patched = wrapper.run("fgmod", str(game / "Game.exe"), env={"Dx12Upscaler": "fsr31", "OptiScaler_Menu_UseHQFont": "true"})
+    patched = wrapper.run("patch", str(game / "Game.exe"), env={"Dx12Upscaler": "fsr31", "OptiScaler_Menu_UseHQFont": "true"})
 
     scenario("wrapper_existing_ini", game, [("patch", patched)])
 
@@ -182,7 +182,7 @@ def test_unreal_engine_layout_patches_the_binaries_directory(wrapper, tmp_path):
     write(game / "Engine" / "Binaries" / "ThirdParty" / "x.dll", game_file("x.dll"))
     write(game / "UnrealGame" / "Binaries" / "Win64" / "UnrealGame-Win64-Shipping.exe", game_file("shipping.exe"))
 
-    patched = wrapper.run("fgmod", str(game / "Game.exe"))
+    patched = wrapper.run("patch", str(game / "Game.exe"))
 
     scenario("wrapper_unreal_layout", game, [("patch", patched)])
 
@@ -192,7 +192,7 @@ def test_a_launcher_command_patches_the_game_binarys_directory(wrapper, tmp_path
     write(game / "REDprelauncher.exe", game_file("REDprelauncher.exe"))
     write(game / "bin" / "x64" / "Cyberpunk2077.exe", game_file("Cyberpunk2077.exe"))
 
-    launched = wrapper.launch("fgmod", game / "REDprelauncher.exe")
+    launched = wrapper.launch("patch", game / "REDprelauncher.exe")
 
     scenario("wrapper_launcher_remap", game, [("launch", launched)])
 
@@ -200,9 +200,9 @@ def test_a_launcher_command_patches_the_game_binarys_directory(wrapper, tmp_path
 def test_a_directory_argument_and_a_reset_ini(wrapper, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Dir Game", {"OptiScaler.ini": b"[Menu]\nUseHQFont=auto\nMine=1\n"})
 
-    kept = wrapper.run("fgmod", str(game))
+    kept = wrapper.run("patch", str(game))
     kept_ini = (game / "OptiScaler.ini").read_text()
-    reset = wrapper.run("fgmod", str(game), env={"PRESERVE_INI": "false"})
+    reset = wrapper.run("patch", str(game), env={"PRESERVE_INI": "false"})
 
     scenario("wrapper_directory_argument_and_reset_ini", game, [("patch", {**kept, "ini": kept_ini}), ("reset ini", reset)])
 
@@ -211,58 +211,58 @@ def test_steams_install_path_is_the_fallback_and_separators_are_dropped(wrapper,
     game = make_game_dir(tmp_path / "games" / "Fallback Game")
 
     launched = wrapper.run(
-        "fgmod", "--", str(wrapper.tools / "launch-recorder"), "run", env={"STEAM_COMPAT_INSTALL_PATH": str(game)}
+        "patch", "--", str(wrapper.tools / "launch-recorder"), "run", env={"STEAM_COMPAT_INSTALL_PATH": str(game)}
     )
 
     scenario("wrapper_steam_install_path_fallback", game, [("launch", launched)])
 
 
-def test_a_game_proxy_identical_to_ours(wrapper, fgmod, tmp_path):
-    ours = (fgmod / "library" / "versions" / "stable-0.9.4" / "files" / "OptiScaler.dll").read_bytes()
+def test_a_game_proxy_identical_to_ours(wrapper, plugin_home, tmp_path):
+    ours = (plugin_home / "library" / "versions" / "stable-0.9.4" / "files" / "OptiScaler.dll").read_bytes()
     game = make_game_dir(tmp_path / "games" / "Proxy Game", {"dxgi.dll": ours})
 
-    patched = wrapper.run("fgmod", str(game / "Game.exe"))
+    patched = wrapper.run("patch", str(game / "Game.exe"))
 
     scenario("wrapper_identical_proxy", game, [("patch", patched)])
 
 
 def test_usage_errors(wrapper):
-    assert wrapper.run("fgmod")["exit_code"] == 1
-    assert wrapper.run("fgmod-uninstaller.sh")["exit_code"] == 1
+    assert wrapper.run("patch")["exit_code"] == 1
+    assert wrapper.run("unpatch")["exit_code"] == 1
 
 
 def test_missing_game_directory_is_an_error(wrapper, tmp_path):
-    result = wrapper.run("fgmod", str(tmp_path / "nowhere" / "Game.exe"))
+    result = wrapper.run("patch", str(tmp_path / "nowhere" / "Game.exe"))
 
     assert result["exit_code"] == 1
 
 
-# ── fgmod-uninstaller.sh ─────────────────────────────────────────────────────
+# ── unpatch ──────────────────────────────────────────────────────────────────
 
 
 def test_uninstaller_follows_unreal_layouts(wrapper, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Unreal Uninstall")
     write(game / "Engine" / "Binaries" / "ThirdParty" / "x.dll", game_file("x.dll"))
     write(game / "UnrealGame" / "Binaries" / "Win64" / "UnrealGame-Win64-Shipping.exe", game_file("shipping.exe"))
-    wrapper.run("fgmod", str(game / "Game.exe"))
+    wrapper.run("patch", str(game / "Game.exe"))
 
-    unpatched = wrapper.run("fgmod-uninstaller.sh", str(game / "Game.exe"))
+    unpatched = wrapper.run("unpatch", str(game / "Game.exe"))
 
     scenario("wrapper_uninstaller_unreal_layout", game, [("uninstall", unpatched)])
 
 
 def test_uninstaller_refuses_to_run_on_the_bundle_itself(wrapper):
-    result = wrapper.run("fgmod-uninstaller.sh", str(wrapper.fgmod / "Game.exe"))
+    result = wrapper.run("unpatch", str(wrapper.plugin_home / "Game.exe"))
 
     assert result["exit_code"] == 1
-    assert (wrapper.fgmod / "library" / "versions").is_dir()
+    assert (wrapper.plugin_home / "library" / "versions").is_dir()
 
 
 def test_uninstaller_launch_mode_starts_the_game(wrapper, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Uninstall Game")
-    wrapper.run("fgmod", str(game / "Game.exe"), env={"DLL": "version.dll"})
+    wrapper.run("patch", str(game / "Game.exe"), env={"DLL": "version.dll"})
 
-    launched = wrapper.launch("fgmod-uninstaller.sh", game / "Game.exe")
+    launched = wrapper.launch("unpatch", game / "Game.exe")
 
     scenario("wrapper_uninstaller_launch_mode", game, [("launch", launched)])
 
@@ -275,8 +275,8 @@ def test_the_wrapper_and_the_plugin_patch_a_game_identically(wrapper, plugin, tm
     by_wrapper = make_game_dir(tmp_path / "games" / "A" / "Game", shipped)
     by_plugin = make_game_dir(tmp_path / "games" / "B" / "Game", shipped)
 
-    env = {"DLL": "winmm.dll", "FGMOD_VERSION": "nightly-20261023"}
-    wrapper.run("fgmod", str(by_wrapper / "Game.exe"), env=env)
+    env = {"DLL": "winmm.dll", "DECKYSCALER_VERSION": "nightly-20261023"}
+    wrapper.run("patch", str(by_wrapper / "Game.exe"), env=env)
     run(plugin.manual_patch_directory(str(by_plugin), "winmm.dll", "nightly-20261023"))
 
     assert describe_tree(by_wrapper) == describe_tree(by_plugin)
@@ -292,7 +292,7 @@ def test_a_missing_python_is_reported_instead_of_guessed_around(wrapper, tmp_pat
     game = make_game_dir(tmp_path / "games" / "No Python Game")
 
     result = subprocess.run(
-        [shutil.which("bash"), str(wrapper.fgmod / "fgmod"), str(game / "Game.exe")],
+        [shutil.which("bash"), str(wrapper.plugin_home / "patch"), str(game / "Game.exe")],
         env={"HOME": str(wrapper.home), "PATH": str(bare)},
         capture_output=True,
         text=True,

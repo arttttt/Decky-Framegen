@@ -3,8 +3,8 @@
 from pathlib import Path
 
 from conftest import write
-from framegen.domain import steam
-from framegen.infrastructure import steam as steam_library
+from deckyscaler.domain import steam
+from deckyscaler.infrastructure import steam as steam_library
 
 LIBRARY_FOLDERS = '''"libraryfolders"
 {

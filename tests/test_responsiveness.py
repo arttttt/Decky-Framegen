@@ -8,9 +8,9 @@ import time
 from pathlib import Path
 
 from conftest import STABLE, run
-from framegen.application.patcher import Patcher
-from framegen.infrastructure import processes
-from framegen.infrastructure import steam as steam_dirs
+from deckyscaler.application.patcher import Patcher
+from deckyscaler.infrastructure import processes
+from deckyscaler.infrastructure import steam as steam_dirs
 
 
 def test_a_slow_status_doesnt_hold_up_another_call(plugin, monkeypatch):
@@ -33,7 +33,7 @@ def test_a_slow_status_doesnt_hold_up_another_call(plugin, monkeypatch):
     assert finished == ["setup", "status"]
 
 
-def test_a_patched_games_status_finds_its_marker_through_the_index(plugin, fgmod, steam_library, monkeypatch):
+def test_a_patched_games_status_finds_its_marker_through_the_index(plugin, plugin_home, steam_library, monkeypatch):
     steam_library.add_game("1234", "Test Game")
     run(plugin.patch_game("1234", "dxgi.dll", "", STABLE))
 
@@ -45,15 +45,15 @@ def test_a_patched_games_status_finds_its_marker_through_the_index(plugin, fgmod
     assert run(plugin.get_game_status("1234"))["patched"] is True
 
 
-def test_a_game_the_index_doesnt_know_is_still_found_by_searching(plugin, fgmod, steam_library):
+def test_a_game_the_index_doesnt_know_is_still_found_by_searching(plugin, plugin_home, steam_library):
     root = steam_library.add_game("1234", "Test Game")
     run(plugin.patch_game("1234", "dxgi.dll", "", STABLE))
-    (fgmod / "patched.json").write_text("{}")  # e.g. patched before the index existed
+    (plugin_home / "patched.json").write_text("{}")  # e.g. patched before the index existed
 
     assert run(plugin.get_game_status("1234"))["target_dir"] == str(root)
 
 
-def test_patching_scans_the_games_executables_and_processes_once(plugin, fgmod, steam_library, monkeypatch):
+def test_patching_scans_the_games_executables_and_processes_once(plugin, plugin_home, steam_library, monkeypatch):
     steam_library.add_game("1234", "Test Game")
     calls = {"executables": 0, "processes": 0}
     real_executables, real_command_lines = steam_dirs.executables, processes.command_lines

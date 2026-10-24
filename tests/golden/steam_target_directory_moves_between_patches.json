@@ -15,7 +15,7 @@
     "tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "-> <library>/stable-0.9.4/files/D3D12_Optiscaler/D3D12Core.dll",
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "300",
         "backed_up_files": [],
         "backups": [],
@@ -71,7 +71,6 @@
             "sha256": "link:<library>/stable-0.9.4/files/libxess_dx11.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
@@ -94,7 +93,7 @@
       "Binaries/Win64/MovingGame-Win64-Shipping.exe": "game:MovingGame-Win64-Shipping.exe",
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "-> <library>/stable-0.9.4/files/D3D12_Optiscaler/D3D12Core.dll",
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "300",
         "backed_up_files": [],
         "backups": [],
@@ -150,7 +149,6 @@
             "sha256": "link:<library>/stable-0.9.4/files/libxess_dx11.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
@@ -183,7 +181,7 @@
       "Binaries/Win64": "<dir>",
       "Binaries/Win64/D3D12_Optiscaler": "<dir>",
       "Binaries/Win64/D3D12_Optiscaler/D3D12Core.dll": "-> <library>/stable-0.9.4/files/D3D12_Optiscaler/D3D12Core.dll",
-      "Binaries/Win64/FRAMEGEN_PATCH": {
+      "Binaries/Win64/DECKYSCALER_PATCH": {
         "appid": "300",
         "backed_up_files": [],
         "backups": [],
@@ -239,7 +237,6 @@
             "sha256": "link:<library>/stable-0.9.4/files/libxess_dx11.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>/Binaries/Win64"
       },
       "Binaries/Win64/MovingGame-Win64-Shipping.exe": "game:MovingGame-Win64-Shipping.exe",

@@ -5,7 +5,7 @@
     "deckpass"  : "gamer",
     "deckkey"   : "-i ${env:HOME}/.ssh/id_rsa",
     "deckdir"   : "${env:HOME}",
-    "pluginname": "Decky-Framegen",
+    "pluginname": "DeckyScaler",
     "python.analysis.extraPaths": [
         "./py_modules"
     ]

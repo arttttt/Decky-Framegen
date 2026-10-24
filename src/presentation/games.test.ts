@@ -61,8 +61,8 @@ describe("the Games page", () => {
   it("says what is wrong with a patch and what to do", () => {
     expect(rowOf(game({ dll_present: false })).lines[1]).toBe("dxgi.dll is missing: patch it again.");
     expect(rowOf(game({ record: "incomplete", dll_present: false })).lines[1]).toBe("The patch didn't finish: unpatch it, then patch again.");
-    expect(rowOf(game({ record: "older-plugin" })).lines[1]).toBe(
-      "Patched by an older plugin version: Unpatch resets it to the game's own files.",
+    expect(rowOf(game({ record: "upstream" })).lines[1]).toBe(
+      "Patched by Decky Framegen: Unpatch resets it to the game's own files.",
     );
   });
 

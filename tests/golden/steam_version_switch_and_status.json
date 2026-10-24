@@ -31,7 +31,7 @@
     },
     "step": "patch nightly",
     "tree": {
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "100",
         "backed_up_files": [],
         "backups": [],
@@ -68,7 +68,6 @@
             "sha256": "link:<library>/nightly-20261023/files/OptiScaler/libxess.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
@@ -97,7 +96,7 @@
     },
     "step": "status nightly",
     "tree": {
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "100",
         "backed_up_files": [],
         "backups": [],
@@ -134,7 +133,6 @@
             "sha256": "link:<library>/nightly-20261023/files/OptiScaler/libxess.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
@@ -163,7 +161,7 @@
     "tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "-> <library>/stable-0.9.4/files/D3D12_Optiscaler/D3D12Core.dll",
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "100",
         "backed_up_files": [],
         "backups": [],
@@ -219,7 +217,6 @@
             "sha256": "link:<library>/stable-0.9.4/files/libxess_dx11.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
@@ -252,7 +249,7 @@
     "tree": {
       "D3D12_Optiscaler": "<dir>",
       "D3D12_Optiscaler/D3D12Core.dll": "-> <library>/stable-0.9.4/files/D3D12_Optiscaler/D3D12Core.dll",
-      "FRAMEGEN_PATCH": {
+      "DECKYSCALER_PATCH": {
         "appid": "100",
         "backed_up_files": [],
         "backups": [],
@@ -308,7 +305,6 @@
             "sha256": "link:<library>/stable-0.9.4/files/libxess_dx11.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",

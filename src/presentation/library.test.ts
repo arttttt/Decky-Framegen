@@ -25,7 +25,7 @@ const unsupported: LibraryVersion = {
   state: "unsupported", reason: "a version this plugin does not support yet", size: 70_000_000,
 };
 
-const removal = (refused: string | null, games: string[]): LibraryRemoval => ({ status: "success", refused, games });
+const removal = (refused: string | null): LibraryRemoval => ({ status: "success", refused });
 
 const LIBRARY: InstalledLibrary = {
   installed_bytes: 512_000_000,
@@ -151,25 +151,20 @@ describe("manage dialog", () => {
     ]);
   });
 
-  it("names the games patched with a version before removing it", () => {
-    expect(removeConfirmation(LIBRARY.versions[0], removal(null, ["Cyberpunk 2077", "/games/Manual"]))).toEqual({
+  it("asks before removing a version no game is patched with", () => {
+    expect(removeConfirmation(LIBRARY.versions[0], removal(null))).toEqual({
       title: "Remove OptiScaler 10.0.0-pre1 · 2026-10-23?",
-      lines: [
-        "These stay patched with it and keep working; patching them again needs another version:",
-        "Cyberpunk 2077",
-        "/games/Manual",
-      ],
+      lines: ["No game is patched with it."],
       okLabel: "Remove",
       removes: true,
       alert: false,
     });
-    expect(removeConfirmation(LIBRARY.versions[0], removal(null, [])).lines).toEqual(["No game is patched with it."]);
   });
 
   it("says why a version can't be removed before asking, instead of the question", () => {
-    expect(removeConfirmation(LIBRARY.versions[0], removal("Game use it through links. Unpatch them first.", ["Game"]))).toEqual({
+    expect(removeConfirmation(LIBRARY.versions[0], removal("Game is patched with it. Unpatch them first."))).toEqual({
       title: "Can't remove OptiScaler 10.0.0-pre1 · 2026-10-23",
-      lines: ["Game use it through links. Unpatch them first."],
+      lines: ["Game is patched with it. Unpatch them first."],
       okLabel: "OK",
       removes: false,
       alert: true,
