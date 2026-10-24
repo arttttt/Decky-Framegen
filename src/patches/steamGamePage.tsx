@@ -15,9 +15,22 @@ import { GAME_PAGE_BUTTON_LABEL, appIdFromLibraryPath } from "../presentation/st
 
 const STEAM_GAME_ROUTE = "/library/app/:appid";
 
-// DialogButton's own button, without the wrapper that keeps it out of the game page's gamepad
-// navigation: the way ProtonDB Badges gets its badge focused there.
-const FocusableButton = (DialogButton as any).render({}).type as FC<DialogButtonProps & { className?: string }>;
+type ChipButton = FC<DialogButtonProps & { className?: string }>;
+let focusableButton: ChipButton | null = null;
+
+/** DialogButton's own button, without the wrapper that keeps it out of the game page's gamepad
+ *  navigation: the way ProtonDB Badges gets its badge focused there. Looked up when first needed, and
+ *  DialogButton itself if @decky/ui changes: then only the chip's focus suffers, never the plugin. */
+function chipButton(): ChipButton {
+  if (!focusableButton) {
+    try {
+      focusableButton = ((DialogButton as any).render({}).type as ChipButton) ?? DialogButton;
+    } catch {
+      focusableButton = DialogButton;
+    }
+  }
+  return focusableButton;
+}
 
 const CHIP_CSS = `
 .decky-framegen-chip {
@@ -63,6 +76,7 @@ function GamePageButton({ appid }: { appid: string }) {
 
   // On the row ProtonDB Badges uses by default (top-left, 40px): level with it, the gamepad moves
   // between the two with left and right.
+  const FocusableButton = chipButton();
   return (
     <div ref={ref} style={{ position: "absolute", top: "40px", right: "20px", zIndex: 7 }}>
       <style>{CHIP_CSS}</style>
