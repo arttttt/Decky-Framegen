@@ -72,3 +72,9 @@ def test_a_repatch_without_the_games_launch_options_keeps_the_stored_ones(plugin
 
     assert repatched["original_launch_options"] == "mangohud %command%"
     assert unpatched["launch_options"] == "mangohud %command%"
+
+
+def test_the_plugin_serves_the_launch_setup(plugin):
+    setup = asyncio.run(plugin.launch_setup())
+
+    assert setup["default"] == "dxgi.dll" and setup["wrapper"]["patch"] == "~/fgmod/fgmod %command%"

@@ -1,6 +1,6 @@
 import pytest
 
-from framegen.domain import launch_options
+from framegen.domain import bundle, launch_options
 
 
 @pytest.mark.parametrize(
@@ -54,3 +54,20 @@ def test_wine_dll_overrides_append_our_entry_with_wines_separator(current, dll_n
 def test_every_shape_the_plugin_writes_is_recognised_as_managed(dll_name, fsr4_upgrade):
     # Unpatch hands the user's own options back only when it knows the current ones are the plugin's.
     assert launch_options.is_managed(launch_options.managed(dll_name, fsr4_upgrade))
+
+
+def test_the_panel_gets_every_proxy_with_its_launch_options_and_the_wrapper_commands():
+    setup = launch_options.setup_json()
+
+    assert setup["default"] == "dxgi.dll"
+    assert [proxy["name"] for proxy in setup["proxies"]][0] == "dxgi.dll"
+    assert {proxy["name"] for proxy in setup["proxies"]} == bundle.VALID_DLL_NAMES
+    by_name = {proxy["name"]: proxy for proxy in setup["proxies"]}
+    assert by_name["winmm.dll"]["launch_options"] == launch_options.managed("winmm.dll")
+    assert by_name["OptiScaler.asi"]["launch_options"] == "SteamDeck=0 %command%"
+    assert all(proxy["hint"] for proxy in setup["proxies"])
+    assert setup["wrapper"] == {"patch": "~/fgmod/fgmod %command%", "unpatch": "~/fgmod/fgmod-uninstaller.sh %command%"}
+
+
+def test_the_wrapper_command_is_recognised_as_the_plugins():
+    assert launch_options.is_managed(launch_options.WRAPPER_PATCH)

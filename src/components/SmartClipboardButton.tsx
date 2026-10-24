@@ -2,16 +2,16 @@ import { useState, useEffect } from "react";
 import { PanelSectionRow, ButtonItem, ConfirmModal, showModal } from "@decky/ui";
 import { FaClipboard, FaCheck } from "react-icons/fa";
 import { toaster } from "@decky/api";
+import type { CopyConfirmation } from "../presentation/launch";
 
 interface SmartClipboardButtonProps {
-  command?: string;
-  buttonText?: string;
+  command: string;
+  buttonText: string;
+  /** Asked before copying, when the command needs a second thought. */
+  confirmation?: CopyConfirmation;
 }
 
-export function SmartClipboardButton({ 
-  command = "~/fgmod/fgmod %command%",
-  buttonText = "Copy Launch Command"
-}: SmartClipboardButtonProps) {
+export function SmartClipboardButton({ command, buttonText, confirmation }: SmartClipboardButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -29,16 +29,12 @@ export function SmartClipboardButton({
   const copyToClipboard = async () => {
     if (isLoading || showSuccess) return;
     
-    const isPatchCommand = command.includes("fgmod %command%") && !command.includes("uninstaller");
-    
-    if (isPatchCommand) {
+    if (confirmation) {
       showModal(
-        <ConfirmModal 
-          strTitle={`Patch Game with OptiScaler?`}
-          strDescription={
-            "WARNING: Decky Framegen does not unpatch games when uninstalled. Be sure to unpatch the game or run the OptiScaler uninstall script inside the game files if you choose to uninstall the plugin or the game has issues."
-          }
-          strOKButtonText="Copy Patch Command"
+        <ConfirmModal
+          strTitle={confirmation.title}
+          strDescription={confirmation.description}
+          strOKButtonText={confirmation.okLabel}
           strCancelButtonText="Cancel"
           onOK={async () => {
             await performCopy();
@@ -48,7 +44,6 @@ export function SmartClipboardButton({
       return;
     }
     
-    // For non-patch commands, copy directly
     await performCopy();
   };
 
