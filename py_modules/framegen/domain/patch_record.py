@@ -113,6 +113,14 @@ def parse(marker: dict) -> PatchRecord | None:
         return None
 
 
+def intact(patch: PatchRecord, current: dict[str, str | None]) -> bool:
+    """Whether everything the patch placed is still there as it placed it (OptiScaler.ini, which
+    OptiScaler rewrites, only has to be there)."""
+    return all(
+        item.path in current and (item.sha256 is None or current[item.path] == item.sha256) for item in patch.placed
+    )
+
+
 def plan_unpatch(
     patch: PatchRecord, current: dict[str, str | None], keep: frozenset[str] = frozenset()
 ) -> tuple[Operation | RemoveDirIfEmpty, ...]:

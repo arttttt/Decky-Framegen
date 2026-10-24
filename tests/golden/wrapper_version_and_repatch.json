@@ -76,12 +76,12 @@
         "original_launch_options": "",
         "placed": [
           {
-            "path": "OptiScaler.ini",
-            "sha256": null
-          },
-          {
             "path": "dxgi.dll",
             "sha256": "link:<library>/nightly-20261023/files/OptiScaler.dll"
+          },
+          {
+            "path": "OptiScaler.ini",
+            "sha256": null
           },
           {
             "path": "OptiScaler/D3D12_OptiScaler/D3D12Core.dll",
