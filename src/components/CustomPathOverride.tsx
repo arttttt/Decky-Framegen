@@ -176,7 +176,7 @@ export const ManualPatchControls = ({
       setOperationResult(null);
 
       try {
-        const response = await runManualPatch(selectedPath, dllName, patchWith.versionId);
+        const response = await runManualPatch(selectedPath, dllName, patchWith.versionId, patchWith.link);
         setOperationResult(response ?? { status: "error", message: "No response from backend." });
       } catch (err) {
         setOperationResult({

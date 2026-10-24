@@ -62,6 +62,7 @@ class Patcher:
         *,
         version_id: str | None = None,
         reset_ini: bool = False,
+        link: bool = False,
         steam_game: marker.SteamGame | None = None,
     ) -> dict:
         """Patch a directory with a library version (the default one unless named) and record it in a marker."""
@@ -91,9 +92,9 @@ class Patcher:
         try:
             entries, _ = game_directory.listing(directory)
             operations = version_placement.plan_patch(
-                entries, self.library.files_in(source), family, version_placement.Request(dll_name, reset_ini)
+                entries, self.library.files_in(source), family, version_placement.Request(dll_name, reset_ini, link)
             )
-            log.info(f"Patching {directory} with OptiScaler {entry.id}, {dll_name}")
+            log.info(f"Patching {directory} with OptiScaler {entry.id}, {dll_name}{' (linked)' if link else ''}")
             recorded = patch_record.record(
                 operations, entries, game_directory.bundle_hashes(source, operations), carried_over & entries
             )
@@ -103,6 +104,7 @@ class Patcher:
                 backed_up_files=[backup.original for backup in recorded.backups],
                 optiscaler_version=entry.id,
                 family=entry.family,
+                linked=link,
                 patched_at=datetime.now(timezone.utc).isoformat(),
                 steam_game=steam_game,
             )
@@ -121,7 +123,7 @@ class Patcher:
             return _error(f"Patch failed: {exc}")
         return {
             "status": "success",
-            "message": f"OptiScaler {entry.version} is in {directory}.",
+            "message": f"OptiScaler {entry.version} is {'linked from the library into' if link else 'in'} {directory}.",
             "optiscaler_version": entry.id,
         }
 
@@ -170,24 +172,31 @@ class Patcher:
         except OSError as exc:
             log.warning(f"Updating the index of patched directories failed: {exc}")
 
+    def _patched_with(self, version_id: str) -> list[tuple[str, dict]]:
+        """The name and marker of every indexed directory whose marker names this library version."""
+        markers = [
+            (name, files.read_json(Path(directory) / bundle.MARKER_FILENAME))
+            for directory, name in self.patches.directories().items()
+        ]
+        return sorted((name, details) for name, details in markers if details.get("optiscaler_version") == version_id)
+
     def games_using(self, version_id: str) -> dict:
         """The patched games and directories whose marker names this library version."""
-        names = [
-            name
-            for directory, name in self.patches.directories().items()
-            if files.read_json(Path(directory) / bundle.MARKER_FILENAME).get("optiscaler_version") == version_id
-        ]
-        return {"status": "success", "games": sorted(names)}
+        return {"status": "success", "games": [name for name, _ in self._patched_with(version_id)]}
+
+    def games_linked_to(self, version_id: str) -> list[str]:
+        """The games whose files are symlinks into this library version: removing it would break them."""
+        return [name for name, details in self._patched_with(version_id) if details.get("placement") == "link"]
 
     def patch_user_directory(
-        self, directory: str, dll_name: str, version_id: str | None = None
+        self, directory: str, dll_name: str, version_id: str | None = None, link: bool = False
     ) -> dict:
         try:
             target = self.resolve_directory(directory)
         except (FileNotFoundError, NotADirectoryError, PermissionError) as exc:
             log.error(f"Manual patch validation failed: {exc}")
             return _error(str(exc))
-        return self.patch_directory(target, dll_name, version_id=version_id)
+        return self.patch_directory(target, dll_name, version_id=version_id, link=link)
 
     def unpatch_user_directory(self, directory: str, confirmed_reset: bool = False) -> dict:
         """Unpatch a directory the user picked: by its record, or — for an older plugin version's
@@ -277,6 +286,7 @@ class Patcher:
             "dll_name": None,
             "target_dir": None,
             "newer_version": None,
+            "linked": False,
         }
         if game is None:
             return {**unpatched, "install_found": False, "message": "Game not found in Steam library."}
@@ -311,20 +321,21 @@ class Patcher:
             "patched_at": metadata.get("patched_at"),
             "optiscaler_version": version,
             "newer_version": library.newer_in_channel(self.library.installed(), version),
+            "linked": metadata.get("placement") == "link",
             "message": message,
         }
 
     def patch_game(
-        self, appid: str, dll_name: str, current_launch_options: str, version_id: str | None = None
+        self, appid: str, dll_name: str, current_launch_options: str, version_id: str | None = None, link: bool = False
     ) -> dict:
         try:
-            return self._patch_game(appid, dll_name, current_launch_options, version_id)
+            return self._patch_game(appid, dll_name, current_launch_options, version_id, link)
         except Exception as exc:
             log.error(f"[Framegen] patch_game failed for {appid}: {exc}")
             return _error(str(exc))
 
     def _patch_game(
-        self, appid: str, dll_name: str, current_launch_options: str, version_id: str | None
+        self, appid: str, dll_name: str, current_launch_options: str, version_id: str | None, link: bool
     ) -> dict:
         game = steam_library.find_game(self.home, str(appid))
         if game is None:
@@ -350,6 +361,7 @@ class Patcher:
             target_dir,
             dll_name,
             version_id=version_id,
+            link=link,
             steam_game=marker.SteamGame(str(appid), game.name, original_options),
         )
         if result["status"] != "success":

@@ -4,6 +4,7 @@
       "appid": "100",
       "dll_name": null,
       "install_found": true,
+      "linked": false,
       "message": "Not patched.",
       "name": "Version Game",
       "newer_version": null,
@@ -67,6 +68,7 @@
             "sha256": "09d0f85efd9e311beedb55ce23be91152282c0259c28c1ceee7cd78bce7d3936"
           }
         ],
+        "placement": "copy",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
@@ -84,6 +86,7 @@
       "appid": "100",
       "dll_name": "dxgi.dll",
       "install_found": true,
+      "linked": false,
       "message": "Patched with OptiScaler nightly-20261023 using dxgi.dll.",
       "name": "Version Game",
       "newer_version": null,
@@ -131,6 +134,7 @@
             "sha256": "09d0f85efd9e311beedb55ce23be91152282c0259c28c1ceee7cd78bce7d3936"
           }
         ],
+        "placement": "copy",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
@@ -215,6 +219,7 @@
             "sha256": "ba4bfc4b22623846be2bbcdd534cc5edf810e79915ad74fd0cd4be8457bdc149"
           }
         ],
+        "placement": "copy",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
@@ -234,6 +239,7 @@
       "appid": "100",
       "dll_name": "dxgi.dll",
       "install_found": true,
+      "linked": false,
       "message": "Patched with OptiScaler stable-0.9.4 using dxgi.dll.",
       "name": "Version Game",
       "newer_version": null,
@@ -302,6 +308,7 @@
             "sha256": "ba4bfc4b22623846be2bbcdd534cc5edf810e79915ad74fd0cd4be8457bdc149"
           }
         ],
+        "placement": "copy",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",

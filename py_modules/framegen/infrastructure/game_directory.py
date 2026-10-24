@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 from pathlib import Path
 
@@ -14,19 +15,33 @@ log = logging.getLogger(__name__)
 
 
 def bundle_hashes(source: Path, operations: tuple[plan.Operation, ...]) -> dict[str, str]:
-    """The sha256 of every file a plan copies, by its path in `source`."""
+    """The identity of every file a plan places, by its path in `source`: a copy's sha256, a link's target."""
     hashes: dict[str, str] = {}
     for operation in operations:
         match operation:
             case plan.Copy(origin, _):
                 hashes[origin] = files.sha256(source / origin)
+            case plan.Link(origin, _):
+                hashes[origin] = _link_identity(str((source / origin).absolute()))
     return hashes
 
 
+def _link_identity(target: str) -> str:
+    return f"{patch_record.LINK_PREFIX}{target}"
+
+
 def current_state(directory: Path, patch: patch_record.PatchRecord) -> dict[str, str | None]:
-    """The sha256 now of every file a recorded patch placed or backed up that is still there."""
+    """The identity now of every file a recorded patch placed or backed up that is still there: a symlink's
+    target (even a dangling one), a file's sha256."""
     paths = [item.path for item in patch.placed] + [backup.backup for backup in patch.backups]
-    return {path: files.sha256(directory / path) for path in paths if (directory / path).is_file()}
+    state: dict[str, str | None] = {}
+    for path in paths:
+        full = directory / path
+        if full.is_symlink():
+            state[path] = _link_identity(os.readlink(full))
+        elif full.is_file():
+            state[path] = files.sha256(full)
+    return state
 
 
 def listing(directory: Path) -> tuple[frozenset[str], frozenset[str]]:
@@ -61,6 +76,10 @@ def execute(operations: tuple, directory: Path, copy_root: Path) -> None:
                 (directory / destination).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(copy_root / origin, directory / destination)
                 log.info(f"Copied {origin} → {destination} in {directory}")
+            case plan.Link(origin, destination):
+                (directory / destination).parent.mkdir(parents=True, exist_ok=True)
+                os.symlink((copy_root / origin).absolute(), directory / destination)
+                log.info(f"Linked {destination} → {copy_root / origin} in {directory}")
             case plan.EditIni(action, transform):
                 edit_ini(directory / plan.INI_FILENAME, transform, action)
             case patch_record.RemoveDirIfEmpty(name):

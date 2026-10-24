@@ -24,12 +24,14 @@ def build(
     backed_up_files: list[str],
     optiscaler_version: str,
     family: str,
+    linked: bool,
     patched_at: str,
     steam_game: SteamGame | None = None,
 ) -> dict:
     """The marker's details; every patch writes one, a Steam patch also records the game.
 
-    `optiscaler_version` is the library version's id (stable-0.9.4, nightly-20261023).
+    `optiscaler_version` is the library version's id (stable-0.9.4, nightly-20261023); `linked` says the
+    version's files were placed as symlinks into the library rather than copied.
     """
     return {
         "appid": steam_game.appid if steam_game else "",
@@ -40,6 +42,7 @@ def build(
         "backed_up_files": backed_up_files,
         "optiscaler_version": optiscaler_version,
         "family": family,
+        "placement": "link" if linked else "copy",
         "patched_at": patched_at,
     }
 

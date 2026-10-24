@@ -52,11 +52,12 @@ describe("patch choice", () => {
     ]);
     expect(view.ready).toBe(true);
     expect(view.versionHint).toBeNull();
-    expect(view.patchWith).toEqual({ versionId: "stable-0.9.4" });
+    expect(view.patchWith).toEqual({ versionId: "stable-0.9.4", link: false });
+    expect(view.linkToggleVisible).toBe(false);
   });
 
   it("keeps a picked version while it is installed", () => {
-    expect(patchChoice(LIBRARY, "nightly-20261023").patchWith).toEqual({ versionId: "nightly-20261023" });
+    expect(patchChoice(LIBRARY, "nightly-20261023").patchWith).toEqual({ versionId: "nightly-20261023", link: false });
   });
 
   it("falls back to the default when the picked version is gone, and to the newest without a default", () => {
@@ -67,9 +68,21 @@ describe("patch choice", () => {
   it("offers nothing and says where to get a version when the library is empty", () => {
     for (const library of [null, { default: null, versions: [], installed_bytes: 0 }]) {
       const view = patchChoice(library, "stable-0.9.4");
-      expect(view).toMatchObject({ versionId: null, ready: false, versionOptions: [], patchWith: { versionId: "" } });
+      expect(view).toMatchObject({ versionId: null, ready: false, versionOptions: [], patchWith: { versionId: "", link: false } });
       expect(view.versionHint).toMatch(/under OptiScaler versions/);
     }
+  });
+});
+
+describe("linking instead of copying", () => {
+  it("is offered in development builds only, and sent only when offered and on", () => {
+    expect(patchChoice(LIBRARY, null, { offered: true, on: true })).toMatchObject({
+      linkToggleVisible: true, patchWith: { link: true },
+    });
+    expect(patchChoice(LIBRARY, null, { offered: true, on: false }).patchWith.link).toBe(false);
+    expect(patchChoice(LIBRARY, null, { offered: false, on: true })).toMatchObject({
+      linkToggleVisible: false, patchWith: { link: false },
+    });
   });
 });
 
@@ -105,6 +118,10 @@ describe("steam game view", () => {
       status: { text: "Patched (dxgi.dll)", tone: "good" }, versionLine: "stable-0.9.4",
       patch: { label: "Reinstall (dxgi.dll)", enabled: true }, unpatchVisible: true,
       unpatch: { label: "Unpatch this game", enabled: true },
+    });
+
+    expect(steamGameView({ ...base, status: { ...patched, linked: true } }).status).toEqual({
+      text: "Patched with links to the library (dxgi.dll)", tone: "good",
     });
 
     expect(steamGameView({ ...base, dllName: "winmm.dll", status: patched })).toMatchObject({

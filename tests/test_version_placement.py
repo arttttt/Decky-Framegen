@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from framegen.domain import library
-from framegen.domain.patch_plan import Copy, EditIni, Move, PlanError
+from framegen.domain.patch_plan import Copy, EditIni, Link, Move, PlanError
 from framegen.domain.version_placement import Request, is_for_the_game, plan_patch
 
 # The files of the real OptiScaler 0.9.4 and nightly-20261023 archives (7zzs l).
@@ -106,3 +106,14 @@ def test_asking_to_reset_the_ini_backs_up_the_games_and_places_the_versions():
 def test_what_cannot_be_placed_is_refused(files, request_, message):
     with pytest.raises(PlanError, match=message):
         plan_patch(frozenset(), files, library.FAMILIES["10"], request_)
+
+
+def test_linking_places_symlinks_for_everything_but_the_ini():
+    operations = plan_patch(frozenset({"Game.exe", "libxess.dll"}), V094, library.FAMILIES["0.9"], Request("dxgi.dll", link=True))
+
+    assert Link("OptiScaler.dll", "dxgi.dll") in operations
+    assert Link("libxess.dll", "libxess.dll") in operations
+    assert Copy("OptiScaler.ini", "OptiScaler.ini") in operations  # OptiScaler writes its ini: never shared
+    assert not any(isinstance(op, Copy) and op.destination != "OptiScaler.ini" for op in operations)
+    # The game's own file is still backed up before the link takes its place.
+    assert operations.index(Move("libxess.dll", "libxess.dll.b")) < operations.index(Link("libxess.dll", "libxess.dll"))
