@@ -43,6 +43,9 @@ class Settings:
     def _game(self, appid: str) -> tuple[Path | None, dict]:
         """A Steam game's patched directory (None when it isn't patched) and its marker."""
         game = steam_library.find_game(self.home, appid)
+        return self._patched(game)
+
+    def _patched(self, game: steam_library.InstalledGame | None) -> tuple[Path | None, dict]:
         marker_path = self.patcher.find_marker(game.install_path) if game else None
         return (marker_path.parent, files.read_json(marker_path)) if marker_path else (None, {})
 
@@ -55,29 +58,29 @@ class Settings:
             return _error(NO_VERSION)
         version_id, sections = schema
         global_layer = self.store.global_layer()
-        resolved = settings_layers.resolve(sections, global_layer, {})
         return {
             "status": "success",
             "version": version_id,
-            "sections": settings_layers.view_json(sections, resolved),
+            "sections": settings_layers.view_json(sections, global_layer),
             "unsupported": [f"{s}.{k}" for s, k in settings_layers.unsupported(sections, global_layer)],
         }
 
     def game_settings(self, appid: str) -> dict:
         """A game's settings against its version's (the newest when it isn't patched), each with its source."""
-        directory, details = self._game(appid)
+        game = steam_library.find_game(self.home, appid)
+        directory, details = self._patched(game)
         schema = self._schema(details.get("optiscaler_version"))
         if schema is None:
             return _error(NO_VERSION)
         version_id, sections = schema
         game_layer = self.store.game_layer(appid)
-        resolved = settings_layers.resolve(sections, self.store.global_layer(), game_layer)
         return {
             "status": "success",
             "version": version_id,
+            "name": game.name if game else appid,
             "patched": directory is not None,
             "running": directory is not None and self._running(directory),
-            "sections": settings_layers.view_json(sections, resolved),
+            "sections": settings_layers.view_json(sections, self.store.global_layer(), game_layer),
             "unsupported": [f"{s}.{k}" for s, k in settings_layers.unsupported(sections, game_layer)],
         }
 
@@ -119,6 +122,16 @@ class Settings:
         if directory is not None:
             self._apply(directory, details, appid)
         return {"status": "success"}
+
+    def game_closed(self, appid: str) -> dict:
+        """Write a game's settings once it has closed: a change made while it ran (a global one skipped it)
+        reaches it, and its own and global values win over what OptiScaler's menu saved for them. A game
+        whose patch doesn't run through the wrapper gets them nowhere else before its next start."""
+        directory, details = self._game(appid)
+        if directory is None or self._running(directory):
+            return {"status": "success", "applied": False}
+        self._apply(directory, details, appid)
+        return {"status": "success", "applied": True}
 
     def _accepted(self, sections: tuple[ini_schema.Section, ...], target: Key, value: str) -> bool:
         setting = next((s for section in sections for s in section.settings if (s.section, s.key) == target), None)

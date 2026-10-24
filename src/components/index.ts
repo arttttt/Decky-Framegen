@@ -2,3 +2,4 @@
 export { QuickPanel } from './QuickPanel';
 export { FramegenPage } from './FramegenPage';
 export { GamePage } from './GamePage';
+export { SettingsPage } from './SettingsPage';

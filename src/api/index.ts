@@ -178,3 +178,56 @@ export const previewUnpatchGame = callable<[appid: string, current_launch_option
   "preview_unpatch_game"
 );
 export const previewUnpatchDirectory = callable<[directory: string], UnpatchPreview>("preview_unpatch_directory");
+
+// ── OptiScaler settings ──────────────────────────────────────────────────────
+
+/** Where a setting's value comes from: OptiScaler's default ("auto"), the global settings or the game's own. */
+export type SettingSource = "default" | "global" | "game";
+
+/** A setting as a version's OptiScaler.ini describes it, with its value for the page asked for. */
+export type SettingInfo = {
+  key: string;
+  kind: "bool" | "enum" | "number" | "text";
+  description: string;
+  help: string;
+  /** OptiScaler's default as an ini value; null when its comment states it only in prose. */
+  default: string | null;
+  choices: { value: string; label: string }[];
+  minimum: number | null;
+  maximum: number | null;
+  integer: boolean;
+  value: string;
+  source: SettingSource;
+  /** The value without the page's own: global for a game's page, auto for the global page. */
+  inherited: { value: string; source: SettingSource };
+};
+
+export type SettingsSection = { name: string; settings: SettingInfo[] };
+
+export type SettingsAnswer = {
+  status: string;
+  message?: string;
+  version?: string;
+  sections?: SettingsSection[];
+  /** "Section.Key" the layer sets that this version doesn't have or doesn't take the value of. */
+  unsupported?: string[];
+  /** Only for a game. */
+  name?: string;
+  patched?: boolean;
+  running?: boolean;
+};
+
+export const globalSettings = callable<[], SettingsAnswer>("global_settings");
+
+export const gameSettings = callable<[appid: string], SettingsAnswer>("game_settings");
+
+/** scope is "global" or an appid; a null value clears it, so the layer below shows through. */
+export const setSetting = callable<
+  [scope: string, section: string, key: string, value: string | null],
+  { status: string; message?: string; skipped?: string[] }
+>("set_setting");
+
+export const resetGameSettings = callable<[appid: string], { status: string; message?: string }>("reset_game_settings");
+
+/** Writes a game's settings once it has closed; applied is false when it isn't patched or still runs. */
+export const gameClosed = callable<[appid: string], { status: string; applied?: boolean }>("game_closed");

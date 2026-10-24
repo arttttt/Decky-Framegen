@@ -133,13 +133,20 @@ def test_a_value_is_set_or_cleared_and_auto_is_a_value_like_any_other():
     assert layer == {("FSR", "Fsr4Model"): "1"}  # the layer itself is left as it was
 
 
-def test_the_pages_get_every_setting_with_its_value_and_source():
-    resolved = settings_layers.resolve(SCHEMA, {("FrameGen", "Enabled"): "true"}, {})
-
-    view = settings_layers.view_json(SCHEMA, resolved)
+def test_the_global_page_gets_every_setting_with_its_value_source_and_auto_below():
+    view = settings_layers.view_json(SCHEMA, {("FrameGen", "Enabled"): "true"})
 
     assert [s["name"] for s in view] == ["FrameGen", "FSR"]
     enabled = view[0]["settings"][0]
     assert (enabled["key"], enabled["kind"], enabled["value"], enabled["source"]) == ("Enabled", "bool", "true", GLOBAL)
+    assert enabled["inherited"] == {"value": AUTO, "source": DEFAULT}
     model = view[1]["settings"][0]
     assert model["choices"][1] == {"value": "1", "label": "INT8"} and model["source"] == DEFAULT
+
+
+def test_a_games_page_gets_its_own_values_over_the_global_ones_it_would_inherit():
+    view = settings_layers.view_json(SCHEMA, {("FrameGen", "Enabled"): "true"}, {("FrameGen", "Enabled"): "false"})
+
+    enabled = view[0]["settings"][0]
+    assert (enabled["value"], enabled["source"]) == ("false", GAME)
+    assert enabled["inherited"] == {"value": "true", "source": GLOBAL}

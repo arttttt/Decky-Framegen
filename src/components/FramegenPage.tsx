@@ -1,4 +1,5 @@
-import { PanelSection, SidebarNavigation } from "@decky/ui";
+import { ButtonItem, PanelSection, PanelSectionRow, SidebarNavigation } from "@decky/ui";
+import { openSettingsPage } from "../api/framegenPage";
 import { useInstalledLibrary } from "../hooks/useInstalledLibrary";
 import { useIsDevBuild } from "../hooks/useIsDevBuild";
 import { usePatchPickers } from "../hooks/usePatchPickers";
@@ -8,6 +9,7 @@ import { DeveloperSection } from "./DeveloperSection";
 import { LibrarySection } from "./LibrarySection";
 import { OptiScalerWiki } from "./OptiScalerWiki";
 import { PatchPickers } from "./PatchPickers";
+import { GLOBAL_SCOPE } from "../presentation/settings";
 
 /** Patching by hand: a directory, the wrapper's commands, launch options to paste, and the wiki. */
 function AdvancedPage() {
@@ -31,7 +33,18 @@ function AdvancedPage() {
 
 function OptiScalerPage() {
   const { library, reload } = useInstalledLibrary();
-  return <LibrarySection library={library} onChanged={reload} />;
+  return (
+    <>
+      <LibrarySection library={library} onChanged={reload} />
+      <PanelSection title="Settings">
+        <PanelSectionRow>
+          <ButtonItem layout="below" description="The OptiScaler settings every game gets, unless it has its own." onClick={() => openSettingsPage(GLOBAL_SCOPE)}>
+            Global settings
+          </ButtonItem>
+        </PanelSectionRow>
+      </PanelSection>
+    </>
+  );
 }
 
 /** The plugin's full-screen page, opened from the Quick Access panel. */

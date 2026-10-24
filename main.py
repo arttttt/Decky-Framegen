@@ -90,6 +90,9 @@ class Plugin:
     async def reset_game_settings(self, appid: str) -> dict:
         return await asyncio.to_thread(Settings(self._home_path()).reset_game_settings, appid)
 
+    async def game_closed(self, appid: str) -> dict:
+        return await asyncio.to_thread(Settings(self._home_path()).game_closed, appid)
+
     async def launch_setup(self) -> dict:
         return launch_options.setup_json()
 
