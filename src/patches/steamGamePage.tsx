@@ -34,13 +34,14 @@ function chipButton(): ChipButton {
 
 const CHIP_CSS = `
 .decky-framegen-chip {
-  display: flex; align-items: center; gap: 6px;
-  min-width: 0; width: auto; padding: 4px 10px;
-  font-size: 14px; font-weight: 600; line-height: 20px;
+  display: flex; align-items: center; gap: 10px;
+  min-width: 0; width: auto; padding: 8px 16px;
+  font-size: 20px; font-weight: 700; line-height: 28px;
   color: #fff; background: rgba(14, 20, 27, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
+.decky-framegen-chip svg { width: 24px; height: 24px; }
 .decky-framegen-chip.gpfocus, .decky-framegen-chip:hover {
   background: rgba(255, 255, 255, 0.9); color: #0e141b;
 }
@@ -152,10 +153,11 @@ export function patchSteamGamePage(): () => void {
           const appid = appIdFromLibraryPath(window.location.pathname);
           if (!container || !appid) return ret;
           const children = container.props.children.filter((child: any) => child?.type !== GamePageButton);
-          // Right before the play section (found by its props, as MoonDeck finds it), after any badge
-          // another plugin put at the top: Up from Play reaches the chip first, whatever loaded first.
-          const playSection = children.findIndex((x: any) => x?.props?.overview && x?.props?.onShowLaunchingDetails);
-          children.splice(playSection > 0 ? playSection : 1, 0, <GamePageButton key="decky-framegen" appid={appid} />);
+          // Right before the element holding Play, which comes just before the app panel (found by its
+          // props; MoonDeck anchors its button the same way), and after any badge another plugin put at
+          // the top: Up from Play reaches the chip first, whatever loaded first.
+          const appPanel = children.findIndex((x: any) => x?.props?.overview && x?.props?.onShowLaunchingDetails);
+          children.splice(appPanel > 1 ? appPanel - 1 : 1, 0, <GamePageButton key="decky-framegen" appid={appid} />);
           container.props.children = children;
         } catch (err) {
           console.error("Decky Framegen: the button on Steam's game page", err);
