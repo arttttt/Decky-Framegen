@@ -150,12 +150,12 @@ def test_version_from_env_and_repatch_on_every_launch(wrapper, tmp_path):
 
     first = wrapper.run("fgmod", str(game / "Game.exe"), env={"FGMOD_VERSION": "nightly-20261023"})
     after_nightly = describe_tree(game)
-    second = wrapper.run("fgmod", str(game / "Game.exe"))  # the library's default version
+    second = wrapper.run("fgmod", str(game / "Game.exe"))  # no version: stays on the one the game is patched with
 
     scenario(
         "wrapper_version_and_repatch",
         game,
-        [("patch nightly", {**first, "tree": after_nightly}), ("patch default", second)],
+        [("patch nightly", {**first, "tree": after_nightly}), ("patch again without a version", second)],
     )
 
 

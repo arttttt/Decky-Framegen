@@ -31,25 +31,35 @@ def test_installed_versions_stay_listed_even_when_upstream_no_longer_publishes_t
     pruned = installed_entry("nightly-20260807", date="20260807")
     current = installed_entry()
 
-    rows = library.catalog([current, pruned], published, NEWEST, {NEWEST: 100, "nightly-20260807": 50})
+    rows = library.catalog([current, pruned], published, {NEWEST: 100, "nightly-20260807": 50})
 
-    assert rows[0] == library.Row(NEWEST, "10.0.0-pre1", "20261023", "10", library.INSTALLED, None, 100, True)
+    assert rows[0] == library.Row(NEWEST, "10.0.0-pre1", "20261023", "10", library.INSTALLED, None, 100)
     assert [row.id for row in rows].count(NEWEST) == 1
     assert rows[-1].id == "nightly-20260807" and rows[-1].state == library.INSTALLED
     assert {row.state for row in rows[1:-1]} == {library.AVAILABLE}
 
 
 @pytest.mark.parametrize(
-    ("version_id", "installed", "default", "refusal"),
+    ("version_id", "installed", "linked", "refusal"),
     [
-        ("a", {"a", "b"}, "b", None),
-        ("a", {"a", "b"}, "a", "This is the default version. Choose another default before removing it."),
-        ("a", {"a"}, "a", None),  # the last version goes, default or not
-        ("c", {"a"}, "a", "c is not in the library."),
+        ("a", {"a", "b"}, [], None),
+        ("a", {"a"}, [], None),  # the last version goes too
+        ("c", {"a"}, [], "c is not in the library."),
+        ("a", {"a", "b"}, ["Game", "Other"], "Game, Other use a through links. Unpatch them first."),
     ],
 )
-def test_the_default_version_is_removed_only_when_it_is_the_last_one(version_id, installed, default, refusal):
-    assert library.removal_refused(version_id, installed, default) == refusal
+def test_a_version_is_removed_unless_games_are_linked_to_it(version_id, installed, linked, refusal):
+    assert library.removal_refused(version_id, installed, linked) == refusal
+
+
+def test_a_patch_naming_no_version_keeps_the_games_else_takes_the_newest():
+    older = installed_entry("nightly-20261001", date="20261001")
+    newest = installed_entry()
+
+    assert library.version_to_patch_with([older, newest], None) == newest
+    assert library.version_to_patch_with([older, newest], "nightly-20261001") == older  # a newer download doesn't switch it
+    assert library.version_to_patch_with([older, newest], "stable-0.9.1") == newest  # since removed: the newest
+    assert library.version_to_patch_with([], None) is None
 
 
 def test_an_entry_that_is_not_one_is_not_in_the_library():
@@ -149,7 +159,7 @@ def world(home, tmp_path, github_api):
     return world
 
 
-def test_installing_adds_the_unpacked_version_and_makes_the_first_one_default(world):
+def test_installing_adds_the_unpacked_version(world):
     result = world.library().install(library.NIGHTLY, NEWEST)
 
     assert result == {"status": "success", "id": NEWEST, "message": "OptiScaler 10.0.0-pre1 is installed."}
@@ -164,7 +174,7 @@ def test_installing_adds_the_unpacked_version_and_makes_the_first_one_default(wo
     listed = world.library().versions(library.NIGHTLY)
     assert listed["versions"][0] | {"size": 0} == {
         "id": NEWEST, "version": "10.0.0-pre1", "date": "20261023", "family": "10",
-        "state": "installed", "reason": None, "size": 0, "default": True,
+        "state": "installed", "reason": None, "size": 0,
     }
     assert listed["installed_bytes"] == sum(len(data) for data in V10_FILES.values()) + len(
         (world.fgmod / "library" / "versions" / NEWEST / "entry.json").read_bytes()
@@ -216,16 +226,13 @@ def test_only_a_version_the_channel_publishes_is_installed(world, version_id, me
     assert message in world.library().install(library.NIGHTLY, version_id)["message"]
 
 
-def test_installing_twice_is_refused_and_removing_follows_the_default_rule(world):
+def test_installing_twice_is_refused_and_a_version_is_removed(world):
     first = world.library()
     first.install(library.NIGHTLY, NEWEST)
 
     assert "already in the library" in first.install(library.NIGHTLY, NEWEST)["message"]
     assert first.remove(NEWEST) == {"status": "success", "message": f"{NEWEST} is removed."}
-    assert world.tree() == ["settings.json", "versions"]
-    settings = json.loads((world.fgmod / "library" / "settings.json").read_text())
-    assert settings["default_version"] is None
-    assert first.set_default(NEWEST)["message"] == f"{NEWEST} is not in the library."
+    assert world.tree() == ["versions"]
 
 
 def test_a_library_directory_without_a_readable_entry_is_not_a_version(world):
@@ -291,7 +298,6 @@ def test_a_failed_core_refresh_does_not_turn_an_install_into_a_failure(world):
     assert result["status"] == "success"
     assert result["message"].endswith("Updating the launch scripts in ~/fgmod failed: No space left on device")
     assert (world.fgmod / "library" / "versions" / NEWEST / "entry.json").exists()
-    assert not (world.fgmod / "library" / "settings.json.new").exists()
 
 
 def test_the_plugin_lists_what_games_can_be_patched_with(plugin, fgmod):
@@ -299,11 +305,9 @@ def test_the_plugin_lists_what_games_can_be_patched_with(plugin, fgmod):
 
     installed = run(plugin.library_installed())
 
-    assert installed["default"] == STABLE
+    assert installed.keys() == {"versions", "installed_bytes"}
     assert [version["id"] for version in installed["versions"]] == [NIGHTLY, STABLE]
     assert installed["installed_bytes"] == sum(version["size"] for version in installed["versions"]) > 0
-    write(fgmod / "library" / "settings.json", json.dumps({"default_version": "stable-0.9.1"}).encode())
-    assert run(plugin.library_installed())["default"] is None  # a default no longer installed is none
 
 
 def test_a_game_status_names_a_newer_version_of_its_channel(plugin, fgmod, steam_library):

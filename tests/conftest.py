@@ -5,7 +5,7 @@ module is registered before `main` is imported; each test then points its
 paths at a private temporary directory.
 
 The fixtures build a fake world on disk: a `~/fgmod` with an OptiScaler library
-(a 0.9 stable version as the default and a 10 nightly one, laid out as their real
+(a 0.9 stable version and a newer 10 nightly one, laid out as their real
 archives are), game directories and a Steam library. Version files are small
 placeholder blobs — the plugin records and compares them by hash, so size does
 not matter.
@@ -163,7 +163,7 @@ def install_version(fgmod: Path, version_id: str, family: str, files: dict[str, 
 @pytest.fixture
 def fgmod(home) -> Path:
     """~/fgmod with the plugin's core and launch scripts, and a library holding OptiScaler 0.9.4
-    (the default) and a v10 nightly."""
+    and a newer v10 nightly."""
     root = home / "fgmod"
     shutil.copytree(
         REPO_ROOT / "py_modules" / bundle.CORE_PACKAGE,
@@ -174,7 +174,6 @@ def fgmod(home) -> Path:
         write(root / name, blob(name))
     install_version(root, STABLE, "0.9", STABLE_FILES, STABLE_INI)
     install_version(root, NIGHTLY, "10", NIGHTLY_FILES, NIGHTLY_INI)
-    write(root / "library" / "settings.json", json.dumps({"default_version": STABLE}).encode())
     return root
 
 

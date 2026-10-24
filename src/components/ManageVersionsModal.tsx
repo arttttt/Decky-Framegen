@@ -1,11 +1,11 @@
 import { ConfirmModal, DialogBody, DialogHeader, Field, Menu, MenuItem, ModalRoot, showContextMenu, showModal } from "@decky/ui";
 import { useManageVersions } from "../hooks/useManageVersions";
-import { manageMenu } from "../presentation/library";
+import { MANAGE_MENU } from "../presentation/library";
 import { VersionRows } from "./VersionRows";
 
-/** The OptiScaler versions on the device: choose the one new patches use, download one again, remove one. */
+/** The OptiScaler versions on the device: download one again, remove one. */
 export function ManageVersionsModal({ closeModal, onChanged }: { closeModal?: () => void; onChanged: () => void }) {
-  const { view, isDefault, run, removalOf } = useManageVersions(onChanged);
+  const { view, run, removalOf } = useManageVersions(onChanged);
 
   const confirmRemoval = async (id: string) => {
     const confirmation = await removalOf(id);
@@ -21,7 +21,8 @@ export function ManageVersionsModal({ closeModal, onChanged }: { closeModal?: ()
           </>
         }
         strOKButtonText={confirmation.okLabel}
-        onOK={() => run(id, "remove")}
+        bAlertDialog={!confirmation.removes}
+        onOK={() => confirmation.removes && run(id, "remove")}
       />
     );
   };
@@ -29,7 +30,7 @@ export function ManageVersionsModal({ closeModal, onChanged }: { closeModal?: ()
   const openMenu = (id: string, label: string) =>
     showContextMenu(
       <Menu label={label}>
-        {manageMenu(isDefault(id)).map((item) => (
+        {MANAGE_MENU.map((item) => (
           <MenuItem
             key={item.action}
             tone={item.destructive ? "destructive" : undefined}

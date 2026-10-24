@@ -80,7 +80,8 @@ export type InstalledVersion = {
   size: number;
 };
 
-export type InstalledLibrary = { default: string | null; versions: InstalledVersion[]; installed_bytes: number };
+/** The downloaded versions, newest first, and what they take on disk. */
+export type InstalledLibrary = { versions: InstalledVersion[]; installed_bytes: number };
 
 export type LibraryVersion = {
   id: string;
@@ -92,7 +93,6 @@ export type LibraryVersion = {
   reason: string | null;
   /** Bytes on disk for an installed version, the download size otherwise. */
   size: number;
-  default: boolean;
 };
 
 export type LibraryListing =
@@ -107,10 +107,9 @@ export const libraryVersions = callable<[channel: LibraryChannel], LibraryListin
 export const libraryInstall = callable<[channel: LibraryChannel, version_id: string], LibraryResult>("library_install");
 export const libraryReinstall = callable<[version_id: string], LibraryResult>("library_reinstall");
 export const libraryRemove = callable<[version_id: string], LibraryResult>("library_remove");
-export const librarySetDefault = callable<[version_id: string], LibraryResult>("library_set_default");
-export const libraryGamesUsing = callable<[version_id: string], { status: "success"; games: string[] }>(
-  "library_games_using"
-);
+/** What removing a version would come to: why it can't be removed (or null) and the games patched with it. */
+export type LibraryRemoval = { status: "success"; refused: string | null; games: string[] };
+export const libraryRemoval = callable<[version_id: string], LibraryRemoval>("library_removal");
 
 // ── Development builds ───────────────────────────────────────────────────────
 

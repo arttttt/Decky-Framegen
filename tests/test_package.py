@@ -102,7 +102,7 @@ def test_a_release_build_carries_no_build_identity(plugin_root):
 # Runs in an isolated interpreter (-I) so nothing from the repository can be imported:
 # only what the package ships.
 IMPORT_SMOKE = """
-import asyncio, logging, sys, tempfile, types
+import asyncio, json, logging, sys, tempfile, types
 root = sys.argv[1]
 decky = types.ModuleType("decky")
 decky.HOME = tempfile.mkdtemp()
@@ -112,7 +112,7 @@ sys.modules["decky"] = decky
 sys.path[:0] = [root + "/py_modules", root]
 import main
 assert main.__file__.startswith(root), main.__file__
-print(asyncio.run(main.Plugin().library_installed()))
+print(json.dumps(asyncio.run(main.Plugin().library_installed())))
 """
 
 
@@ -122,4 +122,5 @@ def test_the_backend_loads_from_the_package_alone_and_answers(plugin_root):
     )
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == "{'default': None, 'versions': [], 'installed_bytes': 0}"
+    # Only that it answers: the answer's full shape is the library tests' business.
+    assert json.loads(result.stdout)["versions"] == []

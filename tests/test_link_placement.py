@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 
-from conftest import NIGHTLY, game_file, make_game_dir, run, snapshot, write
+from conftest import NIGHTLY, STABLE, game_file, make_game_dir, run, snapshot, write
 
 
 def test_a_linked_patch_points_into_the_library_and_unpatching_restores_the_game(plugin, fgmod, tmp_path):
@@ -13,7 +13,7 @@ def test_a_linked_patch_points_into_the_library_and_unpatching_restores_the_game
     before = snapshot(game)
     files = fgmod / "library" / "versions" / "stable-0.9.4" / "files"
 
-    patched = run(plugin.manual_patch_directory(str(game), "dxgi.dll", "", True))
+    patched = run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE, True))
 
     assert patched["status"] == "success"
     assert patched["message"] == f"OptiScaler 0.9.4 is linked from the library into {game}."  # the user sees how it went
@@ -38,7 +38,7 @@ def test_a_link_left_dangling_is_still_removed_on_unpatch(plugin, fgmod, tmp_pat
 
 def test_a_link_the_game_replaced_with_its_own_file_stays(plugin, fgmod, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game")
-    run(plugin.manual_patch_directory(str(game), "dxgi.dll", "", True))
+    run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE, True))
     (game / "libxess.dll").unlink()
     write(game / "libxess.dll", b"the game's update")
 
@@ -53,10 +53,13 @@ def test_a_version_games_are_linked_to_is_not_removed(plugin, fgmod, steam_libra
     run(plugin.patch_game("1234", "dxgi.dll", "", NIGHTLY, True))
     run(plugin.manual_patch_directory(str(copied), "dxgi.dll", NIGHTLY))
 
+    removal = run(plugin.library_removal(NIGHTLY))
     refused = run(plugin.library_remove(NIGHTLY))
     status = run(plugin.get_game_status("1234"))
 
-    assert refused == {"status": "error", "message": f"Linked Game use {NIGHTLY} through links. Unpatch them first."}
+    reason = f"Linked Game use {NIGHTLY} through links. Unpatch them first."
+    assert removal == {"status": "success", "refused": reason, "games": [str(copied), "Linked Game"]}  # told before confirming
+    assert refused == {"status": "error", "message": reason}
     assert status["linked"] is True
     run(plugin.unpatch_game("1234"))
     assert run(plugin.library_remove(NIGHTLY))["status"] == "success"  # a copy-patched game doesn't hold it

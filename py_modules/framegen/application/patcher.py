@@ -65,17 +65,24 @@ class Patcher:
         link: bool = False,
         steam_game: marker.SteamGame | None = None,
     ) -> dict:
-        """Patch a directory with a library version (the default one unless named) and record it in a marker."""
+        """Patch a directory with a library version and record it in a marker. A patch that names no
+        version (the launch wrapper's, unless FGMOD_VERSION is set) keeps the one the directory is
+        patched with, else takes the newest downloaded."""
         if dll_name not in bundle.VALID_DLL_NAMES:
             return _error(f"Invalid proxy DLL name: {dll_name}")
-        chosen = version_id or self.library.default_version()
-        entry = next((e for e in self.library.installed() if e.id == chosen), None)
-        if entry is None:
-            return _error(f"OptiScaler {chosen} is not in the library." if chosen else NO_VERSION)
+        marker_path = directory / bundle.MARKER_FILENAME
+        installed = self.library.installed()
+        if version_id:
+            entry = next((e for e in installed if e.id == version_id), None)
+            if entry is None:
+                return _error(f"OptiScaler {version_id} is not in the library.")
+        else:
+            entry = library.version_to_patch_with(installed, files.read_json(marker_path).get("optiscaler_version"))
+            if entry is None:
+                return _error(NO_VERSION)
         family = library.FAMILIES[entry.family]
         source = self.library.version_dir(entry.id) / library.FILES_DIRNAME
 
-        marker_path = directory / bundle.MARKER_FILENAME
         carried_over: frozenset[str] = frozenset()
         if marker_path.exists():
             # A repatch first undoes the previous patch, exactly as its marker records it, keeping
@@ -180,9 +187,9 @@ class Patcher:
         ]
         return sorted((name, details) for name, details in markers if details.get("optiscaler_version") == version_id)
 
-    def games_using(self, version_id: str) -> dict:
+    def games_using(self, version_id: str) -> list[str]:
         """The patched games and directories whose marker names this library version."""
-        return {"status": "success", "games": [name for name, _ in self._patched_with(version_id)]}
+        return [name for name, _ in self._patched_with(version_id)]
 
     def games_linked_to(self, version_id: str) -> list[str]:
         """The games whose files are symlinks into this library version: removing it would break them."""

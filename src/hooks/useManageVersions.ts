@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  libraryGamesUsing,
   libraryInstalled,
+  libraryRemoval,
   libraryReinstall,
   libraryRemove,
-  librarySetDefault,
 } from "../api";
 import { ManageAction, ManageState, actionOutcome, manageDone, manageView, removeConfirmation } from "../presentation/library";
 import { safeAsyncOperation } from "../utils";
 import { useLibraryDownloadEvents } from "./useLibraryDownloadEvents";
 
 const CALLS: Record<ManageAction, (id: string) => Promise<{ status: string; message?: string }>> = {
-  default: librarySetDefault,
   reinstall: libraryReinstall,
   remove: libraryRemove,
 };
@@ -42,17 +40,16 @@ export const useManageVersions = (onChanged: () => void) => {
 
   const versionOf = (id: string) => state.library?.versions.find((v) => v.id === id);
 
-  /** The confirmation to show before removing, naming the games patched with the version. */
+  /** What to show before removing: the games patched with the version, or why it can't be removed. */
   const removalOf = async (id: string) => {
     const version = versionOf(id);
     if (!version) return null;
-    const using = await safeAsyncOperation(() => libraryGamesUsing(id), "ManageVersions -> libraryGamesUsing");
-    return removeConfirmation(version, using?.games ?? []);
+    const removal = await safeAsyncOperation(() => libraryRemoval(id), "ManageVersions -> libraryRemoval");
+    return removeConfirmation(version, removal ?? null);
   };
 
   return {
     view: manageView(state),
-    isDefault: (id: string) => state.library?.default === id,
     run: (id: string, action: ManageAction) => void run(id, action),
     removalOf,
   };
