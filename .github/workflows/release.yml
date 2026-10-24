@@ -1,52 +1,55 @@
 name: Release
 
-# Pushing a tag vX.Y.Z publishes that commit's plugin zip as a GitHub Release.
+# Run by hand (Actions → Release → Run workflow): releases main's current commit under a calendar
+# version (2026.10.24, or 2026.10.24.1 for the day's second), with nothing to type.
 on:
-  push:
-    tags: ["v*"]
+  workflow_dispatch:
+
+# Two runs at once would both take the same day's version.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     name: Publish the release
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     permissions:
-      contents: write  # creates the release
+      contents: write  # creates the tag and the release
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0  # to check the tagged commit is on main
+          fetch-depth: 0  # the tags, to count the day's releases
 
       - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
 
-      # The version Decky shows comes from package.json: the tag has to name it, and only a commit
-      # that went through main (and its CI) is released.
-      - name: Check the tag
+      - name: Stamp the release
+        id: stamp
         shell: bash
         run: |
-          version="$(python -c 'import json; print(json.load(open("package.json"))["version"])')"
-          if [[ "$GITHUB_REF_NAME" != "v$version" ]]; then
-            echo "::error::Tag $GITHUB_REF_NAME doesn't match package.json's version $version (expected v$version)."
-            exit 1
-          fi
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
-            echo "::error::$GITHUB_REF_NAME points at a commit that isn't on main."
-            exit 1
-          fi
+          mapfile -t tags < <(git tag --list 'v*')
+          args=()
+          for tag in "${tags[@]}"; do args+=(--existing-tag "$tag"); done
+          python scripts/stamp_release.py "${args[@]}" | tee -a "$GITHUB_OUTPUT"
 
       # A release build: no development identity, so the Developer section stays hidden.
       - uses: ./.github/actions/build-plugin
         with:
           commit: ${{ github.sha }}
+          version: ${{ steps.stamp.outputs.version }}
 
-      # Decky installs a zip by the plugin's name inside it; the asset keeps the plain name people expect.
+      # The tag is made here, on the commit that was built. The asset keeps the plain name people expect.
       - name: Publish the release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.stamp.outputs.tag }}
+          VERSION: ${{ steps.stamp.outputs.version }}
         run: |
           cp "$(ls out/*.zip)" "$RUNNER_TEMP/Decky-Framegen.zip"
-          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP/Decky-Framegen.zip" --verify-tag \
-            --title "Decky Framegen ${GITHUB_REF_NAME#v}" --generate-notes
+          gh release create "$TAG" "$RUNNER_TEMP/Decky-Framegen.zip" --target "$GITHUB_SHA" \
+            --title "Decky Framegen $VERSION" --generate-notes

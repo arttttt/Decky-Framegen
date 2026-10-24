@@ -80,7 +80,7 @@ def test_a_file_that_is_not_a_build_identity_is_rejected(text):
 def test_version_and_asset_name_carry_channel_and_short_commit():
     info = dev_build.build_info(REPOSITORY, "pr-12", COMMIT)
 
-    assert dev_build.version("0.17", info) == "0.17-pr-12.1a2b3c4"
+    assert dev_build.version("2026.10.04", info) == "2026.10.04-pr-12.1a2b3c4"
     assert dev_build.asset_name("Decky-Framegen", info) == "Decky-Framegen-1a2b3c4.zip"
 
 
@@ -114,9 +114,11 @@ def stamp(root, *args):
 
 
 def test_stamping_writes_the_identity_and_the_version_and_reports_both(checkout):
-    base = json.loads((checkout / "package.json").read_text())["version"]
+    base = "2026.10.04"  # the build day, as releases are named
 
-    result = stamp(checkout, "--pull-request", "12", "--pull-request-title", "Add\na section", "--commit", COMMIT)
+    result = stamp(
+        checkout, "--pull-request", "12", "--pull-request-title", "Add\na section", "--commit", COMMIT, "--date", "2026-10-04"
+    )
 
     assert result.returncode == 0, result.stderr
     info = dev_build.parse((checkout / "defaults" / dev_build.BUILD_INFO_FILENAME).read_text())

@@ -93,6 +93,13 @@ def test_a_development_build_carries_its_identity_and_version(plugin_root):
     assert package_json["version"] == os.environ["BUILD_VERSION"]
 
 
+@pytest.mark.skipif(bool(BUILD_CHANNEL) or not os.environ.get("BUILD_VERSION"), reason="not a stamped release build")
+def test_a_release_build_carries_its_calendar_version(plugin_root):
+    package_json = json.loads((plugin_root / "package.json").read_text())
+
+    assert package_json["version"] == os.environ["BUILD_VERSION"]
+
+
 @pytest.mark.skipif(bool(BUILD_CHANNEL), reason="a development build")
 def test_a_release_build_carries_no_build_identity(plugin_root):
     # The Developer section, which installs unreviewed builds, exists only where this file does.

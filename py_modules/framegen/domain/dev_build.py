@@ -73,7 +73,7 @@ def parse(text: str) -> BuildInfo:
 
 
 def version(base: str, info: BuildInfo) -> str:
-    """The package version Decky shows, e.g. `0.17-pr-12.1a2b3c4` for base `0.17`."""
+    """The package version Decky shows, e.g. `2026.10.24-pr-12.1a2b3c4` for base `2026.10.24`."""
     return f"{base}-{info.channel}.{info.short_commit}"
 
 

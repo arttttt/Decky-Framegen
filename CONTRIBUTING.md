@@ -83,9 +83,11 @@ Run on the device before merging anything that changes what the device sees:
 
 ## Releasing
 
-1. In a pull request, set `version` in `package.json` to the new version (`X.Y.Z`), the one Decky shows.
-2. Once it is merged and CI on `main` is green, tag that commit and push the tag:
-   `git tag vX.Y.Z origin/main && git push origin vX.Y.Z`.
-3. The Release workflow checks that the tag names `package.json`'s version and points at a commit on
-   `main`, builds the plugin as a release build (no Developer section), checks the package, and
-   publishes `Decky-Framegen.zip` as the GitHub Release `vX.Y.Z` with generated notes.
+Run **Actions → Release → Run workflow** on `main`. Nothing to type: the release is named after the
+day, as a calendar version (`2026.10.24`; a second release that day is `2026.10.24.1`). The workflow
+stamps that version into the build (`scripts/stamp_release.py`, `framegen.domain.release_version`),
+builds a release build (no Developer section), checks the package, and publishes `Decky-Framegen.zip`
+as the GitHub Release `v<version>` on main's current commit, with generated notes.
+
+`package.json`'s `version` stays `0.0.0`: every published build gets its version stamped. Development
+builds carry the build day too, then their channel and commit (`2026.10.24-dev.1a2b3c4`).
