@@ -21,13 +21,23 @@ def split_override_key(raw_key: str) -> tuple[str | None, str]:
 
 
 def apply_overrides(content: str, overrides: dict) -> str:
-    """Set each `Section.Key` (or bare `Key`) to its value, keeping everything else intact.
+    """Set each `Section.Key` (or bare `Key`) to its value, stripped; see set_values."""
+    values = []
+    for raw_key, raw_value in overrides.items():
+        section, key = split_override_key(str(raw_key))
+        if key:
+            values.append((section, key, str(raw_value).strip()))
+    return set_values(content, values)
+
+
+def set_values(content: str, values: list[tuple[str | None, str, str]]) -> str:
+    """Set each (section, key) to its value verbatim, keeping everything else intact.
 
     An existing key is replaced in place, keeping its line ending. A missing key
     is appended to its section, and a missing section is appended at the end.
-    A bare key is replaced wherever it first appears, else appended.
+    A key without a section is replaced wherever it first appears, else appended.
     """
-    if not overrides:
+    if not values:
         return content
     newline = "\r\n" if "\r\n" in content else "\n"
     lines = content.splitlines(keepends=True)
@@ -82,8 +92,52 @@ def apply_overrides(content: str, overrides: dict) -> str:
         lines.append(f"[{section}]{newline}")
         lines.append(f"{replacement}{newline}")
 
-    for raw_key, raw_value in overrides.items():
-        section, key = split_override_key(str(raw_key))
-        if key:
-            upsert(section, key, str(raw_value).strip())
+    for section, key, value in values:
+        upsert(section, key, value)
     return "".join(lines)
+
+
+_KEY = re.compile(r"^\s*(?P<key>[^=;#\[\s][^=]*?)\s*=")
+ENV_PREFIX = "OptiScaler_"
+
+
+def _normalized_section(name: str) -> str:
+    """A section name as an environment variable can spell it: [V-Sync] is VSync."""
+    return name.replace("-", "").replace(".", "")
+
+
+def env_overrides(content: str, environ: dict[str, str]) -> list[tuple[str, str, str]]:
+    """The (section, key, value) settings environment variables give an OptiScaler.ini, for keys it
+    already has. A variable names its key as `OptiScaler_Section_Key`, `Section_Key` (a section may be
+    spelled without `-` and `.`), or a bare `Key` when that key appears in one section only."""
+    keys: dict[str, set[str]] = {}
+    section = None
+    for line in content.splitlines():
+        match = _SECTION.match(line.strip())
+        if match:
+            section = match.group("section")
+            keys.setdefault(section, set())
+        elif section is not None and (key := _KEY.match(line)):
+            keys[section].add(key.group("key"))
+    by_spelling = {**{_normalized_section(name): name for name in keys}, **{name: name for name in keys}}
+    holders: dict[str, list[str]] = {}
+    for name, section_keys in keys.items():
+        for key in section_keys:
+            holders.setdefault(key, []).append(name)
+
+    def qualified(name: str) -> tuple[str, str] | None:
+        spelled, _, key = name.partition("_")
+        actual = by_spelling.get(spelled)
+        return (actual, key) if actual is not None and key in keys[actual] else None
+
+    settings = []
+    for name, value in environ.items():
+        if name.startswith(ENV_PREFIX):
+            target = qualified(name[len(ENV_PREFIX):])
+        else:
+            target = qualified(name) if "_" in name else None
+            if target is None and len(holders.get(name, [])) == 1:
+                target = (holders[name][0], name)
+        if target is not None:
+            settings.append((*target, value))
+    return settings

@@ -24,6 +24,8 @@ def refresh_core(fgmod: Path, assets_dir: Path) -> None:
             shutil.copy2(source, staged)
             staged.chmod(0o755)
             staged.replace(fgmod / installed_name)
+    for retired_script in bundle.RETIRED_SCRIPTS:
+        (fgmod / retired_script).unlink(missing_ok=True)
 
     core = fgmod / bundle.CORE_PACKAGE
     staged, retired = fgmod / f".{bundle.CORE_PACKAGE}.new", fgmod / f".{bundle.CORE_PACKAGE}.old"

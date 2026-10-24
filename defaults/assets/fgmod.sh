@@ -40,11 +40,6 @@ if ! exe_folder_path="$(core "${patch_args[@]}" -- "$@")"; then
 fi
 logger -t fgmod "Patched $exe_folder_path"
 
-# OptiScaler settings from environment variables override OptiScaler.ini on every launch.
-if [[ -f "$fgmod_path/update-optiscaler-config.py" ]]; then
-  "$python_bin" "$fgmod_path/update-optiscaler-config.py" "$exe_folder_path/OptiScaler.ini"
-fi
-
 if [[ $# -gt 1 ]]; then
   export SteamDeck=0
   # Load the proxy DLL natively, keeping any overrides already set.

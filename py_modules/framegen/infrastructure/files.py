@@ -45,9 +45,12 @@ def rewrite_text(path: Path, transform: Callable[[str], str]) -> bool:
 
     Returns whether the file changed.
     """
-    content = path.read_text(encoding="utf-8", errors="replace")
+    # newline="": the text keeps its own line endings both ways (OptiScaler.ini ships with CRLF).
+    with open(path, encoding="utf-8", errors="replace", newline="") as f:
+        content = f.read()
     updated = transform(content)
     if updated == content:
         return False
-    path.write_text(updated, encoding="utf-8")
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        f.write(updated)
     return True

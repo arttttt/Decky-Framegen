@@ -187,7 +187,7 @@ def fgmod(home) -> Path:
         root / bundle.CORE_PACKAGE,
         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
     )
-    for name in ("fgmod", "fgmod-uninstaller.sh", "update-optiscaler-config.py"):
+    for name in ("fgmod", "fgmod-uninstaller.sh"):
         write(root / name, blob(name))
     install_version(root, STABLE, "0.9", STABLE_FILES, STABLE_INI)
     install_version(root, NIGHTLY, "10", NIGHTLY_FILES, NIGHTLY_INI)

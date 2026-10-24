@@ -96,8 +96,9 @@ LEGACY_FILES = [
 LAUNCHER_SCRIPTS = {
     "fgmod": "fgmod.sh",
     "fgmod-uninstaller.sh": "fgmod-uninstaller.sh",
-    "update-optiscaler-config.py": "update-optiscaler-config.py",
 }
+RETIRED_SCRIPTS = ["update-optiscaler-config.py"]
+"""Scripts earlier versions installed into ~/fgmod that the core does the work of now."""
 
 OPTIPATCHER_TARGET = "plugins/OptiPatcher.asi"
 
