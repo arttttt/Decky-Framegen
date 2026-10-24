@@ -118,24 +118,22 @@ def plan_unpatch(
 ) -> tuple[Operation | RemoveDirIfEmpty, ...]:
     """Undo a recorded patch. `current` maps every placed path and backup still present to its sha256 now.
 
+    A placed file someone replaced since stays when nothing was backed up for it. When something was,
+    the backup comes back over it: Unpatch returns the directory to how it was before the patch, and
+    a file put over a patched one after patching is its owner's to keep track of.
     `keep` names placed files to leave where they are, for a repatch that carries them over.
     """
     operations: list[Operation | RemoveDirIfEmpty] = []
-    replaced_by_game: set[str] = set()
+    backed_up = {backup.original for backup in patch.backups if backup.backup in current}
     for item in patch.placed:
         if item.path not in current or item.path in keep:
             continue
-        if item.sha256 is not None and current[item.path] != item.sha256:
-            replaced_by_game.add(item.path)
+        replaced = item.sha256 is not None and current[item.path] != item.sha256
+        if replaced and item.path not in backed_up:
             continue
         operations.append(DeleteFile(item.path))
     for backup in patch.backups:
-        if backup.backup not in current:
-            continue
-        if backup.original in replaced_by_game:
-            # The game shipped a newer file since; its old copy must not come back over it.
-            operations.append(DeleteFile(backup.backup))
-        else:
+        if backup.backup in current:
             operations.append(Move(backup.backup, backup.original))
     operations += [RemoveDirIfEmpty(path) for path in patch.created_dirs]
     operations.append(DeleteFile(bundle.MARKER_FILENAME))

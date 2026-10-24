@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { InstalledLibrary } from "../api";
-import { GameStatus, gameVersionLine, libraryReady, patchButton, patchChoice, steamGameView } from "./patching";
+import { GameStatus, fsr4Line, gameVersionLine, libraryReady, patchButton, patchChoice, steamGameView } from "./patching";
 
 const LIBRARY: InstalledLibrary = {
   installed_bytes: 500_000_000,
@@ -134,5 +134,32 @@ describe("steam game view", () => {
       status: { text: "Loading..." }, versionLine: null,
     });
     expect(steamGameView({ ...base, status: { status: "error", message: "Steam is gone" } }).status.text).toBe("Steam is gone");
+  });
+});
+
+describe("FSR 4 line", () => {
+  it("says whether the game's Proton has FSR 4, will download it, or can't", () => {
+    expect(fsr4Line({ state: "in-prefix", tool: "GE-Proton11-11", version: "4.1.1" })).toBe(
+      "FSR 4 4.1.1 is in this game's Proton prefix.",
+    );
+    expect(fsr4Line({ state: "in-prefix", tool: null, version: null })).toBe("FSR 4 is in this game's Proton prefix.");
+    expect(fsr4Line({ state: "will-fetch", tool: "GE-Proton11-11", version: null })).toBe(
+      "GE-Proton11-11 downloads FSR 4 on the game's first launch after patching.",
+    );
+    expect(fsr4Line({ state: "unsupported", tool: "proton_experimental", version: null })).toBe(
+      "proton_experimental can't provide FSR 4. Choose GE-Proton or Proton-CachyOS for this game.",
+    );
+    expect(fsr4Line({ state: "unsupported", tool: null, version: null })).toBe(
+      "Steam's default Proton can't provide FSR 4. Choose GE-Proton or Proton-CachyOS for this game.",
+    );
+  });
+
+  it("says nothing off AMD, and nothing while the status loads", () => {
+    expect(fsr4Line(null)).toBeNull();
+    const fsr4 = { state: "unsupported" as const, tool: null, version: null };
+    const base = { gameSelected: true, busy: null, dllName: "dxgi.dll", ready: true };
+    const status = { status: "success" as const, install_found: true, patched: false, fsr4 };
+    expect(steamGameView({ ...base, statusLoading: true, status }).fsr4Line).toBeNull();
+    expect(steamGameView({ ...base, statusLoading: false, status }).fsr4Line).toMatch(/can't provide FSR 4/);
   });
 });

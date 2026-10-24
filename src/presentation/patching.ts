@@ -55,6 +55,18 @@ export const gameVersionLine = (status: {
   return status.newer_version ? `${line}. ${status.newer_version} is in the library; choose it and patch again to update.` : line;
 };
 
+/** A game's FSR 4 under Proton, as the backend reads it; null off AMD. */
+export type Fsr4State = { state: "in-prefix" | "will-fetch" | "unsupported"; tool: string | null; version: string | null };
+
+/** What the panel says about FSR 4 for a game: whether its Proton has it, will fetch it, or can't. */
+export const fsr4Line = (fsr4: Fsr4State | null | undefined): string | null => {
+  if (!fsr4) return null;
+  const proton = fsr4.tool ?? "Steam's default Proton";
+  if (fsr4.state === "in-prefix") return `FSR 4${fsr4.version ? ` ${fsr4.version}` : ""} is in this game's Proton prefix.`;
+  if (fsr4.state === "will-fetch") return `${proton} downloads FSR 4 on the game's first launch after patching.`;
+  return `${proton} can't provide FSR 4. Choose GE-Proton or Proton-CachyOS for this game.`;
+};
+
 /** A Steam game's status as get_game_status reports it. */
 export type GameStatus = {
   status: "success" | "error";
@@ -64,11 +76,13 @@ export type GameStatus = {
   dll_name?: string | null;
   optiscaler_version?: string | null;
   newer_version?: string | null;
+  fsr4?: Fsr4State | null;
 };
 
 export type SteamGameView = {
   status: { text: string; tone: "neutral" | "warning" | "good" };
   versionLine: string | null;
+  fsr4Line: string | null;
   patch: { label: string; enabled: boolean };
   unpatchVisible: boolean;
   unpatch: { label: string; enabled: boolean };
@@ -111,6 +125,7 @@ export const steamGameView = (s: {
   return {
     status: statusLine,
     versionLine: gameVersionLine(s.statusLoading ? null : status),
+    fsr4Line: s.statusLoading ? null : fsr4Line(status?.fsr4),
     patch: { label: patch.label, enabled: patch.enabled && canPatch },
     unpatchVisible: Boolean(status?.patched),
     unpatch: { label: busy === "unpatch" ? "Unpatching..." : "Unpatch this game", enabled: busy === null },

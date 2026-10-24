@@ -68,6 +68,9 @@ class Family:
     """Files an archive of this family must contain, or it is not added to the library."""
     ini_defaults: dict[str, str]
     """Settings a freshly placed OptiScaler.ini gets (`Section.Key` → value)."""
+    main_dir: str
+    """Where OptiScaler looks for its own files, such as AMD's FSR 4 driver DLL, relative to the game's
+    directory: its OptiScaler/ subfolder when there is one, else the directory itself (dllmain.cpp, MainDllPath)."""
 
 
 FAMILIES = {
@@ -82,11 +85,13 @@ FAMILIES = {
             # The HQ font's auto mode asserts on Proton when its font file is missing.
             "Menu.UseHQFont": "false",
         },
+        "",
     ),
     "10": Family(
         "10",
         frozenset({"OptiScaler.dll", "OptiScaler.ini", "OptiScaler/amd_fidelityfx_upscaler_dx12.dll"}),
         {"Menu.UseHQFont": "false"},
+        "OptiScaler",
     ),
 }
 

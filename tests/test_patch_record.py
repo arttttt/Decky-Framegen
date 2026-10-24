@@ -87,14 +87,20 @@ def test_undoing_removes_what_was_placed_restores_backups_and_drops_the_marker_l
     )
 
 
-def test_a_file_the_game_replaced_since_stays_and_its_stale_backup_goes():
+def test_a_backup_comes_back_over_a_file_put_there_since():
     current = {"dxgi.dll": "a" * 64, "libxess.dll": "1" * 64, "libxess.dll.b": "9" * 64}
 
     operations = patch_record.plan_unpatch(RECORD, current)
 
-    assert DeleteFile("libxess.dll") not in operations
-    assert DeleteFile("libxess.dll.b") in operations
-    assert Move("libxess.dll.b", "libxess.dll") not in operations
+    assert operations.index(DeleteFile("libxess.dll")) < operations.index(Move("libxess.dll.b", "libxess.dll"))
+
+
+def test_a_file_put_there_since_stays_when_nothing_was_backed_up_for_it():
+    current = {"dxgi.dll": "a" * 64, "D3D12_Optiscaler/D3D12Core.dll": "1" * 64}
+
+    operations = patch_record.plan_unpatch(RECORD, current)
+
+    assert DeleteFile("D3D12_Optiscaler/D3D12Core.dll") not in operations
 
 
 def test_files_and_backups_already_gone_are_skipped():
@@ -138,14 +144,15 @@ def test_an_interrupted_patch_can_still_be_undone(plugin, fgmod, tmp_path, monke
     assert snapshot(game) == before
 
 
-def test_a_game_updated_while_patched_keeps_its_new_file(plugin, fgmod, tmp_path):
+def test_unpatching_restores_the_backup_over_a_file_put_there_after_patching(plugin, fgmod, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
     run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
-    (game / "libxess.dll").unlink()  # an update replaces the file; writing through the link would change the library
-    write(game / "libxess.dll", b"the game's updated libxess")
+    (game / "libxess.dll").unlink()  # replacing the file; writing through the link would change the library
+    write(game / "libxess.dll", b"someone's own libxess")
 
     assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"
-    assert (game / "libxess.dll").read_bytes() == b"the game's updated libxess"
+    # The directory goes back to how it was before the patch: what came after is its owner's to track.
+    assert (game / "libxess.dll").read_bytes() == game_file("libxess.dll")
     assert not (game / "libxess.dll.b").exists()
     assert not (game / "dxgi.dll").exists()
 

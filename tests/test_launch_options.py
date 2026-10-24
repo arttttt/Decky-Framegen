@@ -36,11 +36,6 @@ def test_user_options_are_not_managed(options):
     assert not launch_options.is_managed(options)
 
 
-def test_asi_options_are_not_recognised_as_managed():
-    # Current behaviour: the ASI proxy writes no override, so its options look like the user's own.
-    assert not launch_options.is_managed(launch_options.managed("OptiScaler.asi"))
-
-
 @pytest.mark.parametrize(
     ("current", "dll_name", "expected"),
     [
@@ -52,3 +47,10 @@ def test_asi_options_are_not_recognised_as_managed():
 )
 def test_wine_dll_overrides_append_our_entry_with_wines_separator(current, dll_name, expected):
     assert launch_options.wine_dll_overrides(current, dll_name) == expected
+
+
+@pytest.mark.parametrize("fsr4_upgrade", [False, True])
+@pytest.mark.parametrize("dll_name", ["dxgi.dll", "OptiScaler.asi"])
+def test_every_shape_the_plugin_writes_is_recognised_as_managed(dll_name, fsr4_upgrade):
+    # Unpatch hands the user's own options back only when it knows the current ones are the plugin's.
+    assert launch_options.is_managed(launch_options.managed(dll_name, fsr4_upgrade))
