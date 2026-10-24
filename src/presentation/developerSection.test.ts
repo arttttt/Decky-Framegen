@@ -1,8 +1,19 @@
 import { describe, expect, it } from "vitest";
-import type { AvailableDevBuild, DevBuild } from "../api";
+import type { AvailableDevBuild, PluginBuild } from "../api";
 import { DeveloperSectionState, developerSectionView, selectedBuild } from "./developerSection";
+import { NO_INSTALL } from "./install";
 
-const running: DevBuild = { is_dev_build: true, channel: "dev", commit: "9".repeat(40), short_commit: "9999999", title: "main @ 9999999" };
+const running: PluginBuild = {
+  known: true,
+  channel: "dev",
+  commit: "9".repeat(40),
+  short_commit: "9999999",
+  title: "main @ 9999999",
+  version: "2026.10.24-dev.9999999",
+  is_dev_build: true,
+  developer_mode: true,
+};
+const release: PluginBuild = { ...running, channel: "stable", title: "Decky Framegen 2026.10.24", version: "2026.10.24", is_dev_build: false };
 
 const build = (channel: string, state: "installed" | "available", title: string): AvailableDevBuild => ({
   channel,
@@ -20,9 +31,7 @@ const state = (overrides: Partial<DeveloperSectionState> = {}): DeveloperSection
   list: { status: "success", builds: listed },
   checking: false,
   selectedChannel: null,
-  install: "idle",
-  download: null,
-  installError: null,
+  install: NO_INSTALL,
   deckyInstallerAvailable: true,
   ...overrides,
 });
@@ -34,9 +43,18 @@ const visible = (s: DeveloperSectionState) => {
 };
 
 describe("developer section", () => {
-  it("is hidden in a release build and before the backend answers", () => {
-    expect(developerSectionView(state({ build: { is_dev_build: false } }))).toEqual({ visible: false });
+  it("is hidden without Developer mode, in a build that can't update itself, and before the backend answers", () => {
+    expect(developerSectionView(state({ build: { ...release, developer_mode: false } }))).toEqual({ visible: false });
+    expect(developerSectionView(state({ build: { known: false, version: "", message: "" } }))).toEqual({ visible: false });
     expect(developerSectionView(state({ build: null }))).toEqual({ visible: false });
+  });
+
+  it("in a release with Developer mode on offers the development builds, the first picked", () => {
+    const view = visible(state({ build: release, list: { status: "success", builds: [build("dev", "available", "main @ 9999999")] } }));
+
+    expect(view.running).toBe("Running Decky Framegen 2026.10.24");
+    expect(view.selectedChannel).toBe("dev");
+    expect(view.installEnabled).toBe(true);
   });
 
   it("names the running build and offers to look for others before the first check", () => {
@@ -70,7 +88,7 @@ describe("developer section", () => {
   });
 
   it("starts on the running build's channel even when it is not listed first", () => {
-    const onPr: DevBuild = { ...running, channel: "pr-12", title: "PR #12" };
+    const onPr: PluginBuild = { ...running, channel: "pr-12", title: "PR #12" };
 
     expect(selectedBuild(state({ build: onPr }))?.channel).toBe("pr-12");
   });
@@ -83,7 +101,7 @@ describe("developer section", () => {
   });
 
   it("installs once while Decky asks; checking stays available", () => {
-    const view = visible(state({ selectedChannel: "pr-12", install: "started" }));
+    const view = visible(state({ selectedChannel: "pr-12", install: { ...NO_INSTALL, phase: "started" } }));
 
     expect(view.installEnabled).toBe(false);
     expect(view.checkEnabled).toBe(true);
@@ -91,12 +109,12 @@ describe("developer section", () => {
   });
 
   it("shows the download of the build being installed and blocks starting another", () => {
-    const waiting = visible(state({ selectedChannel: "pr-12", install: "downloading" }));
+    const waiting = visible(state({ selectedChannel: "pr-12", install: { ...NO_INSTALL, phase: "downloading" } }));
     const halfway = visible(
-      state({ selectedChannel: "pr-12", install: "downloading", download: { received: 525_000, total: 1_050_000 } }),
+      state({ selectedChannel: "pr-12", install: { phase: "downloading", download: { received: 525_000, total: 1_050_000 }, error: null } }),
     );
     const unknownSize = visible(
-      state({ selectedChannel: "pr-12", install: "downloading", download: { received: 300_000, total: null } }),
+      state({ selectedChannel: "pr-12", install: { phase: "downloading", download: { received: 300_000, total: null }, error: null } }),
     );
 
     expect(waiting.message).toBe("Downloading PR #12: Developer section…");
@@ -107,7 +125,7 @@ describe("developer section", () => {
   });
 
   it("offers to install again when the plugin is still running after the install (cancelled in Decky)", () => {
-    const view = visible(state({ selectedChannel: "pr-12", install: "unconfirmed" }));
+    const view = visible(state({ selectedChannel: "pr-12", install: { ...NO_INSTALL, phase: "unconfirmed" } }));
 
     expect(view.installEnabled).toBe(true);
     expect(view.checkEnabled).toBe(true);
@@ -115,7 +133,7 @@ describe("developer section", () => {
   });
 
   it("says why an install could not start and lets the user try again", () => {
-    const view = visible(state({ selectedChannel: "pr-12", installError: "The pr-12 build is no longer published. Check again." }));
+    const view = visible(state({ selectedChannel: "pr-12", install: { ...NO_INSTALL, error: "The pr-12 build is no longer published. Check again." } }));
 
     expect(view.message).toBe("The pr-12 build is no longer published. Check again.");
     expect(view.installEnabled).toBe(true);

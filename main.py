@@ -9,7 +9,7 @@ from pathlib import Path
 
 import decky
 
-from framegen.application.dev_updates import DevUpdates, Report
+from framegen.application.plugin_updates import PluginUpdates, Report
 from framegen.application.library import Library
 from framegen.application.patcher import Patcher
 from framegen.application.settings import Settings
@@ -44,10 +44,12 @@ class Plugin:
     def _patcher(self) -> Patcher:
         return Patcher(self._home_path())
 
-    def _dev_updates(self, report: Report = _ignore) -> DevUpdates:
-        return DevUpdates(
+    def _updates(self, report: Report = _ignore) -> PluginUpdates:
+        return PluginUpdates(
             Path(decky.DECKY_PLUGIN_DIR),
+            Path(decky.DECKY_PLUGIN_SETTINGS_DIR) / "updates.json",
             github_releases.list_releases,
+            github_releases.latest_release,
             github_releases.download,
             Path(decky.DECKY_PLUGIN_RUNTIME_DIR) / "dev-builds",
             report,
@@ -156,20 +158,28 @@ class Plugin:
         # Deleting an unpacked version (hundreds of MB) takes a moment on handheld storage.
         return await asyncio.to_thread(self._library().remove, version_id)
 
-    # ── Development builds ────────────────────────────────────────────────────
+    # ── Plugin updates ────────────────────────────────────────────────────────
 
-    async def get_dev_build(self) -> dict:
-        return self._dev_updates().build()
+    # Requests to GitHub and downloads take seconds: off Decky's event loop. A download's progress goes
+    # back to the frontend as "plugin_download" events.
+
+    async def plugin_build(self) -> dict:
+        return self._updates().build()
+
+    async def set_developer_mode(self, on: bool) -> dict:
+        return self._updates().set_developer_mode(on)
+
+    async def latest_stable(self) -> dict:
+        return await asyncio.to_thread(self._updates().latest_stable)
+
+    async def stable_install_request(self) -> dict:
+        return await asyncio.to_thread(self._updates(_decky_events("plugin_download")).stable_install_request)
 
     async def list_dev_builds(self) -> dict:
-        # The request to GitHub can take seconds; keep it off Decky's event loop.
-        return await asyncio.to_thread(self._dev_updates().available_builds)
+        return await asyncio.to_thread(self._updates().available_builds)
 
     async def dev_install_request(self, channel: str) -> dict:
-        # Asks GitHub again and downloads the build off Decky's event loop; progress goes
-        # back to the frontend as "dev_build_download" events.
-        updates = self._dev_updates(_decky_events("dev_build_download"))
-        return await asyncio.to_thread(updates.install_request, channel)
+        return await asyncio.to_thread(self._updates(_decky_events("plugin_download")).install_request, channel)
 
     # ── Misc ──────────────────────────────────────────────────────────────────
 

@@ -1,4 +1,5 @@
-"""Other development builds: picking them from releases (unit) and listing them on the device (integration)."""
+"""Updating the plugin: picking builds from releases (unit), and the running build, the newest release, Developer
+mode and development builds on the device (integration)."""
 
 from __future__ import annotations
 
@@ -12,7 +13,7 @@ import pytest
 
 import main
 from conftest import run, write
-from framegen.application.dev_updates import DevUpdates
+from framegen.application.plugin_updates import UNKNOWN_BUILD, PluginUpdates
 from framegen.domain import dev_build
 from framegen.infrastructure import github_releases
 
@@ -22,6 +23,7 @@ PLUGIN = "Decky-Framegen"
 DEV_COMMIT = "9f2c1a6bd4e8c7a5f3b2d1e0f6a5b4c3d2e1f0a9"
 PR_COMMIT = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 RUNNING = dev_build.build_info(REPOSITORY, "dev", DEV_COMMIT)
+STABLE = dev_build.build_info(REPOSITORY, "stable", DEV_COMMIT, version="2026.10.24")
 
 
 def listing() -> list:
@@ -116,7 +118,9 @@ def _decky_install_plugin(self, artifact="", name="No name", version="dev", hash
 def test_the_install_request_fills_deckys_install_plugin_arguments_in_order():
     release = dev_build.releases([pr_12()], RUNNING, PLUGIN)[0]
 
-    request = dev_build.install_request(PLUGIN, release, "/runtime/Decky-Framegen-1a2b3c4.zip")
+    request = dev_build.install_request(
+        PLUGIN, dev_build.dev_label(release), release.sha256, "/runtime/Decky-Framegen-1a2b3c4.zip", dev_build.DECKY_INSTALL_UPDATE
+    )
     bound = inspect.signature(_decky_install_plugin).bind(None, *request).arguments
 
     assert bound == {
@@ -140,6 +144,7 @@ def plugin_dir(tmp_path) -> Path:
     root = tmp_path / "plugins" / PLUGIN
     root.mkdir(parents=True)
     (root / "plugin.json").write_text(json.dumps({"name": PLUGIN}))
+    (root / "package.json").write_text(json.dumps({"version": "2026.10.24-dev.9f2c1a6"}))
     return root
 
 
@@ -164,13 +169,19 @@ class FakeDownload:
         on_progress(len(self.content), len(self.content))
 
 
-def service(plugin_dir: Path, download: FakeDownload | None = None, reports: list | None = None) -> DevUpdates:
+def service(plugin_dir: Path, download: FakeDownload | None = None, reports: list | None = None) -> PluginUpdates:
     def report(channel, received, total):
         if reports is not None:
             reports.append((channel, received, total))
 
-    return DevUpdates(
-        plugin_dir, github_releases.list_releases, download or FakeDownload(), plugin_dir.parent / "runtime", report
+    return PluginUpdates(
+        plugin_dir,
+        plugin_dir.parent / "settings" / "updates.json",
+        github_releases.list_releases,
+        github_releases.latest_release,
+        download or FakeDownload(),
+        plugin_dir.parent / "runtime",
+        report,
     )
 
 
@@ -184,18 +195,20 @@ def github(github_api):
     return github_api
 
 
-def test_a_release_build_is_not_a_development_build_and_lists_nothing(plugin_dir, github):
+def test_a_build_without_an_identity_cant_update_itself(plugin_dir, github):
     updates = service(plugin_dir)
 
-    assert updates.build() == {"is_dev_build": False}
-    assert updates.available_builds() == {"status": "error", "message": "This is not a development build."}
+    assert updates.build() == {"known": False, "version": "2026.10.24-dev.9f2c1a6", "message": UNKNOWN_BUILD}
+    assert updates.available_builds() == {"status": "error", "message": UNKNOWN_BUILD}
+    assert updates.latest_stable() == {"status": "error", "message": UNKNOWN_BUILD}
+    assert updates.set_developer_mode(True) == {"status": "error", "message": UNKNOWN_BUILD}
     assert github.requests == []
 
 
-def test_an_unreadable_identity_is_treated_as_a_release_build(plugin_dir, github):
+def test_an_unreadable_identity_counts_as_none(plugin_dir, github):
     (plugin_dir / dev_build.BUILD_INFO_FILENAME).write_text('{"channel": "dev"}')
 
-    assert service(plugin_dir).build() == {"is_dev_build": False}
+    assert service(plugin_dir).build()["known"] is False
 
 
 def test_a_development_build_lists_its_repositorys_builds(plugin_dir, github):
@@ -206,11 +219,14 @@ def test_a_development_build_lists_its_repositorys_builds(plugin_dir, github):
     builds = updates.available_builds()
 
     assert build == {
-        "is_dev_build": True,
+        "known": True,
         "channel": "dev",
         "commit": DEV_COMMIT,
         "short_commit": "9f2c1a6",
         "title": "Dev build · main @ 9f2c1a6",
+        "version": "2026.10.24-dev.9f2c1a6",
+        "is_dev_build": True,
+        "developer_mode": True,
     }
     assert github.requests == [f"/repos/{REPOSITORY}/releases?per_page=100"]
     assert builds["status"] == "success"
@@ -300,12 +316,27 @@ def test_installing_a_build_that_is_gone_says_so(plugin_dir, github):
     assert result == {"status": "error", "message": "The pr-12 build is no longer published. Check again."}
 
 
-def test_installing_from_a_release_build_is_refused(plugin_dir, github):
-    assert service(plugin_dir).install_request("dev") == {
-        "status": "error",
-        "message": "This is not a development build.",
-    }
+def test_a_release_build_offers_development_builds_only_in_developer_mode(plugin_dir, github):
+    stamp(plugin_dir, STABLE)
+    updates = service(plugin_dir)
+
+    assert updates.build()["developer_mode"] is False
+    assert updates.install_request("dev") == {"status": "error", "message": "Turn on Developer mode to install development builds."}
+    assert updates.available_builds()["status"] == "error"
     assert github.requests == []
+
+    assert updates.set_developer_mode(True) == {"status": "success", "developer_mode": True}
+    builds = updates.available_builds()
+
+    assert [(b["channel"], b["state"]) for b in builds["builds"]] == [("dev", "available"), ("pr-12", "available"), ("pr-9", "available")]
+    assert updates.set_developer_mode(False) == {"status": "success", "developer_mode": False}
+    assert updates.build()["developer_mode"] is False
+
+
+def test_a_development_build_keeps_developer_mode_on(plugin_dir, github):
+    stamp(plugin_dir)
+
+    assert service(plugin_dir).set_developer_mode(False) == {"status": "success", "developer_mode": True}
 
 
 def test_a_fork_build_lists_the_forks_releases(plugin_dir, github):
@@ -353,8 +384,8 @@ def test_an_unreachable_github_is_reported(plugin_dir, monkeypatch):
     assert result["message"].startswith("Could not reach GitHub")
 
 
-def test_the_plugin_answers_for_a_release_build(plugin):
-    assert run(plugin.get_dev_build()) == {"is_dev_build": False}
+def test_the_plugin_answers_for_a_build_without_an_identity(plugin):
+    assert run(plugin.plugin_build())["known"] is False
 
 
 def test_the_plugin_lists_builds_for_a_development_build(plugin, home, tmp_path, github):
@@ -389,4 +420,154 @@ def test_the_plugin_reports_download_progress_as_decky_events(plugin, tmp_path, 
 
     assert result["status"] == "success"
     assert result["install_request"][0].startswith("file://")
-    assert ("dev_build_download", "pr-12", len(ZIP), len(ZIP)) in events
+    assert ("plugin_download", "pr-12", len(ZIP), len(ZIP)) in events
+
+
+# ── the newest release ───────────────────────────────────────────────────────
+
+
+def release_entry(tag: str = "2026.10.25", digest: str = ZIP_SHA256, **changes) -> dict:
+    entry = {
+        "tag_name": tag,
+        "name": f"Decky Framegen {tag}",
+        "draft": False,
+        "prerelease": False,
+        "published_at": "2026-10-25T09:00:00Z",
+        "assets": [
+            {
+                "name": "Decky-Framegen.zip",
+                "state": "uploaded",
+                "digest": f"sha256:{digest}",
+                "browser_download_url": f"https://github.com/{REPOSITORY}/releases/download/{tag}/Decky-Framegen.zip",
+            }
+        ],
+    }
+    entry.update(changes)
+    return entry
+
+
+def test_calendar_versions_compare_by_day_then_count_and_a_dev_build_by_its_day():
+    from framegen.domain import release_version
+
+    assert release_version.key("2026.10.24") < release_version.key("2026.10.24.1") < release_version.key("2026.10.25")
+    assert release_version.key("2026.10.24-dev.9f2c1a6") == release_version.key("2026.10.24")
+    assert release_version.key("0.0.0") is None
+    assert release_version.is_release("2026.10.24.1") and not release_version.is_release("2026.10.24-dev.9f2c1a6")
+
+
+def test_a_stable_build_is_titled_after_its_version_and_is_not_a_development_one():
+    assert STABLE.title == "Decky Framegen 2026.10.24"
+    assert not dev_build.is_development(STABLE) and dev_build.is_development(RUNNING)
+
+
+def test_the_newest_release_carries_what_the_device_needs_to_install_it():
+    assert dev_build.stable_release(release_entry(), REPOSITORY) == dev_build.StableRelease(
+        version="2026.10.25",
+        title="Decky Framegen 2026.10.25",
+        published_at="2026-10-25T09:00:00Z",
+        url=f"https://github.com/{REPOSITORY}/releases/download/2026.10.25/Decky-Framegen.zip",
+        sha256=ZIP_SHA256,
+    )
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        release_entry(draft=True),
+        release_entry(prerelease=True),
+        release_entry(tag="dev"),
+        release_entry(tag="v1.0"),
+        release_entry(assets=[]),
+        {**release_entry(), "assets": [{**release_entry()["assets"][0], "state": "starter"}]},
+        {**release_entry(), "assets": [{**release_entry()["assets"][0], "digest": "md5:0"}]},
+        {**release_entry(), "assets": [{**release_entry()["assets"][0], "browser_download_url": "https://example.com/Decky-Framegen.zip"}]},
+        "not a release",
+    ],
+    ids=["draft", "prerelease", "channel-tag", "not-calendar", "no-asset", "unfinished", "no-sha256", "other-host", "not-an-object"],
+)
+def test_a_release_that_cannot_be_installed_safely_is_none(entry):
+    assert dev_build.stable_release(entry, REPOSITORY) is None
+
+
+def test_a_release_build_is_offered_only_a_newer_release_and_a_development_build_always_a_switch():
+    newer = dev_build.stable_release(release_entry("2026.10.25"), REPOSITORY)
+    same = dev_build.stable_release(release_entry("2026.10.24"), REPOSITORY)
+
+    assert dev_build.stable_offer(STABLE, "2026.10.24", newer) == dev_build.UPDATE
+    assert dev_build.stable_offer(STABLE, "2026.10.24", same) == dev_build.NONE
+    assert dev_build.stable_offer(STABLE, "2026.10.26", newer) == dev_build.NONE
+    assert dev_build.stable_offer(STABLE, "2026.10.24", None) == dev_build.NONE
+    assert dev_build.stable_offer(RUNNING, "2026.10.26-dev.9f2c1a6", newer) == dev_build.SWITCH
+
+
+def test_deckys_dialog_says_update_downgrade_or_overwrite():
+    assert dev_build.install_type("2026.10.24", "2026.10.25") == dev_build.DECKY_INSTALL_UPDATE
+    assert dev_build.install_type("2026.10.26-dev.9f2c1a6", "2026.10.25") == dev_build.DECKY_INSTALL_DOWNGRADE
+    assert dev_build.install_type("2026.10.25-dev.9f2c1a6", "2026.10.25") == dev_build.DECKY_INSTALL_OVERWRITE
+    assert dev_build.install_type("", "2026.10.25") == dev_build.DECKY_INSTALL_UPDATE
+
+
+def test_a_release_build_checks_the_latest_release_and_is_offered_a_newer_one(plugin_dir, github):
+    stamp(plugin_dir, STABLE)
+    (plugin_dir / "package.json").write_text(json.dumps({"version": "2026.10.24"}))
+    github.body = json.dumps(release_entry()).encode()
+
+    answer = service(plugin_dir).latest_stable()
+
+    assert github.requests == [f"/repos/{REPOSITORY}/releases/latest"]
+    assert answer == {
+        "status": "success",
+        "release": {"version": "2026.10.25", "title": "Decky Framegen 2026.10.25", "published_at": "2026-10-25T09:00:00Z"},
+        "offer": "update",
+    }
+
+
+def test_no_release_yet_offers_nothing(plugin_dir, github):
+    stamp(plugin_dir, STABLE)
+    github.status, github.body = 404, b'{"message": "Not Found"}'
+
+    assert service(plugin_dir).latest_stable() == {"status": "success", "release": None, "offer": "none"}
+    assert service(plugin_dir).stable_install_request() == {"status": "error", "message": "No release is published yet."}
+
+
+def test_a_failed_check_is_reported(plugin_dir, github):
+    stamp(plugin_dir, STABLE)
+    github.status = 403
+
+    answer = service(plugin_dir).latest_stable()
+
+    assert answer["status"] == "error" and answer["message"].startswith("GitHub answered 403")
+
+
+def test_switching_a_development_build_to_the_release_downloads_it_and_asks_decky_to_downgrade(plugin_dir, github):
+    stamp(plugin_dir)
+    (plugin_dir / "package.json").write_text(json.dumps({"version": "2026.10.26-dev.9f2c1a6"}))
+    github.body = json.dumps(release_entry()).encode()
+    download, reports = FakeDownload(), []
+
+    result = service(plugin_dir, download, reports).stable_install_request()
+
+    downloaded = plugin_dir.parent / "runtime" / "Decky-Framegen.zip"
+    assert download.urls == [f"https://github.com/{REPOSITORY}/releases/download/2026.10.25/Decky-Framegen.zip"]
+    assert reports[-1] == ("stable", len(ZIP), len(ZIP))
+    assert result == {
+        "status": "success",
+        "install_request": [f"file://{downloaded}", PLUGIN, "2026.10.25", ZIP_SHA256, dev_build.DECKY_INSTALL_DOWNGRADE],
+    }
+
+
+def test_a_release_download_that_doesnt_match_its_checksum_installs_nothing(plugin_dir, github):
+    stamp(plugin_dir, STABLE)
+    github.body = json.dumps(release_entry()).encode()
+
+    result = service(plugin_dir, FakeDownload(content=b"tampered")).stable_install_request()
+
+    assert result == {"status": "error", "message": "The stable build did not match its checksum. Try again."}
+
+
+def test_a_prerelease_tagged_stable_is_not_a_development_build():
+    entry = pr_12()
+    entry["tag_name"] = "stable"
+    entry["assets"][0]["browser_download_url"] = entry["assets"][0]["browser_download_url"].replace("/pr-12/", "/stable/")
+
+    assert dev_build.releases([entry], RUNNING, PLUGIN) == []

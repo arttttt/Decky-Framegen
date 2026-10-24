@@ -1,8 +1,8 @@
 """Checks on the built plugin zip, as Decky Loader would install it.
 
 CI builds the zip with Decky CLI and points PLUGIN_ZIP at it; without the
-variable these tests are skipped. For a development build CI also sets
-BUILD_CHANNEL, BUILD_COMMIT and BUILD_VERSION to what it stamped.
+variable these tests are skipped. For a stamped build (a release or a development
+build) CI also sets BUILD_CHANNEL, BUILD_COMMIT and BUILD_VERSION to what it stamped.
 """
 
 from __future__ import annotations
@@ -84,8 +84,8 @@ def test_the_package_carries_no_optiscaler(plugin_root):
     assert not (plugin_root / "bin").exists()
 
 
-@pytest.mark.skipif(not BUILD_CHANNEL, reason="a release build")
-def test_a_development_build_carries_its_identity_and_version(plugin_root):
+@pytest.mark.skipif(not BUILD_CHANNEL, reason="an unstamped build")
+def test_a_stamped_build_carries_its_identity_and_version(plugin_root):
     info = dev_build.parse((plugin_root / dev_build.BUILD_INFO_FILENAME).read_text())
     package_json = json.loads((plugin_root / "package.json").read_text())
 
@@ -93,16 +93,16 @@ def test_a_development_build_carries_its_identity_and_version(plugin_root):
     assert package_json["version"] == os.environ["BUILD_VERSION"]
 
 
-@pytest.mark.skipif(bool(BUILD_CHANNEL) or not os.environ.get("BUILD_VERSION"), reason="not a stamped release build")
+@pytest.mark.skipif(BUILD_CHANNEL != dev_build.STABLE_CHANNEL, reason="not a release build")
 def test_a_release_build_carries_its_calendar_version(plugin_root):
-    package_json = json.loads((plugin_root / "package.json").read_text())
+    from framegen.domain import release_version
 
-    assert package_json["version"] == os.environ["BUILD_VERSION"]
+    assert release_version.is_release(json.loads((plugin_root / "package.json").read_text())["version"])
 
 
-@pytest.mark.skipif(bool(BUILD_CHANNEL), reason="a development build")
-def test_a_release_build_carries_no_build_identity(plugin_root):
-    # The Developer section, which installs unreviewed builds, exists only where this file does.
+@pytest.mark.skipif(bool(BUILD_CHANNEL), reason="a stamped build")
+def test_an_unstamped_build_carries_no_build_identity(plugin_root):
+    # Without one a build can't update itself, nor offer development builds.
     assert not (plugin_root / dev_build.BUILD_INFO_FILENAME).exists()
 
 

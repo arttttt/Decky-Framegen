@@ -51,13 +51,18 @@ CI publishes a development build of the plugin for `main` and for every open pul
 | Latest `main` | [`dev`](../../releases/tag/dev) | on every merge |
 | Pull request #N | `pr-N` | on every push to it; deleted when it closes |
 
-Development builds carry a **Developer** section in the plugin; release builds never show it.
+The plugin's **Developer** page lists them. It shows in a development build, and in a release once
+**Framegen → Updates → Developer mode** is on (it asks first; development builds are unreviewed).
 
 ### First install
 
+From a release: **Framegen → Updates → Developer mode** on, then switch builds as below.
+
+Without the plugin installed:
+
 1. In Decky: **Settings → General → Developer mode** on.
 2. **Settings → Developer → Install Plugin from URL**, paste the zip URL of the `dev` release (Releases page → `dev` → right-click the `Decky-Framegen-<commit>.zip` asset → copy link).
-3. Confirm. The plugin appears with a **Developer** section showing `Running main @ <commit>`.
+3. Confirm. The plugin appears with a **Developer** page showing `Running main @ <commit>`.
 
 ### Switching builds
 
@@ -67,7 +72,9 @@ Development builds carry a **Developer** section in the plugin; release builds n
 
 If you cancel Decky's confirmation, the section offers to install again after a few seconds.
 
-Switching back to `main` works the same way.
+Switching back to `main` works the same way. Back to the newest release: **Updates → Switch to
+Decky Framegen <version>** (Decky's dialog calls it a downgrade when the release is older); then Developer
+mode can be turned off.
 
 ### What to know
 
@@ -93,8 +100,12 @@ Run on the device before merging anything that changes what the device sees:
 Run **Actions → Release → Run workflow** on `main`. Nothing to type: the release is named after the
 day, as a calendar version (`2026.10.24`; a second release that day is `2026.10.24.1`). The workflow
 stamps that version into the build (`scripts/stamp_release.py`, `framegen.domain.release_version`),
-builds a release build (no Developer section), checks the package, and publishes `Decky-Framegen.zip`
+writes the build's identity on the stable channel (`build-info.json`, so the release knows which
+repository it updates from), builds it, checks the package, and publishes `Decky-Framegen.zip`
 as the GitHub Release tagged with the bare version (`2026.10.24`) on main's current commit, with generated notes.
+That release becomes GitHub's latest: every installed release finds it under **Framegen → Updates**
+(checked when the plugin's page or panel first opens, and by **Check for updates**), and installs it
+through Decky's installer.
 
 `package.json`'s `version` stays `0.0.0`: every published build gets its version stamped. Development
 builds carry the build day too, then their channel and commit (`2026.10.24-dev.1a2b3c4`). Their prereleases are tagged `dev` (main's latest commit) and `pr-N`, and titled `Dev build · main @ 1a2b3c4` or `Dev build · PR #N: <title>`, so they can't pass for a release.

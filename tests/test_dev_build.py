@@ -26,7 +26,7 @@ def test_main_and_every_pull_request_have_a_channel_of_their_own():
 
 @pytest.mark.parametrize("channel", ["", "main", "pr-", "pr-0", "pr-12x", "release", "DEV"])
 def test_anything_else_is_not_a_channel(channel):
-    with pytest.raises(ValueError, match="Not a development channel"):
+    with pytest.raises(ValueError, match="Not a build channel"):
         dev_build.build_info(REPOSITORY, channel, COMMIT)
 
 
