@@ -12,6 +12,7 @@ import decky
 from framegen.application.dev_updates import DevUpdates, Report
 from framegen.application.library import Library
 from framegen.application.patcher import Patcher
+from framegen.application.settings import Settings
 from framegen.domain import bundle, launch_options
 from framegen.infrastructure import archive, fgmod_home, github_releases
 
@@ -73,6 +74,21 @@ class Plugin:
 
     async def manual_unpatch_directory(self, directory: str, confirmed_reset: bool = False) -> dict:
         return await asyncio.to_thread(self._patcher().unpatch_user_directory, directory, confirmed_reset)
+
+    # ── OptiScaler settings ───────────────────────────────────────────────────
+
+    async def global_settings(self) -> dict:
+        return await asyncio.to_thread(Settings(self._home_path()).global_settings)
+
+    async def game_settings(self, appid: str) -> dict:
+        return await asyncio.to_thread(Settings(self._home_path()).game_settings, appid)
+
+    async def set_setting(self, scope: str, section: str, key: str, value: str | None) -> dict:
+        """`scope` is "global" or a game's appid; a None value clears the setting."""
+        return await asyncio.to_thread(Settings(self._home_path()).set_setting, scope, section, key, value)
+
+    async def reset_game_settings(self, appid: str) -> dict:
+        return await asyncio.to_thread(Settings(self._home_path()).reset_game_settings, appid)
 
     async def launch_setup(self) -> dict:
         return launch_options.setup_json()

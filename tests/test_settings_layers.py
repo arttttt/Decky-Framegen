@@ -122,3 +122,24 @@ def test_each_game_keeps_its_own_settings(tmp_path):
     assert store.game_layer("730") == {}
     with pytest.raises(ValueError):
         store.game_layer("../escape")
+
+
+def test_a_value_is_set_or_cleared_and_auto_is_a_value_like_any_other():
+    layer = {("FSR", "Fsr4Model"): "1"}
+
+    assert settings_layers.with_value(layer, ("FSR", "Sharpness"), "0.5") == {("FSR", "Fsr4Model"): "1", ("FSR", "Sharpness"): "0.5"}
+    assert settings_layers.with_value(layer, ("FSR", "Fsr4Model"), AUTO) == {("FSR", "Fsr4Model"): AUTO}
+    assert settings_layers.with_value(layer, ("FSR", "Fsr4Model"), None) == {}
+    assert layer == {("FSR", "Fsr4Model"): "1"}  # the layer itself is left as it was
+
+
+def test_the_pages_get_every_setting_with_its_value_and_source():
+    resolved = settings_layers.resolve(SCHEMA, {("FrameGen", "Enabled"): "true"}, {})
+
+    view = settings_layers.view_json(SCHEMA, resolved)
+
+    assert [s["name"] for s in view] == ["FrameGen", "FSR"]
+    enabled = view[0]["settings"][0]
+    assert (enabled["key"], enabled["kind"], enabled["value"], enabled["source"]) == ("Enabled", "bool", "true", GLOBAL)
+    model = view[1]["settings"][0]
+    assert model["choices"][1] == {"value": "1", "label": "INT8"} and model["source"] == DEFAULT
