@@ -78,3 +78,10 @@ def test_the_plugin_serves_the_launch_setup(plugin):
     setup = asyncio.run(plugin.launch_setup())
 
     assert setup["default"] == "dxgi.dll" and setup["wrapper"]["patch"] == "~/fgmod/fgmod %command%"
+
+
+def test_path_defaults_follow_a_flatpak_steam(plugin, home):
+    flatpak_steamapps = home / ".var" / "app" / "com.valvesoftware.Steam" / "home" / ".local" / "share" / "Steam" / "steamapps"
+    flatpak_steamapps.mkdir(parents=True)
+
+    assert asyncio.run(plugin.get_path_defaults())["steam_common"] == str(flatpak_steamapps / "common")

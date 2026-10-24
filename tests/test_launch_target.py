@@ -50,6 +50,7 @@ def test_in_a_full_command_the_first_exe_decides():
 )
 def test_known_launchers_are_remapped_to_the_game_binary(exe, expected_dir):
     assert launch_target.game_dir_from_command(["/proton", exe]) == expected_dir
+    assert launch_target.game_dir_from_command([exe]) == expected_dir  # the wrapper run on the .exe alone
 
 
 def test_lutris_id_and_exe_are_read_from_the_command_and_config():
