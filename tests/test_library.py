@@ -35,11 +35,6 @@ def test_only_known_generations_have_a_family(version, family):
     assert (found.id if found else None) == family
 
 
-def test_10_drops_the_nukems_frame_generation_default_that_0_9_has():
-    assert library.FAMILIES["0.9"].ini_defaults["FrameGen.FGInput"] == "nukems"
-    assert "FrameGen.FGInput" not in library.FAMILIES["10"].ini_defaults
-
-
 def test_an_archive_missing_a_required_file_is_reported():
     family = library.FAMILIES["10"]
     complete = frozenset({"OptiScaler.dll", "OptiScaler.ini", "OptiScaler/amd_fidelityfx_upscaler_dx12.dll", "x.txt"})

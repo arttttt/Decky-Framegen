@@ -113,6 +113,11 @@ def parse(marker: dict) -> PatchRecord | None:
         return None
 
 
+def placed_by(patch: PatchRecord | None, path: str) -> bool:
+    """Whether a recorded patch placed `path` (a file the directory had before is someone else's)."""
+    return patch is not None and any(item.path == path for item in patch.placed)
+
+
 def intact(patch: PatchRecord, current: dict[str, str | None]) -> bool:
     """Whether everything the patch placed is still there as it placed it (OptiScaler.ini, which
     OptiScaler rewrites, only has to be there)."""

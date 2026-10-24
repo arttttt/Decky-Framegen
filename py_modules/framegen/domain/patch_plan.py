@@ -8,7 +8,6 @@ games they patched to stock.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
 
 from . import bundle
@@ -60,13 +59,7 @@ class Link:
     destination: str
 
 
-@dataclass(frozen=True)
-class EditIni:
-    action: str
-    transform: Callable[[str], str]
-
-
-Operation = Move | DeleteFile | RemoveTree | RemoveFileOrTree | Copy | Link | EditIni
+Operation = Move | DeleteFile | RemoveTree | RemoveFileOrTree | Copy | Link
 
 
 class PlanError(Exception):

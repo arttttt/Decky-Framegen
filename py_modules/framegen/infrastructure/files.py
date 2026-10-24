@@ -40,6 +40,12 @@ def write_json(path: Path, payload: dict) -> None:
         json.dump(payload, f, indent=2)
 
 
+def read_text(path: Path) -> str:
+    """A text file as it is, its line endings kept."""
+    with open(path, encoding="utf-8", errors="replace", newline="") as f:
+        return f.read()
+
+
 def rewrite_text(path: Path, transform: Callable[[str], str]) -> bool:
     """Apply `transform` to a text file's content; write it back only if it changed.
 

@@ -167,9 +167,9 @@ def test_cli_reset_ini_replaces_the_games_ini(fgmod, home, tmp_path):
     kept = (game / "OptiScaler.ini").read_text()
     run_cli(home, "patch", "--reset-ini", "--", str(game / "Game.exe"))  # keeps the version the game is patched with
 
-    assert "Keep=1" in kept
-    # The game's own ini is backed up, and the version's, with the plugin's defaults, takes its place.
-    assert (game / "OptiScaler.ini.b").read_text() == "[Mine]\nKeep=1\n"
+    assert kept.startswith("[Mine]\nKeep=1\n")  # the game's own, with the global settings added
+    # The game's own ini is backed up, and the version's, with the global settings, takes its place.
+    assert (game / "OptiScaler.ini.b").read_text().startswith("[Mine]\nKeep=1\n")
     assert "FGInput=nukems" in (game / "OptiScaler.ini").read_text()
 
 
@@ -183,8 +183,9 @@ def test_the_wrapper_applies_settings_from_environment_variables_on_every_patch(
     first = (game / "OptiScaler.ini").read_bytes()
     LaunchWrapper(home, {"Dx12Upscaler": "fsr31"}).patch([str(game / "Game.exe")], "dxgi.dll")
 
-    assert first == b"[Upscalers]\r\nDx12Upscaler=C:\\Games\\x\r\n"  # verbatim, line endings kept
-    assert (game / "OptiScaler.ini").read_bytes() == b"[Upscalers]\r\nDx12Upscaler=fsr31\r\n"
+    assert first.startswith(b"[Upscalers]\r\nDx12Upscaler=C:\\Games\\x\r\n")  # verbatim, line endings kept
+    assert first.count(b"\n") == first.count(b"\r\n")
+    assert (game / "OptiScaler.ini").read_bytes().startswith(b"[Upscalers]\r\nDx12Upscaler=fsr31\r\n")
 
 
 def test_the_wrapper_leaves_a_game_already_patched_the_same_way_untouched(fgmod, home, tmp_path):

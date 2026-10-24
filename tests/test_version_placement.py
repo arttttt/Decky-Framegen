@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from framegen.domain import library
-from framegen.domain.patch_plan import Copy, EditIni, Link, Move, PlanError
+from framegen.domain.patch_plan import Copy, Link, Move, PlanError
 from framegen.domain.version_placement import Request, is_for_the_game, plan_patch
 
 # The files of the real OptiScaler 0.9.4 and nightly-20261023 archives (7zzs l).
@@ -25,13 +25,6 @@ V10 = frozenset({
 
 def placed(operations) -> dict[str, str]:
     return {op.destination: op.source for op in operations if isinstance(op, Copy | Link)}
-
-
-def edited_ini(operations, text: str) -> str:
-    for op in operations:
-        if isinstance(op, EditIni):
-            text = op.transform(text)
-    return text
 
 
 def test_v10_mirrors_its_archive_with_the_support_files_in_the_subfolder():
@@ -71,21 +64,13 @@ def test_the_games_files_are_backed_up_and_only_one_proxy_loads():
     assert operations.index(Move("libxess.dll", "libxess.dll.b")) < operations.index(Link("libxess.dll", "libxess.dll"))
 
 
-def test_a_fresh_ini_gets_the_familys_defaults():
-    operations = plan_patch(frozenset(), V10, library.FAMILIES["10"], Request("dxgi.dll"))
-    archive_ini = "[FSR]\nFsr4GpuSupport=auto\nFsr4Model=auto\n\n[Menu]\nUseHQFont=auto\n"
+def test_a_fresh_ini_is_the_versions_and_a_kept_one_stays():
+    fresh = plan_patch(frozenset(), V10, library.FAMILIES["10"], Request("dxgi.dll"))
+    kept = plan_patch(frozenset({"OptiScaler.ini"}), V10, library.FAMILIES["10"], Request("dxgi.dll"))
 
-    # FSR 4's model stays at auto: OptiScaler picks it for the GPU.
-    assert edited_ini(operations, archive_ini) == "[FSR]\nFsr4GpuSupport=auto\nFsr4Model=auto\n\n[Menu]\nUseHQFont=false\n"
-
-
-def test_a_kept_ini_is_left_as_the_user_set_it():
-    users = "[FSR]\nFsr4GpuSupport=2\nFsr4Model=1\n\n[Menu]\nUseHQFont=true\n"
-
-    operations = plan_patch(frozenset({"OptiScaler.ini"}), V10, library.FAMILIES["10"], Request("dxgi.dll"))
-
-    assert Copy("OptiScaler.ini", "OptiScaler.ini") not in operations
-    assert edited_ini(operations, users) == users
+    # The user's settings go in after placing (Patcher.apply_settings).
+    assert Copy("OptiScaler.ini", "OptiScaler.ini") in fresh
+    assert Copy("OptiScaler.ini", "OptiScaler.ini") not in kept
 
 
 def test_asking_to_reset_the_ini_backs_up_the_games_and_places_the_versions():
