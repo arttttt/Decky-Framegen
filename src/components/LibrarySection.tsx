@@ -9,7 +9,7 @@ export function LibrarySection({ library, onChanged }: { library: InstalledLibra
   return (
     <PanelSection title="OptiScaler versions">
       <PanelSectionRow>
-        <Field description={librarySummary(library)} focusable={true} highlightOnFocus={true} />
+        <Field description={librarySummary(library)} />
       </PanelSectionRow>
       <PanelSectionRow>
         <ButtonItem layout="below" onClick={() => showModal(<DownloadVersionsModal onChanged={onChanged} />)}>

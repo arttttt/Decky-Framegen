@@ -19,7 +19,7 @@ export function PatchPickers({ pickers, picked }: { pickers: Pickers; picked: Pi
         </PanelSectionRow>
       ) : (
         <PanelSectionRow>
-          <Field label="OptiScaler" description={choice.versionHint} focusable={true} highlightOnFocus={true} />
+          <Field label="OptiScaler" description={choice.versionHint} />
         </PanelSectionRow>
       )}
       <PanelSectionRow>

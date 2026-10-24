@@ -9,7 +9,7 @@ export function DeveloperSection() {
   return (
     <PanelSection title="Developer">
       <PanelSectionRow>
-        <Field label={view.running} focusable={true} highlightOnFocus={true} />
+        <Field label={view.running} />
       </PanelSectionRow>
       <PanelSectionRow>
         <ButtonItem layout="below" onClick={onCheck} disabled={!view.checkEnabled}>
@@ -37,7 +37,7 @@ export function DeveloperSection() {
       )}
       {view.message && (
         <PanelSectionRow>
-          <Field description={view.message} focusable={true} highlightOnFocus={true} />
+          <Field description={view.message} />
         </PanelSectionRow>
       )}
     </PanelSection>

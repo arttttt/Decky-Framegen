@@ -46,9 +46,9 @@ export function ManageVersionsModal({ closeModal, onChanged }: { closeModal?: ()
     <ModalRoot closeModal={closeModal} bAllowFullSize={true}>
       <DialogHeader>Downloaded OptiScaler versions</DialogHeader>
       <DialogBody>
-        {view.message && <Field description={view.message} focusable={true} highlightOnFocus={true} />}
+        {view.message && <Field description={view.message} />}
         <VersionRows rows={view.rows} onAction={openMenu} />
-        {view.usage && <Field description={view.usage} focusable={true} highlightOnFocus={true} />}
+        {view.usage && <Field description={view.usage} />}
       </DialogBody>
     </ModalRoot>
   );

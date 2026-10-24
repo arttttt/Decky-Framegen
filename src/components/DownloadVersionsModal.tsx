@@ -20,7 +20,7 @@ export function DownloadVersionsModal({ closeModal, onChanged }: { closeModal?: 
         <ButtonItem layout="below" onClick={onCheck} disabled={!view.checkEnabled}>
           {view.checkLabel}
         </ButtonItem>
-        {view.message && <Field description={view.message} focusable={true} highlightOnFocus={true} />}
+        {view.message && <Field description={view.message} />}
         <VersionRows rows={view.rows} onAction={onDownload} />
       </DialogBody>
     </ModalRoot>
