@@ -116,10 +116,10 @@ export function SettingsPage() {
       title={view.title}
       showTitle
       pages={[
-        { title: "Search", content: <SearchPage page={page} /> },
-        "separator",
+        { title: "Search", identifier: "search", content: <SearchPage page={page} /> },
         ...view.sections.map((section) => ({
           title: section.name,
+          identifier: section.name,
           content: (
             <PanelSection>
               <Rows rows={section.rows} page={page} locked={view.locked} />
