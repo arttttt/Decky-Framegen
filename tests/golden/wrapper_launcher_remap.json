@@ -74,6 +74,7 @@
             "sha256": "ba4bfc4b22623846be2bbcdd534cc5edf810e79915ad74fd0cd4be8457bdc149"
           }
         ],
+        "placement": "copy",
         "target_dir": "<root>/bin/x64"
       },
       "bin/x64/OptiScaler.ini": "[FrameGen]\nFGInput=nukems\nFGOutput=nukems\n\n[FSR]\nFsr4Update=true\nFsr4ForceEnableInt8=auto\n\n[Menu]\nUseHQFont=false\n",

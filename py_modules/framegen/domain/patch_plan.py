@@ -53,12 +53,20 @@ class Copy:
 
 
 @dataclass(frozen=True)
+class Link:
+    """Place a symlink to a version's file instead of a copy of it."""
+
+    source: str
+    destination: str
+
+
+@dataclass(frozen=True)
 class EditIni:
     action: str
     transform: Callable[[str], str]
 
 
-Operation = Move | DeleteFile | RemoveTree | RemoveFileOrTree | Copy | EditIni
+Operation = Move | DeleteFile | RemoveTree | RemoveFileOrTree | Copy | Link | EditIni
 
 
 class PlanError(Exception):
@@ -89,7 +97,9 @@ def preserving_existing(operations: tuple[Operation, ...], entries: frozenset[st
                 continue
             case DeleteFile(name):
                 present.discard(name)
-            case Copy(_, destination) if destination in present and f"{destination}{BACKUP_SUFFIX}" not in present:
+            case Copy(_, destination) | Link(_, destination) if (
+                destination in present and f"{destination}{BACKUP_SUFFIX}" not in present
+            ):
                 kept.append(Move(destination, f"{destination}{BACKUP_SUFFIX}"))
                 present.add(f"{destination}{BACKUP_SUFFIX}")
         kept.append(operation)

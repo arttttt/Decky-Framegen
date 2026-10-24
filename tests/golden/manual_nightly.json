@@ -50,6 +50,7 @@
             "sha256": "09d0f85efd9e311beedb55ce23be91152282c0259c28c1ceee7cd78bce7d3936"
           }
         ],
+        "placement": "copy",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",

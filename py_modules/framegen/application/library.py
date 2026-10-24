@@ -34,6 +34,7 @@ class Library:
         download: Download,
         report: Report,
         refresh_core: Callable[[], None],
+        linked_games: Callable[[str], list[str]] = lambda _version_id: [],
     ):
         self.store = LibraryStore(fgmod_path / "library")
         self.seven_zip = seven_zip
@@ -41,6 +42,8 @@ class Library:
         self.download = download
         self.report = report
         self.refresh_core = refresh_core
+        self.linked_games = linked_games
+        """The games whose files are symlinks into a version; that version can't be removed while there are any."""
         """Puts the plugin's core and launch scripts into ~/fgmod; every install does it until the patching mechanism settles."""
 
     def _published(self, channel: str) -> list[library.Available]:
@@ -151,6 +154,9 @@ class Library:
         refused = library.removal_refused(version_id, {entry.id for entry in self.store.installed()}, default)
         if refused:
             return _error(refused)
+        linked = self.linked_games(version_id)
+        if linked:
+            return _error(f"{', '.join(linked)} use {version_id} through links. Unpatch them first.")
         try:
             self.store.remove(version_id)
         except OSError as exc:

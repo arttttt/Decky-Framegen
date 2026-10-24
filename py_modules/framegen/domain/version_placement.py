@@ -15,7 +15,7 @@ from pathlib import PurePosixPath
 from . import ini
 from .bundle import VALID_DLL_NAMES
 from .library import Family
-from .patch_plan import BACKUP_SUFFIX, INI_FILENAME, Copy, EditIni, Move, Operation, PlanError, preserving_existing
+from .patch_plan import BACKUP_SUFFIX, INI_FILENAME, Copy, EditIni, Link, Move, Operation, PlanError, preserving_existing
 
 INJECTOR = "OptiScaler.dll"
 
@@ -25,6 +25,9 @@ class Request:
     dll_name: str
     reset_ini: bool = False
     """Replace the game's OptiScaler.ini with the version's instead of keeping it."""
+    link: bool = False
+    """Experimental: place symlinks to the version's files instead of copies (OptiScaler.ini stays a copy,
+    as OptiScaler writes to it)."""
 
 
 def is_for_the_game(path: str) -> bool:
@@ -49,7 +52,8 @@ def plan_patch(entries: frozenset[str], files: frozenset[str], family: Family, r
     for name in sorted(VALID_DLL_NAMES):
         if name in entries and name + BACKUP_SUFFIX not in entries:
             operations.append(Move(name, name + BACKUP_SUFFIX))
-    operations.append(Copy(INJECTOR, request.dll_name))
+    place = Link if request.link else Copy
+    operations.append(place(INJECTOR, request.dll_name))
 
     fresh_ini = request.reset_ini or INI_FILENAME not in entries
     if fresh_ini:
@@ -58,5 +62,5 @@ def plan_patch(entries: frozenset[str], files: frozenset[str], family: Family, r
 
     for path in sorted(files):
         if path not in (INJECTOR, INI_FILENAME) and is_for_the_game(path):
-            operations.append(Copy(path, path))
+            operations.append(place(path, path))
     return preserving_existing(tuple(operations), entries)

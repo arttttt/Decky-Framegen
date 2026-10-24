@@ -17,9 +17,14 @@ from .patch_plan import (
     INI_FILENAME,
     Copy,
     DeleteFile,
+    Link,
     Move,
     Operation,
 )
+
+LINK_PREFIX = "link:"
+"""What identifies a placed symlink in place of a sha256: `link:` and the path it points to. A link is
+ours while it points where we pointed it, whether or not its target still exists."""
 
 FORMAT = 2
 """Markers without this format come from plugin versions before the record existed."""
@@ -29,7 +34,8 @@ FORMAT = 2
 class Placed:
     path: str
     sha256: str | None
-    """The content placed; None for a file OptiScaler itself rewrites (its ini), which is ours whatever it holds."""
+    """The content placed (a link's is its target, see LINK_PREFIX); None for a file OptiScaler itself rewrites
+    (its ini), which is ours whatever it holds."""
 
 
 @dataclass(frozen=True)
@@ -68,7 +74,7 @@ def record(
         match operation:
             case Move(source, destination) if destination == source + BACKUP_SUFFIX:
                 backups.append(Backup(source, destination))
-            case Copy(source, destination):
+            case Copy(source, destination) | Link(source, destination):
                 sha = None if destination == INI_FILENAME else bundle_hashes[source]
                 placed[destination] = Placed(destination, sha)
     created = sorted(
