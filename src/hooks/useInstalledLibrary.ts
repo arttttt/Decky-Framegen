@@ -10,7 +10,10 @@ const listeners = new Set<() => void>();
 const reload = (): void => {
   requested = true;
   void safeAsyncOperation(libraryInstalled, "useInstalledLibrary -> libraryInstalled").then((answer) => {
-    if (!answer) return;
+    if (!answer) {
+      requested = false; // the next panel or page that opens asks again
+      return;
+    }
     library = answer;
     listeners.forEach((listener) => listener());
   });
