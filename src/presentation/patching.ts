@@ -15,20 +15,13 @@ export const patchButton = (
 export const libraryReady = (library: InstalledLibrary | null): boolean | null =>
   library === null ? null : library.versions.length > 0;
 
-/** What the patch calls send: the version id, and whether to place it by symlinks into the library
- *  instead of copies. */
-export type PatchWith = { versionId: string; link: boolean };
-
-/** Placing by symlinks is an experiment: offered in development builds only. */
-export type LinkChoice = { offered: boolean; on: boolean };
-
 export type PatchChoiceView = {
   versionOptions: { data: string; label: string }[];
   versionId: string | null;
   versionHint: string | null;
-  linkToggleVisible: boolean;
   ready: boolean;
-  patchWith: PatchWith;
+  /** The version id the patch calls send. */
+  patchWith: string;
 };
 
 /**
@@ -38,7 +31,6 @@ export type PatchChoiceView = {
 export const patchChoice = (
   library: InstalledLibrary | null,
   picked: string | null,
-  link: LinkChoice = { offered: false, on: false },
 ): PatchChoiceView => {
   const versions = library?.versions ?? [];
   const byId = (id: string | null): InstalledVersion | undefined => versions.find((v) => v.id === id);
@@ -48,8 +40,7 @@ export const patchChoice = (
     versionId: version?.id ?? null,
     versionHint: version ? null : "No OptiScaler version is downloaded. Use Download versions… under OptiScaler versions.",
     ready: version !== undefined,
-    linkToggleVisible: link.offered,
-    patchWith: { versionId: version?.id ?? "", link: link.offered && link.on },
+    patchWith: version?.id ?? "",
   };
 };
 
@@ -73,7 +64,6 @@ export type GameStatus = {
   dll_name?: string | null;
   optiscaler_version?: string | null;
   newer_version?: string | null;
-  linked?: boolean;
 };
 
 export type SteamGameView = {
@@ -96,8 +86,6 @@ export const steamGameView = (s: {
   const { status, busy, dllName } = s;
   const otherDll = Boolean(status?.patched && status.dll_name && status.dll_name !== dllName);
   const dllLabel = status?.dll_name || "unknown";
-  // A linked game runs OptiScaler from the library: the first thing to know about how it is patched.
-  const patched = status?.linked ? "Patched with links to the library" : "Patched";
 
   const statusLine = ((): SteamGameView["status"] => {
     if (!s.gameSelected) return { text: "—", tone: "neutral" };
@@ -105,8 +93,8 @@ export const steamGameView = (s: {
     if (!status || status.status === "error") return { text: status?.message || "—", tone: "neutral" };
     if (!status.install_found) return { text: "Install not found", tone: "warning" };
     if (!status.patched) return { text: "Not patched", tone: "neutral" };
-    if (otherDll) return { text: `${patched} (${dllLabel}) — switch available`, tone: "warning" };
-    return { text: `${patched} (${dllLabel})`, tone: "good" };
+    if (otherDll) return { text: `Patched (${dllLabel}) — switch available`, tone: "warning" };
+    return { text: `Patched (${dllLabel})`, tone: "good" };
   })();
 
   const patchLabel = ((): string => {

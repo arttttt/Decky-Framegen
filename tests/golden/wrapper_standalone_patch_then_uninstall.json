@@ -21,7 +21,7 @@
         "placed": [
           {
             "path": "dxgi.dll",
-            "sha256": "f5609871045a41fc81c64efd358ee3e571c83d819fea2dfc56ea16ed3e330676"
+            "sha256": "link:<library>/nightly-20261023/files/OptiScaler.dll"
           },
           {
             "path": "OptiScaler.ini",
@@ -29,28 +29,28 @@
           },
           {
             "path": "OptiScaler/D3D12_OptiScaler/D3D12Core.dll",
-            "sha256": "52ad4daf719d0c44039ceb05a5519d8353fb5b6e494359e813e1a13c8909dbcf"
+            "sha256": "link:<library>/nightly-20261023/files/OptiScaler/D3D12_OptiScaler/D3D12Core.dll"
           },
           {
             "path": "OptiScaler/amd_fidelityfx_upscaler_dx12.dll",
-            "sha256": "0f91675ccc2cea0f17cc0adce5083e86a2dd0977dd8626d504fae03725c461d6"
+            "sha256": "link:<library>/nightly-20261023/files/OptiScaler/amd_fidelityfx_upscaler_dx12.dll"
           },
           {
             "path": "OptiScaler/libxess.dll",
-            "sha256": "09d0f85efd9e311beedb55ce23be91152282c0259c28c1ceee7cd78bce7d3936"
+            "sha256": "link:<library>/nightly-20261023/files/OptiScaler/libxess.dll"
           }
         ],
-        "placement": "copy",
+        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
       "OptiScaler": "<dir>",
       "OptiScaler.ini": "[FrameGen]\nFGInput=auto\n\n[FSR]\nFsr4GpuSupport=auto\nFsr4Model=auto\n\n[Menu]\nUseHQFont=false\n",
       "OptiScaler/D3D12_OptiScaler": "<dir>",
-      "OptiScaler/D3D12_OptiScaler/D3D12Core.dll": "bundle:v10 D3D12Core.dll",
-      "OptiScaler/amd_fidelityfx_upscaler_dx12.dll": "bundle:v10 amd_fidelityfx_upscaler_dx12.dll",
-      "OptiScaler/libxess.dll": "bundle:v10 libxess.dll",
-      "dxgi.dll": "bundle:v10 OptiScaler.dll"
+      "OptiScaler/D3D12_OptiScaler/D3D12Core.dll": "-> <library>/nightly-20261023/files/OptiScaler/D3D12_OptiScaler/D3D12Core.dll",
+      "OptiScaler/amd_fidelityfx_upscaler_dx12.dll": "-> <library>/nightly-20261023/files/OptiScaler/amd_fidelityfx_upscaler_dx12.dll",
+      "OptiScaler/libxess.dll": "-> <library>/nightly-20261023/files/OptiScaler/libxess.dll",
+      "dxgi.dll": "-> <library>/nightly-20261023/files/OptiScaler.dll"
     }
   },
   {

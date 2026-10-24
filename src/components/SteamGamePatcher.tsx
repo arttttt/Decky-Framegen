@@ -5,7 +5,7 @@ import { listInstalledGames, getGameStatus, patchGame } from "../api";
 import { getAppLaunchOptions, setAppLaunchOptions } from "../api/steamClient";
 import { UnpatchConfirmation } from "./UnpatchConfirmation";
 import { useUnpatch } from "../hooks/useUnpatch";
-import { GameStatus, PatchWith, SteamGameView, steamGameView } from "../presentation/patching";
+import { GameStatus, SteamGameView, steamGameView } from "../presentation/patching";
 
 type GameEntry = { appid: string; name: string; install_found?: boolean };
 
@@ -23,7 +23,7 @@ let lastSelectedAppId = "";
 
 interface SteamGamePatcherProps {
   dllName: string;
-  patchWith: PatchWith;
+  patchWith: string;
   ready: boolean;
 }
 
@@ -131,7 +131,7 @@ export function SteamGamePatcher({ dllName, patchWith, ready }: SteamGamePatcher
       } catch {
         // non-fatal: proceed without current launch options
       }
-      const result = await patchGame(selectedAppId, dllName, currentLaunchOptions, patchWith.versionId, patchWith.link);
+      const result = await patchGame(selectedAppId, dllName, currentLaunchOptions, patchWith);
       if (result.status !== "success") throw new Error(result.message || "Patch failed.");
       setAppLaunchOptions(Number(selectedAppId), result.launch_options || "");
       const msg = result.message || `Patched ${selectedGame.name}.`;

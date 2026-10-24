@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 
 from conftest import KNOWN_CONTENT, sha256
@@ -19,11 +20,14 @@ GOLDEN_DIR = Path(__file__).parent / "golden"
 # Fields that differ between runs and say nothing about behaviour.
 _VOLATILE_FIELDS = ("patched_at", "installed_at", "updated_at")
 
+# A library version's files, wherever the test's ~/fgmod is: what a patch's symlinks point to.
+_LIBRARY_PATH = re.compile(r"/\S*?/fgmod/library/versions/")
+
 
 def _stabilize(value, root: Path):
-    """Replace absolute paths under `root` and drop volatile fields, anywhere in a JSON value."""
+    """Replace absolute paths under `root` and the library, and drop volatile fields, anywhere in a JSON value."""
     if isinstance(value, str):
-        return value.replace(str(root), "<root>")
+        return _LIBRARY_PATH.sub("<library>/", value.replace(str(root), "<root>"))
     if isinstance(value, list):
         return [_stabilize(item, root) for item in value]
     if isinstance(value, dict):
@@ -34,13 +38,16 @@ def _stabilize(value, root: Path):
 def describe_tree(root: Path) -> dict[str, object]:
     """A readable, run-independent picture of a directory tree.
 
-    Directories map to "<dir>". Files whose content is a known placeholder map
-    to its label, text configs to their text, JSON (the patch marker,
-    the install manifest) to its parsed form without volatile fields, and anything else to a short hash.
+    Directories map to "<dir>", symlinks to where they point. Files whose content is a known placeholder
+    map to its label, text configs to their text, JSON (the patch marker, the install manifest) to its
+    parsed form without volatile fields, and anything else to a short hash.
     """
     tree: dict[str, object] = {}
     for path in sorted(root.rglob("*")):
         rel = path.relative_to(root).as_posix()
+        if path.is_symlink():
+            tree[rel] = "-> " + _stabilize(os.readlink(path), root)
+            continue
         if path.is_dir():
             tree[rel] = "<dir>"
             continue

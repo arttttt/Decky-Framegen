@@ -23,8 +23,8 @@ V10 = frozenset({
 })
 
 
-def copies(operations) -> dict[str, str]:
-    return {op.destination: op.source for op in operations if isinstance(op, Copy)}
+def placed(operations) -> dict[str, str]:
+    return {op.destination: op.source for op in operations if isinstance(op, Copy | Link)}
 
 
 def edited_ini(operations, text: str) -> str:
@@ -37,7 +37,7 @@ def edited_ini(operations, text: str) -> str:
 def test_v10_mirrors_its_archive_with_the_support_files_in_the_subfolder():
     operations = plan_patch(frozenset({"Game.exe"}), V10, library.FAMILIES["10"], Request("dxgi.dll"))
 
-    assert copies(operations) == {
+    assert placed(operations) == {
         "dxgi.dll": "OptiScaler.dll",
         "OptiScaler.ini": "OptiScaler.ini",
         "OptiScaler/D3D12_OptiScaler/D3D12Core.dll": "OptiScaler/D3D12_OptiScaler/D3D12Core.dll",
@@ -49,11 +49,11 @@ def test_v10_mirrors_its_archive_with_the_support_files_in_the_subfolder():
 
 def test_0_9_puts_everything_next_to_the_proxy_and_leaves_out_what_is_for_people():
     operations = plan_patch(frozenset({"Game.exe"}), V094, library.FAMILIES["0.9"], Request("winmm.dll"))
-    placed = copies(operations)
+    files = placed(operations)
 
-    assert placed["winmm.dll"] == "OptiScaler.dll"
-    assert {"libxess.dll", "fakenvapi.ini", "D3D12_Optiscaler/D3D12Core.dll"} <= placed.keys()
-    assert not {"!!.txt", "setup_linux.sh", "setup_windows.bat", "Licenses/XeSS_LICENSE.txt", "OptiScaler.dll"} & placed.keys()
+    assert files["winmm.dll"] == "OptiScaler.dll"
+    assert {"libxess.dll", "fakenvapi.ini", "D3D12_Optiscaler/D3D12Core.dll"} <= files.keys()
+    assert not {"!!.txt", "setup_linux.sh", "setup_windows.bat", "Licenses/XeSS_LICENSE.txt", "OptiScaler.dll"} & files.keys()
 
 
 @pytest.mark.parametrize("path", ["Licenses/X.txt", "!!.txt", "setup_linux.sh", "OptiScaler/fetch.bat"])
@@ -68,7 +68,7 @@ def test_the_games_files_are_backed_up_and_only_one_proxy_loads():
 
     assert Move("version.dll", "version.dll.b") in operations  # another proxy would load OptiScaler again
     assert Move("dxgi.dll", "dxgi.dll.b") in operations
-    assert operations.index(Move("libxess.dll", "libxess.dll.b")) < operations.index(Copy("libxess.dll", "libxess.dll"))
+    assert operations.index(Move("libxess.dll", "libxess.dll.b")) < operations.index(Link("libxess.dll", "libxess.dll"))
 
 
 def test_a_fresh_ini_gets_the_familys_defaults():
@@ -108,12 +108,10 @@ def test_what_cannot_be_placed_is_refused(files, request_, message):
         plan_patch(frozenset(), files, library.FAMILIES["10"], request_)
 
 
-def test_linking_places_symlinks_for_everything_but_the_ini():
-    operations = plan_patch(frozenset({"Game.exe", "libxess.dll"}), V094, library.FAMILIES["0.9"], Request("dxgi.dll", link=True))
+def test_everything_but_the_ini_is_a_symlink_into_the_library():
+    operations = plan_patch(frozenset({"Game.exe", "libxess.dll"}), V094, library.FAMILIES["0.9"], Request("dxgi.dll"))
 
     assert Link("OptiScaler.dll", "dxgi.dll") in operations
     assert Link("libxess.dll", "libxess.dll") in operations
     assert Copy("OptiScaler.ini", "OptiScaler.ini") in operations  # OptiScaler writes its ini: never shared
     assert not any(isinstance(op, Copy) and op.destination != "OptiScaler.ini" for op in operations)
-    # The game's own file is still backed up before the link takes its place.
-    assert operations.index(Move("libxess.dll", "libxess.dll.b")) < operations.index(Link("libxess.dll", "libxess.dll"))
