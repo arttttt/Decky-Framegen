@@ -13,7 +13,10 @@ def test_a_linked_patch_points_into_the_library_and_unpatching_restores_the_game
     before = snapshot(game)
     files = fgmod / "library" / "versions" / "stable-0.9.4" / "files"
 
-    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", "", True))["status"] == "success"
+    patched = run(plugin.manual_patch_directory(str(game), "dxgi.dll", "", True))
+
+    assert patched["status"] == "success"
+    assert patched["message"] == f"OptiScaler 0.9.4 is linked from the library into {game}."  # the user sees how it went
 
     assert os.readlink(game / "dxgi.dll") == str(files / "OptiScaler.dll")
     assert os.readlink(game / "libxess.dll") == str(files / "libxess.dll")

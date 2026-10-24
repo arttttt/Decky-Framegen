@@ -95,7 +95,7 @@ describe("game version line", () => {
       "nightly-20261023. nightly-20261101 is in the library; choose it and patch again to update.",
     );
     expect(gameVersionLine({ patched: true })).toBe("Unknown version");
-    expect(gameVersionLine({ ...patched, linked: true })).toBe("nightly-20261023 (linked)");
+    expect(gameVersionLine({ ...patched, linked: true })).toBe("nightly-20261023, linked from the library");
     expect(gameVersionLine({ patched: false })).toBeNull();
     expect(gameVersionLine(null)).toBeNull();
   });

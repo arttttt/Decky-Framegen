@@ -123,7 +123,7 @@ class Patcher:
             return _error(f"Patch failed: {exc}")
         return {
             "status": "success",
-            "message": f"OptiScaler {entry.version} is in {directory}.",
+            "message": f"OptiScaler {entry.version} is {'linked from the library into' if link else 'in'} {directory}.",
             "optiscaler_version": entry.id,
         }
 

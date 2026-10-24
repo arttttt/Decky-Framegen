@@ -64,7 +64,7 @@ export const gameVersionLine = (status: {
   linked?: boolean;
 } | null): string | null => {
   if (!status?.patched) return null;
-  const line = `${status.optiscaler_version ?? "Unknown version"}${status.linked ? " (linked)" : ""}`;
+  const line = `${status.optiscaler_version ?? "Unknown version"}${status.linked ? ", linked from the library" : ""}`;
   return status.newer_version ? `${line}. ${status.newer_version} is in the library; choose it and patch again to update.` : line;
 };
 
