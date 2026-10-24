@@ -364,3 +364,21 @@ def test_only_a_version_in_the_library_is_downloaded_again(world):
 
     assert result == {"status": "error", "message": f"{NEWEST} is not in the library."}
     assert download.urls == []
+
+
+def test_a_replace_cut_short_between_its_two_moves_gets_the_old_copy_back(world):
+    world.library().install(library.NIGHTLY, NEWEST)
+    before = world.tree()
+    versions = world.fgmod / "library" / "versions"
+    (versions / NEWEST).replace(versions / f".{NEWEST}.old")  # the device slept right after setting it aside
+
+    world.library(FakeDownload(b"not the published archive")).install(library.NIGHTLY, "nightly-20261020")
+
+    assert world.tree() == before
+
+
+def test_a_finished_replace_leaves_no_old_copy_behind(world):
+    world.library().install(library.NIGHTLY, NEWEST)
+    world.library().reinstall(NEWEST)
+
+    assert not list((world.fgmod / "library" / "versions").glob(".*"))

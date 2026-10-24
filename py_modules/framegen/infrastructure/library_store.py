@@ -40,8 +40,17 @@ class LibraryStore:
     # ── staging an install ───────────────────────────────────────────────────
 
     def clear_partial(self) -> None:
-        """Remove what an interrupted install left behind."""
+        """Remove what an interrupted install left behind, and settle an interrupted replace:
+        an old copy set aside comes back when no new copy took its place."""
         shutil.rmtree(self.partial_dir, ignore_errors=True)
+        if not self.versions_dir.is_dir():
+            return
+        for aside in self.versions_dir.glob(".*.old"):
+            current = self.version_dir(aside.name[1 : -len(".old")])
+            if current.exists():
+                shutil.rmtree(aside, ignore_errors=True)
+            else:
+                aside.replace(current)
 
     def staging(self, version_id: str) -> Path:
         """An empty directory, on the library's filesystem, to assemble a version in."""
@@ -65,7 +74,9 @@ class LibraryStore:
         """Commit a fresh copy of a version that is already in the library. The old copy is moved
         aside first and comes back if the new one can't be moved in."""
         current = self.version_dir(installed.id)
-        aside = self.partial_dir / f"{installed.id}.old"
+        # Beside the versions, not in .partial: clearing .partial must never take the old copy.
+        aside = self.versions_dir / f".{installed.id}.old"
+        shutil.rmtree(aside, ignore_errors=True)
         current.replace(aside)
         try:
             self.commit(stage, installed)
