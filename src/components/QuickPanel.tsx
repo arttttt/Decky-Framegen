@@ -3,10 +3,12 @@ import { openFramegenPage, openGamePage } from "../api/framegenPage";
 import { useGamePatch } from "../hooks/useGamePatch";
 import { useInstalledLibrary } from "../hooks/useInstalledLibrary";
 import { useLaunchSetup } from "../hooks/useLaunchSetup";
+import { usePluginUpdates } from "../hooks/usePluginUpdates";
 import { useSteamGames } from "../hooks/useSteamGames";
 import { proxyDllView } from "../presentation/launch";
 import { librarySummary } from "../presentation/library";
 import { gamePickerView, libraryReady, quickPatchWith } from "../presentation/patching";
+import { updateAvailableLine } from "../presentation/updates";
 import { GamePatchCard } from "./GamePatchCard";
 
 /** The Quick Access panel: a game's patch at a glance. Everything else is on the plugin's pages. */
@@ -18,6 +20,7 @@ export function QuickPanel() {
     quickPatchWith(status, launch, libraryReady(library) === true),
   );
   const picker = gamePickerView(games.games, games.loading);
+  const update = updateAvailableLine(usePluginUpdates().check);
 
   return (
     <PanelSection>
@@ -44,6 +47,11 @@ export function QuickPanel() {
       <PanelSectionRow>
         <Field label="OptiScaler" description={librarySummary(library)} />
       </PanelSectionRow>
+      {update && (
+        <PanelSectionRow>
+          <Field label="Update" description={update} />
+        </PanelSectionRow>
+      )}
       <PanelSectionRow>
         <ButtonItem layout="below" onClick={openFramegenPage}>
           Open Framegen

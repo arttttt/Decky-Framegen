@@ -19,6 +19,7 @@ This plugin uses OptiScaler to replace DLSS calls with FSR3/FSR3.1, giving you:
 - **Smart Installation**: Handles all required dependencies and library files
 - **Game Patching**: Easy copy-paste launch commands for enabling/disabling the mod per game
 - **Games**: **Framegen → Games** lists every game the plugin patched, with its OptiScaler version, proxy DLL and anything wrong with the patch; a Steam game opens its page, a directory patched by path is unpatched right there.
+- **Updates**: **Framegen → Updates** checks this repository's releases (on opening, and by a button) and installs a newer one through Decky; the Quick Access panel says when one is out. **Developer mode** there adds development builds, at your own risk.
 - **OptiScaler Wiki**: Direct access to OptiScaler documentation and settings via a webpage launch button right inside the plugin.
 
 ## How to Use

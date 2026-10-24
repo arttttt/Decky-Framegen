@@ -123,9 +123,45 @@ export const libraryRemoval = callable<[version_id: string], LibraryRemoval>("li
 /** The arguments of Decky Loader's `utilities/install_plugin`, prepared by the backend. */
 export type DeckyInstallRequest = [artifact: string, name: string, version: string, hash: string, installType: number];
 
-export type DevBuild =
-  | { is_dev_build: false }
-  | { is_dev_build: true; channel: string; commit: string; short_commit: string; title: string };
+/** The running build: known when its package says where it came from, so it can update itself. */
+export type PluginBuild =
+  | { known: false; version: string; message: string }
+  | {
+      known: true;
+      channel: string;
+      commit: string;
+      short_commit: string;
+      title: string;
+      version: string;
+      is_dev_build: boolean;
+      /** Development builds are offered; always on in a development build. */
+      developer_mode: boolean;
+    };
+
+/** The newest release and what it means for the running build: an update, a switch from a development
+ *  build, or nothing. */
+export type LatestStable =
+  | {
+      status: "success";
+      release: { version: string; title: string; published_at: string } | null;
+      offer: "update" | "switch" | "none";
+    }
+  | { status: "error"; message: string };
+
+export type InstallRequestAnswer =
+  | { status: "success"; install_request: DeckyInstallRequest }
+  | { status: "error"; message: string };
+
+export const pluginBuild = callable<[], PluginBuild>("plugin_build");
+
+export const setDeveloperMode = callable<[on: boolean], { status: "success"; developer_mode: boolean } | { status: "error"; message: string }>(
+  "set_developer_mode",
+);
+
+export const latestStable = callable<[], LatestStable>("latest_stable");
+
+/** Asked at install time, in case a newer release came out since the check. */
+export const stableInstallRequest = callable<[], InstallRequestAnswer>("stable_install_request");
 
 export type AvailableDevBuild = {
   channel: string;
@@ -140,15 +176,13 @@ export type DevBuildList =
   | { status: "success"; builds: AvailableDevBuild[] }
   | { status: "error"; message: string };
 
-export const getDevBuild = callable<[], DevBuild>("get_dev_build");
-
 export const listDevBuilds = callable<[], DevBuildList>("list_dev_builds");
 
 /** Asked at install time: a channel's build is replaced on every push and the old download is gone. */
-export const devInstallRequest = callable<
-  [channel: string],
-  { status: "success"; install_request: DeckyInstallRequest } | { status: "error"; message: string }
->("dev_install_request");
+export const devInstallRequest = callable<[channel: string], InstallRequestAnswer>("dev_install_request");
+
+/** The backend's event for a build's download: channel, bytes received, total bytes if known. */
+export const PLUGIN_DOWNLOAD_EVENT = "plugin_download";
 
 // ── Unpatching ───────────────────────────────────────────────────────────────
 
