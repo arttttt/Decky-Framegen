@@ -180,7 +180,7 @@ def test_a_game_patched_by_an_older_version_is_left_alone(plugin, fgmod, tmp_pat
         result = run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))
 
     assert result == {"status": "error", "message": "This game was patched by an older version of the plugin. "
-                                                     "Use Reset to stock to remove that patch first."}
+                                                     "Unpatch it first: the plugin shows what that removes."}
     assert snapshot(game) == before
 
 
@@ -212,3 +212,10 @@ def test_a_repatch_keeps_the_users_ini_settings_unless_asked_to_reset_them(plugi
     # Either way the ini is the patch's, and unpatching removes it.
     assert patcher.unpatch_directory(game)["status"] == "success"
     assert sorted(p.name for p in game.iterdir()) == ["Game.exe"]
+
+
+def test_unpatching_a_directory_with_a_record_needs_no_confirmation(plugin, fgmod, tmp_path):
+    game = make_game_dir(tmp_path / "games" / "Game")
+    run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))
+
+    assert run(plugin.preview_unpatch_directory(str(game))) == {"status": "success", "mode": "record", "target_dir": str(game)}

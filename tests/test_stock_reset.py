@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from conftest import game_file, make_game_dir, run, snapshot, write
@@ -100,23 +102,31 @@ def test_launch_options_go_back_to_the_users_own_only_when_the_plugin_wrote_them
 # ── integration: the plugin, on one game the user picked ─────────────────────
 
 
-def test_previewing_a_reset_changes_nothing_and_resetting_restores_the_game(plugin, fgmod, steam_library):
-    root = steam_library.add_game("700", "Old Game", {"libxess.dll": game_file("libxess.dll")})
+OLD_MARKER = json.dumps({"dll_name": "dxgi.dll", "original_launch_options": "mangohud %command%"}).encode()
+
+
+def test_unpatching_an_older_versions_patch_previews_a_reset_and_resets_once_confirmed(plugin, steam_library):
+    root = steam_library.add_game("700", "Old Game", {
+        "FRAMEGEN_PATCH": OLD_MARKER, "dxgi.dll": b"old opti", "OptiScaler.ini": b"[x]",
+        "libxess.dll": b"old opti xess", "libxess.dll.b": game_file("libxess.dll"),
+    })
     other = steam_library.add_game("701", "Other Game", {"libxess.dll": game_file("libxess.dll")})
-    assert run(plugin.patch_game("700", "dxgi.dll", "mangohud %command%", ""))["status"] == "success"
-    assert run(plugin.patch_game("701", "dxgi.dll", "", ""))["status"] == "success"
     patched, other_before = snapshot(root), snapshot(other)
 
-    preview = run(plugin.preview_reset_game("700", "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%"))
+    preview = run(plugin.preview_unpatch_game("700", OURS))
 
     assert snapshot(root) == patched
-    assert preview["status"] == "success"
+    assert preview["status"] == "success" and preview["mode"] == "reset"
     assert preview["evidence"] == stock_reset.MARKER
     assert "libxess.dll" in preview["restore"]
     assert "dxgi.dll" in preview["remove"]
     assert preview["launch_options"] == "mangohud %command%"
 
-    result = run(plugin.reset_game("700", "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%"))
+    unconfirmed = run(plugin.unpatch_game("700", OURS))
+    assert unconfirmed["status"] == "error" and "older version of the plugin" in unconfirmed["message"]
+    assert snapshot(root) == patched
+
+    result = run(plugin.unpatch_game("700", OURS, True))
 
     assert result["status"] == "success"
     assert result["launch_options"] == "mangohud %command%"
@@ -125,12 +135,31 @@ def test_previewing_a_reset_changes_nothing_and_resetting_restores_the_game(plug
     assert snapshot(other) == other_before
 
 
+def test_a_game_patched_with_a_record_is_unpatched_by_it_even_when_a_reset_is_confirmed(plugin, fgmod, steam_library):
+    # The device report: a v10 patch puts its libxess under OptiScaler/, so the game's own root
+    # libxess.dll has no backup — and the old reset deleted it by name.
+    from conftest import NIGHTLY
+
+    root = steam_library.add_game("720", "New Game", {
+        "libxess.dll": game_file("libxess.dll"), "amd_fidelityfx_dx12.dll": game_file("amd_fidelityfx_dx12.dll"),
+    })
+    before = snapshot(root)
+    assert run(plugin.patch_game("720", "dxgi.dll", "", "", NIGHTLY))["status"] == "success"
+
+    preview = run(plugin.preview_unpatch_game("720", OURS))
+    result = run(plugin.unpatch_game("720", OURS, True))
+
+    assert preview == {"status": "success", "mode": "record", "name": "New Game", "target_dir": str(root)}
+    assert result["status"] == "success"
+    assert snapshot(root) == before
+
+
 def test_a_game_the_plugin_never_touched_is_refused(plugin, steam_library):
     root = steam_library.add_game("710", "Own Opti Game", {"dxgi.dll": b"user's own OptiScaler", "OptiScaler.ini": b"[x]"})
     before = snapshot(root)
 
-    preview = run(plugin.preview_reset_game("710", ""))
-    result = run(plugin.reset_game("710", ""))
+    preview = run(plugin.preview_unpatch_game("710", ""))
+    result = run(plugin.unpatch_game("710", "", True))
 
     assert preview["status"] == result["status"] == "error"
     assert "nothing to reset" in result["message"]
@@ -146,7 +175,9 @@ def test_a_directory_with_an_old_versions_backups_is_reset(plugin, tmp_path):
     write(game / "plugins" / "OtherMod.asi", game_file("OtherMod.asi"))
     write(game / "plugins" / "OptiPatcher.asi", b"ours")
 
-    result = run(plugin.reset_directory(str(game)))
+    assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"  # unconfirmed: nothing to undo by record
+    assert (game / "libxess.dll.b").exists()
+    result = run(plugin.manual_unpatch_directory(str(game), True))
 
     assert result["status"] == "success"
     assert result["evidence"] == stock_reset.BACKUPS
@@ -160,9 +191,16 @@ def test_a_directory_with_an_old_versions_backups_is_reset(plugin, tmp_path):
 def test_the_bundle_itself_is_never_reset(plugin, fgmod, inside):
     before = snapshot(fgmod)
 
-    preview = run(plugin.preview_reset_directory(str(fgmod / inside)))
-    result = run(plugin.reset_directory(str(fgmod / inside)))
+    preview = run(plugin.preview_unpatch_directory(str(fgmod / inside)))
+    result = run(plugin.manual_unpatch_directory(str(fgmod / inside), True))
 
     assert preview["status"] == result["status"] == "error"
     assert "OptiScaler bundle itself" in result["message"]
     assert snapshot(fgmod) == before
+
+
+def test_a_support_file_removed_without_a_backup_is_named_as_maybe_the_games():
+    # Games ship XeSS and FidelityFX DLLs themselves; a reset can only remove them by name.
+    reset = stock_reset.plan(frozenset({"Game.exe", "FRAMEGEN_PATCH", "dxgi.dll", "libxess.dll"}), frozenset())
+
+    assert "libxess.dll" in reset.unrecoverable
