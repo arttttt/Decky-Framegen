@@ -20,9 +20,9 @@ describe("unpatch step", () => {
   });
 
   it("passes a refusal through without offering anything", () => {
-    expect(unpatchStep({ status: "error", message: "No sign of Decky Framegen" }, "Old Game")).toEqual({
+    expect(unpatchStep({ status: "error", message: "No sign of DeckyScaler" }, "Old Game")).toEqual({
       kind: "refused",
-      message: "No sign of Decky Framegen",
+      message: "No sign of DeckyScaler",
     });
   });
 

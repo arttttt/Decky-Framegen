@@ -18,8 +18,8 @@ from framegen.domain import dev_build
 from framegen.infrastructure import github_releases
 
 FIXTURE = Path(__file__).parent / "fixtures" / "github_releases.json"
-REPOSITORY = "arttttt/Decky-Framegen"
-PLUGIN = "Decky-Framegen"
+REPOSITORY = "arttttt/DeckyScaler"
+PLUGIN = "DeckyScaler"
 DEV_COMMIT = "9f2c1a6bd4e8c7a5f3b2d1e0f6a5b4c3d2e1f0a9"
 PR_COMMIT = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
 RUNNING = dev_build.build_info(REPOSITORY, "dev", DEV_COMMIT)
@@ -50,7 +50,7 @@ def test_a_release_carries_what_the_device_needs_to_show_and_install_it():
         info=dev_build.build_info(REPOSITORY, "pr-12", PR_COMMIT),
         title="PR #12: Add a Developer section",
         published_at="2026-10-23T10:00:00Z",
-        url="https://github.com/arttttt/Decky-Framegen/releases/download/pr-12/Decky-Framegen-1a2b3c4.zip",
+        url="https://github.com/arttttt/DeckyScaler/releases/download/pr-12/DeckyScaler-1a2b3c4.zip",
         sha256="7e00ac50b658c754697f810ff3c91e881552081ddb7743b7f72ef500f1c5ca70",
     )
 
@@ -69,17 +69,17 @@ def _broken(change) -> dict:
         _broken(lambda e: e.update(tag_name="nightly")),
         _broken(lambda e: e.update(target_commitish="main")),
         _broken(lambda e: e.update(assets=[])),
-        _broken(lambda e: e["assets"][0].update(name="Decky-Framegen-0000000.zip")),
+        _broken(lambda e: e["assets"][0].update(name="DeckyScaler-0000000.zip")),
         _broken(lambda e: e["assets"][0].update(state="starter")),
         _broken(lambda e: e["assets"][0].pop("digest")),
         _broken(lambda e: e["assets"][0].update(digest="md5:00")),
         _broken(lambda e: e["assets"][0].update(browser_download_url="http://example.com/a.zip")),
-        _broken(lambda e: e["assets"][0].update(browser_download_url="https://example.com/Decky-Framegen-1a2b3c4.zip")),
+        _broken(lambda e: e["assets"][0].update(browser_download_url="https://example.com/DeckyScaler-1a2b3c4.zip")),
         _broken(lambda e: e["assets"][0].update(
-            browser_download_url="https://github.com/someone/Decky-Framegen/releases/download/pr-12/Decky-Framegen-1a2b3c4.zip"
+            browser_download_url="https://github.com/someone/DeckyScaler/releases/download/pr-12/DeckyScaler-1a2b3c4.zip"
         )),
         _broken(lambda e: e["assets"][0].update(
-            browser_download_url="https://github.com/arttttt/Decky-Framegen/releases/download/dev/Decky-Framegen-1a2b3c4.zip"
+            browser_download_url="https://github.com/arttttt/DeckyScaler/releases/download/dev/DeckyScaler-1a2b3c4.zip"
         )),
         "not a release",
     ],
@@ -119,14 +119,14 @@ def test_the_install_request_fills_deckys_install_plugin_arguments_in_order():
     release = dev_build.releases([pr_12()], RUNNING, PLUGIN)[0]
 
     request = dev_build.install_request(
-        PLUGIN, dev_build.dev_label(release), release.sha256, "/runtime/Decky-Framegen-1a2b3c4.zip", dev_build.DECKY_INSTALL_UPDATE
+        PLUGIN, dev_build.dev_label(release), release.sha256, "/runtime/DeckyScaler-1a2b3c4.zip", dev_build.DECKY_INSTALL_UPDATE
     )
     bound = inspect.signature(_decky_install_plugin).bind(None, *request).arguments
 
     assert bound == {
         "self": None,
         # A local file: Decky reads it instead of downloading (browser.py:194, v3.3.0).
-        "artifact": "file:///runtime/Decky-Framegen-1a2b3c4.zip",
+        "artifact": "file:///runtime/DeckyScaler-1a2b3c4.zip",
         "name": PLUGIN,
         "version": "pr-12-1a2b3c4",
         "hash": release.sha256,
@@ -254,20 +254,20 @@ def test_installing_downloads_the_build_published_now_and_hands_decky_the_file(p
     replaced = listing()
     pr = next(entry for entry in replaced if entry["tag_name"] == "pr-12")
     pr["target_commitish"] = "2" * 40
-    pr["assets"][0]["name"] = "Decky-Framegen-2222222.zip"
+    pr["assets"][0]["name"] = "DeckyScaler-2222222.zip"
     pr["assets"][0]["browser_download_url"] = (
-        "https://github.com/arttttt/Decky-Framegen/releases/download/pr-12/Decky-Framegen-2222222.zip"
+        "https://github.com/arttttt/DeckyScaler/releases/download/pr-12/DeckyScaler-2222222.zip"
     )
     pr["assets"][0]["digest"] = f"sha256:{ZIP_SHA256}"
     github.body = json.dumps(replaced).encode()
-    stale = write(plugin_dir.parent / "runtime" / "Decky-Framegen-1a2b3c4.zip", b"an earlier download")
-    partial = write(plugin_dir.parent / "runtime" / "Decky-Framegen-9f2c1a6.zip.part", b"cut off")
+    stale = write(plugin_dir.parent / "runtime" / "DeckyScaler-1a2b3c4.zip", b"an earlier download")
+    partial = write(plugin_dir.parent / "runtime" / "DeckyScaler-9f2c1a6.zip.part", b"cut off")
 
     result = updates.install_request("pr-12")
 
-    downloaded = plugin_dir.parent / "runtime" / "Decky-Framegen-2222222.zip"
+    downloaded = plugin_dir.parent / "runtime" / "DeckyScaler-2222222.zip"
     assert len(github.requests) == 2
-    assert download.urls == ["https://github.com/arttttt/Decky-Framegen/releases/download/pr-12/Decky-Framegen-2222222.zip"]
+    assert download.urls == ["https://github.com/arttttt/DeckyScaler/releases/download/pr-12/DeckyScaler-2222222.zip"]
     assert downloaded.read_bytes() == ZIP
     assert not stale.exists()
     assert not partial.exists()
@@ -340,17 +340,17 @@ def test_a_development_build_keeps_developer_mode_on(plugin_dir, github):
 
 
 def test_a_fork_build_lists_the_forks_releases(plugin_dir, github):
-    stamp(plugin_dir, dev_build.build_info("someone/Decky-Framegen", "dev", DEV_COMMIT))
+    stamp(plugin_dir, dev_build.build_info("someone/DeckyScaler", "dev", DEV_COMMIT))
 
     service(plugin_dir).available_builds()
 
-    assert github.requests == ["/repos/someone/Decky-Framegen/releases?per_page=100"]
+    assert github.requests == ["/repos/someone/DeckyScaler/releases?per_page=100"]
 
 
 @pytest.mark.parametrize(
     ("status", "body", "message"),
     [
-        (403, b'{"message": "API rate limit exceeded"}', "GitHub answered 403 for arttttt/Decky-Framegen releases"),
+        (403, b'{"message": "API rate limit exceeded"}', "GitHub answered 403 for arttttt/DeckyScaler releases"),
         (200, b"<html>", "GitHub sent a release list that is not JSON"),
         (200, b'{"message": "Not Found"}', "GitHub sent something other than a release list"),
     ],
@@ -429,16 +429,16 @@ def test_the_plugin_reports_download_progress_as_decky_events(plugin, tmp_path, 
 def release_entry(tag: str = "2026.10.25", digest: str = ZIP_SHA256, **changes) -> dict:
     entry = {
         "tag_name": tag,
-        "name": f"Decky Framegen {tag}",
+        "name": f"DeckyScaler {tag}",
         "draft": False,
         "prerelease": False,
         "published_at": "2026-10-25T09:00:00Z",
         "assets": [
             {
-                "name": "Decky-Framegen.zip",
+                "name": "DeckyScaler.zip",
                 "state": "uploaded",
                 "digest": f"sha256:{digest}",
-                "browser_download_url": f"https://github.com/{REPOSITORY}/releases/download/{tag}/Decky-Framegen.zip",
+                "browser_download_url": f"https://github.com/{REPOSITORY}/releases/download/{tag}/DeckyScaler.zip",
             }
         ],
     }
@@ -456,16 +456,16 @@ def test_calendar_versions_compare_by_day_then_count_and_a_dev_build_by_its_day(
 
 
 def test_a_stable_build_is_titled_after_its_version_and_is_not_a_development_one():
-    assert STABLE.title == "Decky Framegen 2026.10.24"
+    assert STABLE.title == "DeckyScaler 2026.10.24"
     assert not dev_build.is_development(STABLE) and dev_build.is_development(RUNNING)
 
 
 def test_the_newest_release_carries_what_the_device_needs_to_install_it():
     assert dev_build.stable_release(release_entry(), REPOSITORY) == dev_build.StableRelease(
         version="2026.10.25",
-        title="Decky Framegen 2026.10.25",
+        title="DeckyScaler 2026.10.25",
         published_at="2026-10-25T09:00:00Z",
-        url=f"https://github.com/{REPOSITORY}/releases/download/2026.10.25/Decky-Framegen.zip",
+        url=f"https://github.com/{REPOSITORY}/releases/download/2026.10.25/DeckyScaler.zip",
         sha256=ZIP_SHA256,
     )
 
@@ -480,7 +480,7 @@ def test_the_newest_release_carries_what_the_device_needs_to_install_it():
         release_entry(assets=[]),
         {**release_entry(), "assets": [{**release_entry()["assets"][0], "state": "starter"}]},
         {**release_entry(), "assets": [{**release_entry()["assets"][0], "digest": "md5:0"}]},
-        {**release_entry(), "assets": [{**release_entry()["assets"][0], "browser_download_url": "https://example.com/Decky-Framegen.zip"}]},
+        {**release_entry(), "assets": [{**release_entry()["assets"][0], "browser_download_url": "https://example.com/DeckyScaler.zip"}]},
         "not a release",
     ],
     ids=["draft", "prerelease", "channel-tag", "not-calendar", "no-asset", "unfinished", "no-sha256", "other-host", "not-an-object"],
@@ -517,7 +517,7 @@ def test_a_release_build_checks_the_latest_release_and_is_offered_a_newer_one(pl
     assert github.requests == [f"/repos/{REPOSITORY}/releases/latest"]
     assert answer == {
         "status": "success",
-        "release": {"version": "2026.10.25", "title": "Decky Framegen 2026.10.25", "published_at": "2026-10-25T09:00:00Z"},
+        "release": {"version": "2026.10.25", "title": "DeckyScaler 2026.10.25", "published_at": "2026-10-25T09:00:00Z"},
         "offer": "update",
     }
 
@@ -547,8 +547,8 @@ def test_switching_a_development_build_to_the_release_downloads_it_and_asks_deck
 
     result = service(plugin_dir, download, reports).stable_install_request()
 
-    downloaded = plugin_dir.parent / "runtime" / "Decky-Framegen.zip"
-    assert download.urls == [f"https://github.com/{REPOSITORY}/releases/download/2026.10.25/Decky-Framegen.zip"]
+    downloaded = plugin_dir.parent / "runtime" / "DeckyScaler.zip"
+    assert download.urls == [f"https://github.com/{REPOSITORY}/releases/download/2026.10.25/DeckyScaler.zip"]
     assert reports[-1] == ("stable", len(ZIP), len(ZIP))
     assert result == {
         "status": "success",

@@ -35,7 +35,7 @@ from framegen.infrastructure import steam as steam_library
 
 log = logging.getLogger(__name__)
 
-NO_VERSION = "No OptiScaler version is downloaded. Download one under Open Framegen → OptiScaler first."
+NO_VERSION = "No OptiScaler version is downloaded. Download one under Open DeckyScaler → OptiScaler first."
 BUNDLE_IS_NOT_A_GAME = "The target directory is the OptiScaler bundle itself. Aborting to prevent accidental deletion."
 PATCHED_BY_AN_OLDER_VERSION = (
     "This game was patched by an older version of the plugin. Unpatch it first: the plugin shows what that removes."
@@ -209,7 +209,7 @@ class Patcher:
         marker_path = directory / bundle.MARKER_FILENAME
         if not marker_path.exists():
             self._forget(directory)
-            return {"status": "success", "message": f"No Framegen patch found in {directory}"}
+            return {"status": "success", "message": f"No DeckyScaler patch found in {directory}"}
         recorded = patch_record.parse(files.read_json(marker_path))
         if recorded is None:
             return _error(PATCHED_BY_AN_OLDER_VERSION)
@@ -321,7 +321,7 @@ class Patcher:
             preview, _ = self._reset_plan(target, None, None)
             return {**preview, "mode": RESET} if preview["status"] == "success" else preview
         except Exception as exc:
-            log.error(f"[Framegen] preview_unpatch_directory failed for {directory}: {exc}")
+            log.error(f"[DeckyScaler] preview_unpatch_directory failed for {directory}: {exc}")
             return _error(str(exc))
 
     @staticmethod
@@ -394,7 +394,7 @@ class Patcher:
         try:
             return self._game_status(appid)
         except Exception as exc:
-            log.error(f"[Framegen] get_game_status failed for {appid}: {exc}")
+            log.error(f"[DeckyScaler] get_game_status failed for {appid}: {exc}")
             return _error(str(exc))
 
     def _game_status(self, appid: str) -> dict:
@@ -455,7 +455,7 @@ class Patcher:
         try:
             return self._patch_game(appid, dll_name, current_launch_options, version_id)
         except Exception as exc:
-            log.error(f"[Framegen] patch_game failed for {appid}: {exc}")
+            log.error(f"[DeckyScaler] patch_game failed for {appid}: {exc}")
             return _error(str(exc))
 
     def _patch_game(
@@ -482,7 +482,7 @@ class Patcher:
             moved = self.unpatch_directory(existing_marker.parent)
             if moved["status"] != "success":
                 return moved
-        log.info(f"[Framegen] patch_game: appid={appid} dll={dll_name} target={target_dir} exe={target_exe}")
+        log.info(f"[DeckyScaler] patch_game: appid={appid} dll={dll_name} target={target_dir} exe={target_exe}")
         fsr4_driver = self._fsr4(game)[1]
         result = self.patch_directory(
             target_dir,
@@ -495,7 +495,7 @@ class Patcher:
             return result
 
         managed_options = launch_options.managed(dll_name, fsr4_driver is not None)
-        log.info(f"[Framegen] patch_game success: appid={appid} launch_options={managed_options}")
+        log.info(f"[DeckyScaler] patch_game success: appid={appid} launch_options={managed_options}")
         return {
             "status": "success",
             "appid": str(appid),
@@ -514,7 +514,7 @@ class Patcher:
         try:
             return self._unpatch_game(appid, current_launch_options, confirmed_reset)
         except Exception as exc:
-            log.error(f"[Framegen] unpatch_game failed for {appid}: {exc}")
+            log.error(f"[DeckyScaler] unpatch_game failed for {appid}: {exc}")
             return _error(str(exc))
 
     def _unpatch_game(self, appid: str, current_launch_options: str, confirmed_reset: bool) -> dict:
@@ -531,7 +531,7 @@ class Patcher:
             if confirmed_reset:
                 return self._reset_game(appid, current_launch_options)
             if marker_path is None:
-                return {**not_patched, "message": "No Framegen patch found for this game."}
+                return {**not_patched, "message": "No DeckyScaler patch found for this game."}
             return _error(PATCHED_BY_AN_OLDER_VERSION)
 
         metadata = files.read_json(marker_path)
@@ -539,7 +539,7 @@ class Patcher:
         result = self.unpatch_directory(target_dir)
         if result["status"] != "success":
             return result
-        log.info(f"[Framegen] unpatch_game success: appid={appid} target={target_dir}")
+        log.info(f"[DeckyScaler] unpatch_game success: appid={appid} target={target_dir}")
         return {
             "status": "success",
             "appid": str(appid),
@@ -574,7 +574,7 @@ class Patcher:
         marked_elsewhere = marker_path is not None and marker_path.parent != directory
         reset = stock_reset.plan(entries, plugin_entries, marked_elsewhere)
         if reset.evidence is None:
-            return _error(f"No sign of Decky Framegen in {directory}; nothing to reset."), ()
+            return _error(f"No sign of DeckyScaler in {directory}; nothing to reset."), ()
         stored = str(files.read_json(marker_path).get("original_launch_options") or "") if marker_path else ""
         new_options = (
             stock_reset.launch_options_after_reset(current_launch_options, stored)
@@ -602,7 +602,7 @@ class Patcher:
             preview, _ = self._reset_plan(target, marker_path, current_launch_options)
             return {**preview, "mode": RESET, "name": game.name} if preview["status"] == "success" else preview
         except Exception as exc:
-            log.error(f"[Framegen] preview_unpatch_game failed for {appid}: {exc}")
+            log.error(f"[DeckyScaler] preview_unpatch_game failed for {appid}: {exc}")
             return _error(str(exc))
 
     def _reset_game(self, appid: str, current_launch_options: str) -> dict:
@@ -617,10 +617,10 @@ class Patcher:
             if marker_path is not None and marker_path.exists():
                 marker_path.unlink()
             self._forget(target)
-            log.info(f"[Framegen] reset_game: appid={appid} target={target}")
+            log.info(f"[DeckyScaler] reset_game: appid={appid} target={target}")
             return {**preview, "name": game.name, "message": f"{game.name} is back to how it shipped."}
         except Exception as exc:
-            log.error(f"[Framegen] reset_game failed for {appid}: {exc}")
+            log.error(f"[DeckyScaler] reset_game failed for {appid}: {exc}")
             return _error(str(exc))
 
     def _reset_directory(self, target: Path) -> dict:
@@ -630,8 +630,8 @@ class Patcher:
                 return preview
             game_directory.execute(operations, target, self.fgmod_path)
             self._forget(target)
-            log.info(f"[Framegen] reset_directory: {target}")
+            log.info(f"[DeckyScaler] reset_directory: {target}")
             return {**preview, "message": f"{target} is back to how it shipped."}
         except Exception as exc:
-            log.error(f"[Framegen] reset_directory failed for {target}: {exc}")
+            log.error(f"[DeckyScaler] reset_directory failed for {target}: {exc}")
             return _error(str(exc))

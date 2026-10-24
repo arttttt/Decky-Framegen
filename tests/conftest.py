@@ -56,7 +56,7 @@ def _labelled(label: str, data: bytes) -> bytes:
 
 def blob(name: str) -> bytes:
     """Deterministic, unique placeholder content for a bundle file."""
-    return _labelled(f"bundle:{name}", f"decky-framegen test blob: {name}\n".encode())
+    return _labelled(f"bundle:{name}", f"deckyscaler test blob: {name}\n".encode())
 
 
 def game_file(name: str) -> bytes:

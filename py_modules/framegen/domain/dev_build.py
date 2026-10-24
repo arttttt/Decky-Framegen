@@ -34,7 +34,7 @@ class BuildInfo:
     channel: str
     commit: str
     title: str = field(default="", compare=False)
-    """How the build is named on the device (`Decky Framegen 2026.10.24`, `Dev build · main @ 1a2b3c4`,
+    """How the build is named on the device (`DeckyScaler 2026.10.24`, `Dev build · main @ 1a2b3c4`,
     `Dev build · PR #12: <title>`); not part of its identity."""
 
     @property
@@ -91,10 +91,10 @@ def version(base: str, info: BuildInfo) -> str:
 
 
 DEV_TITLE_PREFIX = "Dev build · "
-"""Sets a development build apart from a release (`Decky Framegen 2026.10.24`) on the releases page."""
+"""Sets a development build apart from a release (`DeckyScaler 2026.10.24`) on the releases page."""
 
 
-RELEASE_TITLE_PREFIX = "Decky Framegen "
+RELEASE_TITLE_PREFIX = "DeckyScaler "
 
 
 def release_title(info: BuildInfo, pull_request_title: str = "", version: str = "") -> str:
@@ -206,7 +206,7 @@ def install_request(plugin_name: str, label: str, sha256: str, downloaded: str, 
 
 # ── Releases, and switching to one ───────────────────────────────────────────
 
-RELEASE_ASSET = "Decky-Framegen.zip"
+RELEASE_ASSET = "DeckyScaler.zip"
 """A release's one asset; the name people download by hand (release.yml)."""
 
 DECKY_INSTALL_DOWNGRADE = 3

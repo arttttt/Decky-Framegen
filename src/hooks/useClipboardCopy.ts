@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { toaster } from "@decky/api";
+import { notify } from "../utils/notify";
 import { COPIED_SHOWN_MS, COPY_FAILED, CopyConfirmation, CopyState, clipboardButtonView } from "../presentation/launch";
 import { copyText } from "../utils/clipboard";
 
@@ -18,7 +18,7 @@ export const useClipboardCopy = (command: string, label: string, confirmation?: 
     setState("copying");
     const copied = await copyText(command);
     setState(copied ? "copied" : "idle");
-    if (!copied) toaster.toast({ title: "Decky Framegen", body: COPY_FAILED });
+    if (!copied) notify(COPY_FAILED);
   };
 
   const view = clipboardButtonView(state, label);

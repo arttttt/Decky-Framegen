@@ -13,6 +13,6 @@ def command_lines() -> list[str]:
     try:
         result = subprocess.run(["ps", "-eo", "args="], capture_output=True, text=True, check=False)
     except OSError as exc:
-        log.error(f"[Framegen] running exe scan failed: {exc}")
+        log.error(f"[DeckyScaler] running exe scan failed: {exc}")
         return []
     return result.stdout.splitlines()

@@ -33,7 +33,7 @@ function chipButton(): ChipButton {
 }
 
 const CHIP_CSS = `
-.decky-framegen-chip {
+.deckyscaler-chip {
   display: flex; align-items: center; gap: 10px;
   min-width: 0; width: auto; padding: 8px 16px;
   font-size: 20px; font-weight: 700; line-height: 28px;
@@ -41,8 +41,8 @@ const CHIP_CSS = `
   border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
-.decky-framegen-chip svg { width: 24px; height: 24px; }
-.decky-framegen-chip.gpfocus, .decky-framegen-chip:hover {
+.deckyscaler-chip svg { width: 24px; height: 24px; }
+.deckyscaler-chip.gpfocus, .deckyscaler-chip:hover {
   background: rgba(255, 255, 255, 0.9); color: #0e141b;
 }
 `;
@@ -124,7 +124,7 @@ function GamePageButton({ appid }: { appid: string }) {
     <div ref={ref} style={{ position: "absolute", top: `${top ?? 40}px`, left: `${CHIP_LEFT}px`, zIndex: 7 }}>
       <style>{CHIP_CSS}</style>
       {shown && top !== null && (
-        <FocusableButton className="decky-framegen-chip" onClick={() => openGamePage(appid)}>
+        <FocusableButton className="deckyscaler-chip" onClick={() => openGamePage(appid)}>
           <MdOutlineAutoAwesomeMotion />
           <span>{GAME_PAGE_BUTTON_LABEL}</span>
         </FocusableButton>
@@ -157,10 +157,10 @@ export function patchSteamGamePage(): () => void {
           // props; MoonDeck anchors its button the same way), and after any badge another plugin put at
           // the top: Up from Play reaches the chip first, whatever loaded first.
           const appPanel = children.findIndex((x: any) => x?.props?.overview && x?.props?.onShowLaunchingDetails);
-          children.splice(appPanel > 1 ? appPanel - 1 : 1, 0, <GamePageButton key="decky-framegen" appid={appid} />);
+          children.splice(appPanel > 1 ? appPanel - 1 : 1, 0, <GamePageButton key="deckyscaler" appid={appid} />);
           container.props.children = children;
         } catch (err) {
-          console.error("Decky Framegen: the button on Steam's game page", err);
+          console.error("DeckyScaler: the button on Steam's game page", err);
         }
         return ret;
       },

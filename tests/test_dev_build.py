@@ -13,7 +13,7 @@ from conftest import REPO_ROOT
 from framegen.domain import dev_build
 
 COMMIT = "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"
-REPOSITORY = "arttttt/Decky-Framegen"
+REPOSITORY = "arttttt/DeckyScaler"
 
 # ── unit: rules ──────────────────────────────────────────────────────────────
 
@@ -36,7 +36,7 @@ def test_only_a_full_lowercase_sha_is_a_commit(commit):
         dev_build.build_info(REPOSITORY, "dev", commit)
 
 
-@pytest.mark.parametrize("repository", ["", "Decky-Framegen", "a/b/c", "owner/", "/name", "owner/na me"])
+@pytest.mark.parametrize("repository", ["", "DeckyScaler", "a/b/c", "owner/", "/name", "owner/na me"])
 def test_only_owner_slash_name_is_a_repository(repository):
     with pytest.raises(ValueError, match="Not a GitHub repository"):
         dev_build.build_info(repository, "dev", COMMIT)
@@ -81,7 +81,7 @@ def test_version_and_asset_name_carry_channel_and_short_commit():
     info = dev_build.build_info(REPOSITORY, "pr-12", COMMIT)
 
     assert dev_build.version("2026.10.04", info) == "2026.10.04-pr-12.1a2b3c4"
-    assert dev_build.asset_name("Decky-Framegen", info) == "Decky-Framegen-1a2b3c4.zip"
+    assert dev_build.asset_name("DeckyScaler", info) == "DeckyScaler-1a2b3c4.zip"
 
 
 def test_a_release_is_titled_after_main_or_its_pull_request():
@@ -129,7 +129,7 @@ def test_stamping_writes_the_identity_and_the_version_and_reports_both(checkout)
     assert result.stdout.splitlines() == [
         "channel=pr-12",
         f"version={base}-pr-12.1a2b3c4",
-        "asset=Decky-Framegen-1a2b3c4.zip",
+        "asset=DeckyScaler-1a2b3c4.zip",
         "title=Dev build · PR #12: Add a section",
     ]
 

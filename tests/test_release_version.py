@@ -48,7 +48,7 @@ def test_stamping_a_release_build_writes_and_reports_the_version(tmp_path):
     result = subprocess.run(
         [sys.executable, str(REPO_ROOT / "scripts" / "stamp_release.py"), "--root", str(root), "--date", "2026-10-04",
          "--existing-tag", "2026.10.04", "--existing-tag", "dev",
-         "--repository", "arttttt/Decky-Framegen", "--commit", "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"],
+         "--repository", "arttttt/DeckyScaler", "--commit", "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b"],
         capture_output=True,
         text=True,
     )
@@ -58,4 +58,4 @@ def test_stamping_a_release_build_writes_and_reports_the_version(tmp_path):
     assert result.stdout.splitlines() == ["version=2026.10.04.1", "tag=2026.10.04.1", "channel=stable"]
     # The release knows its repository, to find its updates, and is on the stable channel.
     info = dev_build.parse((root / "defaults" / dev_build.BUILD_INFO_FILENAME).read_text())
-    assert (info.repository, info.channel, info.title) == ("arttttt/Decky-Framegen", "stable", "Decky Framegen 2026.10.04.1")
+    assert (info.repository, info.channel, info.title) == ("arttttt/DeckyScaler", "stable", "DeckyScaler 2026.10.04.1")

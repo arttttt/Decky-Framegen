@@ -54,7 +54,7 @@ export function QuickPanel() {
       )}
       <PanelSectionRow>
         <ButtonItem layout="below" onClick={openFramegenPage}>
-          Open Framegen
+          Open DeckyScaler
         </ButtonItem>
       </PanelSectionRow>
     </PanelSection>

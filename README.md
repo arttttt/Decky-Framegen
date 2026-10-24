@@ -1,8 +1,8 @@
-# Decky Framegen Plugin
+# DeckyScaler
 
 A Steam Deck plugin that enables DLSS upscaling and Frame Generation on handhelds by utilizing the latest OptiScaler and supporting modification software. This plugin automatically installs and manages all necessary components for FSR-based frame generation in games that support DLSS, or OptiFG for adding FG to games that do not have any existing FG pathway (highly experimental)
 
-> This is a continuation of [xXJSONDeruloXx/Decky-Framegen](https://github.com/xXJSONDeruloXx/Decky-Framegen). Its builds don't include OptiScaler: games are patched from versions in the plugin's OptiScaler library (`~/fgmod/library`), downloaded straight from OptiScaler's releases. Download a version under **OptiScaler versions** → *Download versions…* before patching a game. Report problems in [this repository's issues](https://github.com/arttttt/Decky-Framegen/issues).
+> DeckyScaler (formerly Decky Framegen) is a continuation of [xXJSONDeruloXx/Decky-Framegen](https://github.com/xXJSONDeruloXx/Decky-Framegen). Its builds don't include OptiScaler: games are patched from versions in the plugin's OptiScaler library (`~/fgmod/library`), downloaded straight from OptiScaler's releases. Download a version under **OptiScaler versions** → *Download versions…* before patching a game. Report problems in [this repository's issues](https://github.com/arttttt/DeckyScaler/issues).
 
 ## What This Plugin Does
 
@@ -18,13 +18,13 @@ This plugin uses OptiScaler to replace DLSS calls with FSR3/FSR3.1, giving you:
 - **One-Click Setup**: Automatically downloads and installs OptiScaler into a "fgmod" directory
 - **Smart Installation**: Handles all required dependencies and library files
 - **Game Patching**: Easy copy-paste launch commands for enabling/disabling the mod per game
-- **Games**: **Framegen → Games** lists every game the plugin patched, with its OptiScaler version, proxy DLL and anything wrong with the patch; a Steam game opens its page, a directory patched by path is unpatched right there.
-- **Updates**: **Framegen → Updates** checks this repository's releases (on opening, and by a button) and installs a newer one through Decky; the Quick Access panel says when one is out. **Developer mode** there adds development builds, at your own risk.
+- **Games**: **DeckyScaler → Games** lists every game the plugin patched, with its OptiScaler version, proxy DLL and anything wrong with the patch; a Steam game opens its page, a directory patched by path is unpatched right there.
+- **Updates**: **DeckyScaler → Updates** checks this repository's releases (on opening, and by a button) and installs a newer one through Decky; the Quick Access panel says when one is out. **Developer mode** there adds development builds, at your own risk.
 - **OptiScaler Wiki**: Direct access to OptiScaler documentation and settings via a webpage launch button right inside the plugin.
 
 ## How to Use
 
-1. **Install the Plugin**: Download `Decky-Framegen.zip` from this repository's [Releases](https://github.com/arttttt/Decky-Framegen/releases) and install it with Decky Loader's "Install Plugin from Zip" in its developer settings
+1. **Install the Plugin**: Download `DeckyScaler.zip` from this repository's [Releases](https://github.com/arttttt/DeckyScaler/releases) and install it with Decky Loader's "Install Plugin from Zip" in its developer settings
 2. **Get OptiScaler**: Open the plugin, go to **OptiScaler versions** → *Download versions…* and download a version
 3. **Patch Games**: Pick a game in the plugin's Steam games section and patch it; the plugin sets the game's launch options and puts them back when you unpatch
    - For a game outside Steam, use Advanced Mode to patch its directory, then paste "Manual launch cmd" into its launch options
@@ -38,7 +38,7 @@ This plugin uses OptiScaler to replace DLSS calls with FSR3/FSR3.1, giving you:
 - Run the game at least once to make the uninstaller script run. After that you can leave the launch option or remove it
 
 ### OptiScaler settings
-**Framegen → OptiScaler → Global settings** sets what every game gets; a game's page (**OptiScaler settings** there) sets the game's own, which stay over the global ones. A global change never touches a value a game sets itself. Every setting, its values and its help come from the `OptiScaler.ini` of the version in use, so a new OptiScaler version brings its new settings with no plugin update, and settings it doesn't take are kept for the versions that do. Settings are written into a game's `OptiScaler.ini` when it is patched, on each change, and when the game closes; a running game is left alone until then, so OptiScaler doesn't save over them.
+**DeckyScaler → OptiScaler → Global settings** sets what every game gets; a game's page (**OptiScaler settings** there) sets the game's own, which stay over the global ones. A global change never touches a value a game sets itself. Every setting, its values and its help come from the `OptiScaler.ini` of the version in use, so a new OptiScaler version brings its new settings with no plugin update, and settings it doesn't take are kept for the versions that do. Settings are written into a game's `OptiScaler.ini` when it is patched, on each change, and when the game closes; a running game is left alone until then, so OptiScaler doesn't save over them.
 
 - A setting left on auto keeps OptiScaler's default.
 - A setting set here replaces a change to it in OptiScaler's in-game menu once the game closes; settings left on auto stay as the menu saved them.
@@ -109,6 +109,6 @@ How to build, test, and try a work-in-progress build on a device: see [CONTRIBUT
 - **[FakeMichau](https://github.com/FakeMichau)** - Various essential tools including fgmod scripts, innoextract, and fakenvapi for AMD/Intel GPU support
 
 ### Community & Documentation
-- **[Deck Wizard](https://www.youtube.com/watch?v=o_TkF-Eiq3M)** - Extensive community support including comprehensive guides, promotional content, thorough testing and feedback, custom artworks, and tutorial videos. His passionate advocacy and continuous support have been instrumental in Decky Framegen's success.
+- **[Deck Wizard](https://www.youtube.com/watch?v=o_TkF-Eiq3M)** - Extensive community support including comprehensive guides, promotional content, thorough testing and feedback, custom artworks, and tutorial videos. His passionate advocacy and continuous support have been instrumental in the original DeckyScaler's success.
 
 - **The DLSS2FSR Community** - Ongoing support and guidance for understanding the various mods and tools

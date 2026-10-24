@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toaster } from "@decky/api";
+import { notify } from "../utils/notify";
 import { stableInstallRequest } from "../api";
 import { canInstallThroughDecky } from "../api/deckyInstaller";
 import { DEVELOPER_MODE_CONFIRMATION, updatesView } from "../presentation/updates";
@@ -15,7 +15,7 @@ export const useUpdatesSection = () => {
 
   const applyDeveloperMode = async (on: boolean) => {
     const failure = await onDeveloperMode(on);
-    if (failure) toaster.toast({ title: "Decky Framegen", body: failure });
+    if (failure) notify(failure);
   };
 
   return {

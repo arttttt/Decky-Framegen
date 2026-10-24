@@ -12,6 +12,7 @@ import { OptiScalerWiki } from "./OptiScalerWiki";
 import { PatchPickers } from "./PatchPickers";
 import { UpdatesSection } from "./UpdatesSection";
 import { offered } from "../presentation/developerSection";
+import { PLUGIN_TITLE } from "../presentation/plugin";
 import { GLOBAL_SCOPE } from "../presentation/settings";
 
 /** Patching by hand: a directory, the wrapper's commands, launch options to paste, and the wiki. */
@@ -55,7 +56,7 @@ export function FramegenPage() {
   const { check } = usePluginUpdates();
   return (
     <SidebarNavigation
-      title="Decky Framegen"
+      title={PLUGIN_TITLE}
       showTitle
       pages={[
         { title: "OptiScaler", identifier: "optiscaler", content: <OptiScalerPage /> },

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { toaster } from "@decky/api";
+import { notify } from "../utils/notify";
 import { listInstalledGames } from "../api";
 import { gameToShow } from "../presentation/patching";
 
@@ -28,7 +28,7 @@ export const useSteamGames = () => {
         setGames(list);
         select(gameToShow(list, lastSelectedAppId));
       } catch (err) {
-        toaster.toast({ title: "Decky Framegen", body: err instanceof Error ? err.message : "Failed to load games." });
+        notify(err instanceof Error ? err.message : "Failed to load games.");
       } finally {
         setLoading(false);
       }

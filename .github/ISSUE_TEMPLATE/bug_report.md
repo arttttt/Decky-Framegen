@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-# **Bug Report: Decky Framegen**
+# **Bug Report: DeckyScaler**
 
 ### **Please Read Before Submitting**
 
@@ -17,8 +17,8 @@ assignees: ''
 
 
 ✅ **Required Information for Reporting**:
-- Logs from: `~/homebrew/logs/'Decky Framegen'/`
-- **Decky Framegen version**
+- Logs from: `~/homebrew/logs/'DeckyScaler'/`
+- **DeckyScaler version**
 - **Decky Loader version**
 - **List of installed plugins + versions**
 - **Distro (SteamOS, Bazzite, etc.)**
@@ -46,7 +46,7 @@ Attach screenshots to help illustrate the issue.
 
 ## **System Information**
 - **OS/Distro**: [e.g., SteamOS, Bazzite]
-- **Decky Framegen Version**: [e.g., v1.2.3]
+- **DeckyScaler Version**: [e.g., v1.2.3]
 - **Decky Loader Version**: [e.g., v2.0.1]
 - **List of Installed Plugins + Versions**: [e.g., PluginA v1.0, PluginB v2.3]
 - **Steam Client Build Number**: [e.g., 1700000000]

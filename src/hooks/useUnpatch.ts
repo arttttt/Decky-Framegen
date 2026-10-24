@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toaster } from "@decky/api";
+import { notify } from "../utils/notify";
 import {
   UnpatchPreview,
   UnpatchResult,
@@ -43,7 +43,7 @@ export const useUnpatch = (target: UnpatchTarget | null, onDone: () => void) => 
       setAppLaunchOptions(Number(target.appid), result.launch_options);
     }
     setBusy(false);
-    toaster.toast({ title: "Decky Framegen", body: unpatchOutcome(result) });
+    notify(unpatchOutcome(result));
     onDone();
   };
 
@@ -61,7 +61,7 @@ export const useUnpatch = (target: UnpatchTarget | null, onDone: () => void) => 
     const step: UnpatchStep = preview
       ? unpatchStep(preview, unpatchSubject(target))
       : { kind: "refused", message: unpatchOutcome(undefined) };
-    if (step.kind === "refused") toaster.toast({ title: "Decky Framegen", body: step.message });
+    if (step.kind === "refused") notify(step.message);
     else if (step.kind === "now") await run(false);
     else setConfirmation(step);
   };

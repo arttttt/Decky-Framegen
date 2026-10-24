@@ -6,6 +6,7 @@ import { showReloadedPlugin } from "./api/deckyPanel";
 import { onGameStopped } from "./api/steamClient";
 import { FRAMEGEN_ROUTE, GAME_ROUTE, SETTINGS_ROUTE } from "./api/framegenPage";
 import { patchSteamGamePage } from "./patches/steamGamePage";
+import { PLUGIN_TITLE } from "./presentation/plugin";
 
 export default definePlugin(() => {
   // After a self-update the loader stores this new plugin once this factory returns; the open
@@ -19,8 +20,8 @@ export default definePlugin(() => {
   // ran once it closes.
   const stopWatchingGames = onGameStopped((appid) => void gameClosed(String(appid)).catch(() => undefined));
   return {
-    name: "Decky Framegen",
-    titleView: <div>Decky Framegen</div>,
+    name: PLUGIN_TITLE,
+    titleView: <div>{PLUGIN_TITLE}</div>,
     alwaysRender: true,
     content: <QuickPanel />,
     icon: <MdOutlineAutoAwesomeMotion />,

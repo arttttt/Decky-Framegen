@@ -33,10 +33,10 @@ def _ignore(*_args) -> None:
 
 class Plugin:
     async def _main(self):
-        decky.logger.info("Framegen plugin loaded")
+        decky.logger.info("DeckyScaler loaded")
 
     async def _unload(self):
-        decky.logger.info("Framegen plugin unloaded.")
+        decky.logger.info("DeckyScaler unloaded.")
 
     def _home_path(self) -> Path:
         return Path(str(decky.HOME))

@@ -30,7 +30,7 @@ def _ssl_context() -> ssl.SSLContext:
 
 
 def _get_json(url: str, subject: str, kind: str) -> object:
-    request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "Decky-Framegen"})
+    request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "DeckyScaler"})
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS, context=_ssl_context()) as response:
             return json.loads(response.read().decode("utf-8"))
@@ -73,7 +73,7 @@ Progress = Callable[[int, int | None], None]
 def download(url: str, destination: Path, on_progress: Progress | None = None) -> None:
     """Save a release asset to `destination`, replacing it only once the whole file has arrived."""
     partial = destination.with_name(destination.name + ".part")
-    request = urllib.request.Request(url, headers={"User-Agent": "Decky-Framegen"})
+    request = urllib.request.Request(url, headers={"User-Agent": "DeckyScaler"})
     try:
         destination.parent.mkdir(parents=True, exist_ok=True)
         with urllib.request.urlopen(request, timeout=DOWNLOAD_TIMEOUT_SECONDS, context=_ssl_context()) as response:

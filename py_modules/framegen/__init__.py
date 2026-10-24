@@ -1,1 +1,1 @@
-"""Decky Framegen backend core: OptiScaler bundle install and game patching."""
+"""DeckyScaler backend core: OptiScaler bundle install and game patching."""
