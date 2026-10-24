@@ -228,3 +228,6 @@ export const setSetting = callable<
 >("set_setting");
 
 export const resetGameSettings = callable<[appid: string], { status: string; message?: string }>("reset_game_settings");
+
+/** Writes a game's settings once it has closed; applied is false when it isn't patched or still runs. */
+export const gameClosed = callable<[appid: string], { status: string; applied?: boolean }>("game_closed");

@@ -109,7 +109,7 @@ export const changedValue = (picked: string): string | null => {
 };
 
 const OVERLAY_NOTICE =
-  "A setting set here replaces a change to it in OptiScaler's in-game menu the next time the game starts.";
+  "A setting set here replaces a change to it in OptiScaler's in-game menu once the game closes.";
 
 /** What a settings page shows: global settings, or a game's own over them. */
 export const settingsPageView = (scope: string, answer: SettingsAnswer | null): SettingsPageView => {
@@ -159,7 +159,7 @@ export const searchRows = (sections: SettingsSectionView[], query: string): Sett
 export const skippedMessage = (skipped: string[]): string | null =>
   skipped.length === 0
     ? null
-    : `${skipped.join(", ")} ${skipped.length === 1 ? "is" : "are"} running and ${skipped.length === 1 ? "gets" : "get"} the change at the next start.`;
+    : `${skipped.join(", ")} ${skipped.length === 1 ? "is" : "are"} running and ${skipped.length === 1 ? "gets" : "get"} the change once closed.`;
 
 export const RESET_GAME_LABEL = "Reset to global settings";
 export const RESET_GAME_CONFIRMATION = {

@@ -96,3 +96,25 @@ def test_resetting_a_game_follows_the_global_settings_again(plugin, fgmod, steam
     run(plugin.reset_game_settings("1"))
 
     assert "UseHQFont=false" in (root / "OptiScaler.ini").read_text()
+
+
+def test_a_game_skipped_while_running_gets_the_change_once_it_closes(plugin, fgmod, steam_library, monkeypatch):
+    root = steam_library.add_game("1", "Game")
+    run(plugin.patch_game("1", "dxgi.dll", "", NIGHTLY))
+    running = [f"wine {root / 'Game.exe'}"]
+    monkeypatch.setattr(settings_module.processes, "command_lines", lambda: running)
+    run(plugin.set_setting("global", "FSR", "Fsr4Model", "1"))
+    assert run(plugin.game_closed("1")) == {"status": "success", "applied": False}  # still running
+    assert "Fsr4Model=auto" in (root / "OptiScaler.ini").read_text()
+
+    running.clear()
+
+    assert run(plugin.game_closed("1")) == {"status": "success", "applied": True}
+    assert "Fsr4Model=1" in (root / "OptiScaler.ini").read_text()
+
+
+def test_a_closed_game_thats_not_patched_is_left_alone(plugin, fgmod, steam_library):
+    steam_library.add_game("1", "Game")
+
+    assert run(plugin.game_closed("1")) == {"status": "success", "applied": False}
+    assert run(plugin.game_closed("999")) == {"status": "success", "applied": False}

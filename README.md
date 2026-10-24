@@ -35,6 +35,12 @@ This plugin uses OptiScaler to replace DLSS calls with FSR3/FSR3.1, giving you:
 - If you used the standard direct patch flow, use the in-plugin unpatch button instead
 - Run the game at least once to make the uninstaller script run. After that you can leave the launch option or remove it
 
+### OptiScaler settings
+**Framegen → OptiScaler → Global settings** sets what every game gets; a game's page (**OptiScaler settings** there) sets the game's own, which stay over the global ones. A global change never touches a value a game sets itself. Every setting, its values and its help come from the `OptiScaler.ini` of the version in use, so a new OptiScaler version brings its new settings with no plugin update, and settings it doesn't take are kept for the versions that do. Settings are written into a game's `OptiScaler.ini` when it is patched, on each change, and when the game closes; a running game is left alone until then, so OptiScaler doesn't save over them.
+
+- A setting left on auto keeps OptiScaler's default.
+- A setting set here replaces a change to it in OptiScaler's in-game menu once the game closes; settings left on auto stay as the menu saved them.
+
 ### Configuring OptiScaler via Environment Variables
 As of v0.15.1, you can update OptiScaler settings before a game launches by adding environment variables. 
 This is useful if you plan to use the same settings across multiple games so they are pre-configured by the time you launch them.

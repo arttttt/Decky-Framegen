@@ -33,3 +33,16 @@ export const setAppLaunchOptions = (appId: number, options: string): void => {
     SteamClient.Apps.SetAppLaunchOptions(appId, options);
   }
 };
+
+type AppLifetimeNotification = { unAppID: number; bRunning: boolean };
+
+/** Calls back with a game's appid whenever Steam says it stopped running; returns the unsubscribe. A
+ *  no-op where Steam's client API doesn't offer it. */
+export const onGameStopped = (callback: (appid: number) => void): (() => void) => {
+  const sessions = typeof SteamClient === "undefined" ? undefined : SteamClient?.GameSessions;
+  if (!sessions?.RegisterForAppLifetimeNotifications) return () => {};
+  const registration = sessions.RegisterForAppLifetimeNotifications((notification: AppLifetimeNotification) => {
+    if (!notification.bRunning) callback(notification.unAppID);
+  });
+  return () => registration?.unregister?.();
+};

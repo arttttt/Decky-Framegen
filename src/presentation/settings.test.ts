@@ -130,8 +130,8 @@ describe("a change", () => {
 
   it("names the running games a global change didn't reach", () => {
     expect(skippedMessage([])).toBeNull();
-    expect(skippedMessage(["Cyberpunk 2077"])).toBe("Cyberpunk 2077 is running and gets the change at the next start.");
-    expect(skippedMessage(["A", "B"])).toBe("A, B are running and get the change at the next start.");
+    expect(skippedMessage(["Cyberpunk 2077"])).toBe("Cyberpunk 2077 is running and gets the change once closed.");
+    expect(skippedMessage(["A", "B"])).toBe("A, B are running and get the change once closed.");
   });
 });
 

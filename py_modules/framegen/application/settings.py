@@ -123,6 +123,16 @@ class Settings:
             self._apply(directory, details, appid)
         return {"status": "success"}
 
+    def game_closed(self, appid: str) -> dict:
+        """Write a game's settings once it has closed: a change made while it ran (a global one skipped it)
+        reaches it, and its own and global values win over what OptiScaler's menu saved for them. A game
+        whose patch doesn't run through the wrapper gets them nowhere else before its next start."""
+        directory, details = self._game(appid)
+        if directory is None or self._running(directory):
+            return {"status": "success", "applied": False}
+        self._apply(directory, details, appid)
+        return {"status": "success", "applied": True}
+
     def _accepted(self, sections: tuple[ini_schema.Section, ...], target: Key, value: str) -> bool:
         setting = next((s for section in sections for s in section.settings if (s.section, s.key) == target), None)
         return setting is not None and settings_layers.accepts(setting, value)

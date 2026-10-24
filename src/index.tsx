@@ -1,7 +1,9 @@
 import { definePlugin, routerHook } from "@decky/api";
 import { MdOutlineAutoAwesomeMotion } from "react-icons/md";
 import { FramegenPage, GamePage, QuickPanel, SettingsPage } from "./components";
+import { gameClosed } from "./api";
 import { showReloadedPlugin } from "./api/deckyPanel";
+import { onGameStopped } from "./api/steamClient";
 import { FRAMEGEN_ROUTE, GAME_ROUTE, SETTINGS_ROUTE } from "./api/framegenPage";
 import { patchSteamGamePage } from "./patches/steamGamePage";
 
@@ -13,6 +15,9 @@ export default definePlugin(() => {
   routerHook.addRoute(GAME_ROUTE, GamePage);
   routerHook.addRoute(SETTINGS_ROUTE, SettingsPage);
   const unpatchSteamGamePage = patchSteamGamePage();
+  // A panel patch runs nothing of the plugin's at launch, so a game gets the settings changed while it
+  // ran once it closes.
+  const stopWatchingGames = onGameStopped((appid) => void gameClosed(String(appid)).catch(() => undefined));
   return {
     name: "Decky Framegen",
     titleView: <div>Decky Framegen</div>,
@@ -24,6 +29,7 @@ export default definePlugin(() => {
       routerHook.removeRoute(GAME_ROUTE);
       routerHook.removeRoute(SETTINGS_ROUTE);
       unpatchSteamGamePage();
+      stopWatchingGames();
     },
   };
 });
