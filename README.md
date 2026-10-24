@@ -82,6 +82,8 @@ Dx12Upscaler=fsr31 ~/fgmod/fgmod %command%
 
 The plugin does not pick an FSR 4 model: OptiScaler does. OptiScaler 10.x chooses it from the GPU (INT8 Lite on Steam Deck and Ryzen Z1/Z2 handhelds, INT8 on RDNA3 desktop GPUs, FP8 on RDNA4). OptiScaler 0.9.x supports RDNA4 and RDNA3 desktop GPUs officially; `FSR_Fsr4ForceEnableInt8=true` (see above) forces INT8 elsewhere. Enable `FSR_Fsr4EnableWatermark=true` to see which path is active (`FSR4`, `FSR4-i8`, or `FSR3`).
 
+On Linux FSR 4 also needs AMD's driver DLL (`amdxcffx64.dll`), which neither OptiScaler nor Valve's Proton ship. GE-Proton and Proton-CachyOS download it into the game's prefix when the game is launched with `PROTON_FSR4_UPGRADE=1`. On an AMD GPU the plugin adds that variable to the launch options it writes when the game's Proton reads it, and the game's status says whether FSR 4 is already in the prefix, will be downloaded on the next launch, or needs another Proton. Without the DLL, OptiScaler's upscaler list ends at FSR 3.1.5.
+
 ## Technical Details
 
 ### Where OptiScaler comes from

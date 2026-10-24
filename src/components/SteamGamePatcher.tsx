@@ -193,6 +193,12 @@ export function SteamGamePatcher({ dllName, patchWith, ready }: SteamGamePatcher
             </PanelSectionRow>
           )}
 
+          {view.fsr4Line && (
+            <PanelSectionRow>
+              <Field {...focusableFieldProps} label="FSR 4" description={view.fsr4Line} />
+            </PanelSectionRow>
+          )}
+
           <PanelSectionRow>
             <ButtonItem layout="below" disabled={!view.patch.enabled} onClick={handlePatch}>
               {view.patch.label}
