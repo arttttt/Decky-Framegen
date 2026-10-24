@@ -51,3 +51,24 @@ def test_path_defaults_point_the_picker_at_home_and_the_native_steam_library(plu
         "home": str(home),
         "steam_common": str(home / ".local" / "share" / "Steam" / "steamapps" / "common"),
     }
+
+
+def test_a_first_patch_without_the_games_launch_options_is_refused_and_changes_nothing(plugin, fgmod, steam_library):
+    root = steam_library.add_game("1234", "Test Game")
+    before = snapshot(root)
+
+    result = asyncio.run(plugin.patch_game("1234", "dxgi.dll", None, STABLE))
+
+    assert result["status"] == "error" and "launch options" in result["message"]
+    assert snapshot(root) == before
+
+
+def test_a_repatch_without_the_games_launch_options_keeps_the_stored_ones(plugin, fgmod, steam_library):
+    steam_library.add_game("1234", "Test Game")
+    asyncio.run(plugin.patch_game("1234", "dxgi.dll", "mangohud %command%", STABLE))
+
+    repatched = asyncio.run(plugin.patch_game("1234", "dxgi.dll", None, STABLE))
+    unpatched = asyncio.run(plugin.unpatch_game("1234"))
+
+    assert repatched["original_launch_options"] == "mangohud %command%"
+    assert unpatched["launch_options"] == "mangohud %command%"

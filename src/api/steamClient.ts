@@ -1,9 +1,10 @@
 /** Steam's own client API, for the launch options of a game. */
 
+/** The game's launch options; rejects when Steam doesn't say, which is not the same as having none. */
 export const getAppLaunchOptions = (appId: number): Promise<string> =>
   new Promise((resolve, reject) => {
     if (typeof SteamClient === "undefined" || !SteamClient?.Apps?.RegisterForAppDetails) {
-      resolve("");
+      reject(new Error("Steam's client API is not available."));
       return;
     }
     let settled = false;

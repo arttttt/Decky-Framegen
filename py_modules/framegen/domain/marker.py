@@ -50,13 +50,16 @@ def build(
     }
 
 
-def original_launch_options(current: str, stored: str) -> str:
+def original_launch_options(current: str | None, stored: str | None) -> str | None:
     """The user's own launch options to restore on unpatch.
 
-    Options stored by an earlier patch win over the current ones (which may be
-    ours); options the plugin itself wrote are never treated as the user's.
+    Options stored by an earlier patch (None when there was none) win over the current ones,
+    which may be ours; options the plugin itself wrote are never treated as the user's. `current`
+    is None when Steam didn't say what they are: then only stored options can be kept, and without
+    them the user's are unknown (None): a patch would lose them for good, so it mustn't happen.
     """
-    original = current or ""
     if stored and not is_managed(stored):
-        original = stored
-    return "" if is_managed(original) else original
+        return stored
+    if current is None:
+        return None if stored is None else ""
+    return "" if is_managed(current) else current

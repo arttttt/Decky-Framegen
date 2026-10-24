@@ -108,3 +108,14 @@ def test_original_launch_options_prefer_the_stored_user_options_and_never_keep_o
     # Stored options the plugin wrote are not the user's; the current ones are.
     assert marker.original_launch_options("mangohud %command%", ours) == "mangohud %command%"
     assert marker.original_launch_options("", "") == ""
+    assert marker.original_launch_options("mangohud %command%", None) == "mangohud %command%"  # a first patch
+
+
+def test_unknown_current_options_keep_the_stored_ones_and_are_never_taken_for_none():
+    ours = "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%"
+
+    assert marker.original_launch_options(None, "gamemoderun %command%") == "gamemoderun %command%"
+    assert marker.original_launch_options(None, "") == ""  # an earlier patch stored that the user had none
+    assert marker.original_launch_options(None, ours) == ""
+    # A first patch can't know them: unknown, so the patch is refused rather than losing them.
+    assert marker.original_launch_options(None, None) is None

@@ -79,9 +79,10 @@ class Plugin:
         self,
         appid: str,
         dll_name: str = bundle.DEFAULT_PROXY_DLL,
-        current_launch_options: str = "",
+        current_launch_options: str | None = "",
         version_id: str = "",
     ) -> dict:
+        # None: Steam didn't say what the game's launch options are.
         return await asyncio.to_thread(
             self._patcher().patch_game, appid, dll_name, current_launch_options, version_id or None
         )

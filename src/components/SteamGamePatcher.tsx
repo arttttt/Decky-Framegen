@@ -125,12 +125,8 @@ export function SteamGamePatcher({ dllName, patchWith, ready }: SteamGamePatcher
     setPatching(true);
     setResultMessage("");
     try {
-      let currentLaunchOptions = "";
-      try {
-        currentLaunchOptions = await getAppLaunchOptions(Number(selectedAppId));
-      } catch {
-        // non-fatal: proceed without current launch options
-      }
+      // Unknown, not empty, when Steam doesn't answer: the backend then keeps what it stored or refuses.
+      const currentLaunchOptions = await getAppLaunchOptions(Number(selectedAppId)).catch(() => null);
       const result = await patchGame(selectedAppId, dllName, currentLaunchOptions, patchWith);
       if (result.status !== "success") throw new Error(result.message || "Patch failed.");
       setAppLaunchOptions(Number(selectedAppId), result.launch_options || "");
