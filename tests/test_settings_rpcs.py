@@ -79,7 +79,8 @@ def test_a_game_running_isnt_written(plugin, fgmod, steam_library, monkeypatch):
 def test_a_game_not_patched_yet_keeps_its_settings_for_the_patch(plugin, fgmod, steam_library):
     root = steam_library.add_game("1", "Game")
     run(plugin.set_setting("1", "FSR", "Fsr4Model", "1"))
-    assert run(plugin.game_settings("1"))["patched"] is False
+    answer = run(plugin.game_settings("1"))
+    assert answer["patched"] is False and answer["name"] == "Game"
 
     run(plugin.patch_game("1", "dxgi.dll", "", NIGHTLY))
 

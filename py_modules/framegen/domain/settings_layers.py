@@ -119,8 +119,16 @@ def parse_layer(data: object) -> Layer:
     }
 
 
-def view_json(sections: tuple[Section, ...], resolved: dict[Key, Resolved]) -> list[dict]:
-    """The schema with each setting's value and its source, as the settings pages show it."""
+def view_json(sections: tuple[Section, ...], global_layer: Layer, game_layer: Layer | None = None) -> list[dict]:
+    """The schema as a settings page shows it: each setting's value and source, and what it would be
+    without the page's own value ("inherited"): global for a game's page (game_layer given), auto for
+    the global page."""
+    resolved = resolve(sections, global_layer, game_layer or {})
+    inherited = resolve(sections, global_layer if game_layer is not None else {}, {})
+
+    def value(key: Key) -> dict:
+        return {"value": inherited[key].value, "source": inherited[key].source}
+
     return [
         {
             "name": section.name,
@@ -137,6 +145,7 @@ def view_json(sections: tuple[Section, ...], resolved: dict[Key, Resolved]) -> l
                     "integer": setting.integer,
                     "value": resolved[(section.name, setting.key)].value,
                     "source": resolved[(section.name, setting.key)].source,
+                    "inherited": value((section.name, setting.key)),
                 }
                 for setting in section.settings
             ],
