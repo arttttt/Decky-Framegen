@@ -249,9 +249,11 @@ class Patcher:
         return RESET
 
     def path_defaults(self) -> dict:
-        """Starting points for the manual directory picker."""
-        native_steam = steam.steam_root_candidates(self.home)[0]
-        return {"home": str(self.home), "steam_common": str(native_steam / "steamapps" / "common")}
+        """Starting points for the manual directory picker: home, and the games of the first Steam library
+        found (native or Flatpak), else where native Steam would keep them."""
+        libraries = [library for library in steam_library.library_paths(self.home) if (library / "steamapps").is_dir()]
+        steam_root = libraries[0] if libraries else steam.steam_root_candidates(self.home)[0]
+        return {"home": str(self.home), "steam_common": str(steam_root / "steamapps" / "common")}
 
     # ── Steam games ──────────────────────────────────────────────────────────
 

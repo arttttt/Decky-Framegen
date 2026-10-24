@@ -49,10 +49,10 @@ def game_dir_from_command(args: list[str]) -> str | None:
     """The game directory named by a launch command, before Lutris and fallbacks.
 
     A single argument is the game's .exe or its directory; in a full command
-    line the first .exe argument (with launchers remapped) decides.
+    line the first .exe argument decides. Known launchers are remapped either way.
     """
     if len(args) == 1:
-        return dirname(args[0]) if args[0].endswith(".exe") else args[0]
+        return dirname(remap_launcher(args[0])) if args[0].endswith(".exe") else args[0]
     for arg in args:
         if arg.endswith(".exe"):
             return dirname(remap_launcher(arg))
