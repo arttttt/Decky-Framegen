@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LaunchSetup } from "../api";
-import { patchReady, proxyDllView } from "./launch";
+import { clipboardButtonView, patchReady, proxyDllView } from "./launch";
 
 const SETUP: LaunchSetup = {
   default: "dxgi.dll",
@@ -37,5 +37,13 @@ describe("proxy DLL picker", () => {
     expect(patchReady(true, empty)).toBe(false);
     expect(patchReady(true, proxyDllView(SETUP, null))).toBe(true);
     expect(patchReady(false, proxyDllView(SETUP, null))).toBe(false);
+  });
+});
+
+describe("a copy button", () => {
+  it("shows its label, copying, then copied in green, and copies only when idle", () => {
+    expect(clipboardButtonView("idle", "Copy")).toEqual({ label: "Copy", icon: "clipboard", pulsing: false, color: null, enabled: true });
+    expect(clipboardButtonView("copying", "Copy")).toEqual({ label: "Copying...", icon: "clipboard", pulsing: true, color: null, enabled: false });
+    expect(clipboardButtonView("copied", "Copy")).toEqual({ label: "Copied to clipboard", icon: "check", pulsing: false, color: "#4CAF50", enabled: false });
   });
 });

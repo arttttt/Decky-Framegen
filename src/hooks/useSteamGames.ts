@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toaster } from "@decky/api";
 import { listInstalledGames } from "../api";
+import { gameToShow } from "../presentation/patching";
 
 export type GameEntry = { appid: string; name: string; install_found?: boolean };
 
@@ -25,7 +26,7 @@ export const useSteamGames = () => {
         if (result.status !== "success") throw new Error(result.message || "Failed to load games.");
         const list = result.games as GameEntry[];
         setGames(list);
-        select(list.some((g) => g.appid === lastSelectedAppId) ? lastSelectedAppId : list[0]?.appid ?? "");
+        select(gameToShow(list, lastSelectedAppId));
       } catch (err) {
         toaster.toast({ title: "Decky Framegen", body: err instanceof Error ? err.message : "Failed to load games." });
       } finally {

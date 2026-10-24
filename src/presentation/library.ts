@@ -131,7 +131,13 @@ export type ManageView = {
   message: string | null;
 };
 
-export type ManageMenuItem = { action: ManageAction; label: string; destructive: boolean };
+export type ManageMenuItem = {
+  action: ManageAction;
+  label: string;
+  destructive: boolean;
+  /** Asks first, saying what it changes. */
+  confirms: boolean;
+};
 
 const describeInstalled = (version: InstalledVersion): string =>
   `${version.channel === "nightly" ? "Nightly" : "Stable"} · ${megabytes(version.size)}`;
@@ -163,18 +169,19 @@ export const manageDone = (action: ManageAction, id: string): string =>
 
 /** What can be done with a downloaded version. */
 export const MANAGE_MENU: ManageMenuItem[] = [
-  { action: "reinstall", label: "Download again", destructive: false },
-  { action: "remove", label: "Remove", destructive: true },
+  { action: "reinstall", label: "Download again", destructive: false, confirms: false },
+  { action: "remove", label: "Remove", destructive: true, confirms: true },
 ];
 
 /** What the dialog shows when Remove is picked: the question, or — told before asking — why it can't be removed. */
-export type RemoveConfirmation = { title: string; lines: string[]; okLabel: string; removes: boolean };
+export type RemoveConfirmation = { title: string; lines: string[]; okLabel: string; removes: boolean; alert: boolean };
 
 const cantRemove = (version: InstalledVersion, reason: string): RemoveConfirmation => ({
   title: `Can't remove OptiScaler ${versionLabel(version)}`,
   lines: [reason],
   okLabel: "OK",
   removes: false,
+  alert: true,
 });
 
 /** Games patched with a version by copies keep working once it is removed; they just can't be patched with it again. */
@@ -188,5 +195,6 @@ export const removeConfirmation = (version: InstalledVersion, removal: LibraryRe
       : ["No game is patched with it."],
     okLabel: "Remove",
     removes: true,
+    alert: false,
   };
 };

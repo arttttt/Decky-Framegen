@@ -1,19 +1,13 @@
 import { ButtonItem, Field, PanelSectionRow } from "@decky/ui";
 import type { GamePatch } from "../hooks/useGamePatch";
-import type { SteamGameView } from "../presentation/patching";
-import { UnpatchConfirmation } from "./UnpatchConfirmation";
-
-const TONE_COLORS: Record<SteamGameView["status"]["tone"], string | undefined> = {
-  neutral: undefined,
-  warning: "#ffd866",
-  good: "#3fb950",
-};
+import { toneColor } from "../presentation/patching";
+import { Confirmation } from "./Confirmation";
 
 /** A game's patch status, its FSR 4 state, and Patch and Unpatch. The lines are plain text the
  *  gamepad skips: only the buttons take focus. */
 export function GamePatchCard({ patch }: { patch: GamePatch }) {
   const { view, unpatch } = patch;
-  const color = TONE_COLORS[view.status.tone];
+  const color = toneColor(view.status.tone);
   return (
     <>
       <PanelSectionRow>
@@ -43,7 +37,7 @@ export function GamePatchCard({ patch }: { patch: GamePatch }) {
           </ButtonItem>
         </PanelSectionRow>
       )}
-      <UnpatchConfirmation confirmation={unpatch.confirmation} onConfirm={unpatch.onConfirm} onCancel={unpatch.onCancel} />
+      <Confirmation confirmation={unpatch.confirmation} onConfirm={unpatch.onConfirm} onCancel={unpatch.onCancel} />
       {patch.resultMessage && (
         <PanelSectionRow>
           <Field label="Result">

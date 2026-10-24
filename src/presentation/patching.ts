@@ -93,8 +93,14 @@ export type GameStatus = {
   fsr4?: Fsr4State | null;
 };
 
+export type StatusTone = "neutral" | "warning" | "good";
+
+/** The colour a status line takes for its tone; plain text for neutral. */
+export const toneColor = (tone: StatusTone): string | null =>
+  tone === "warning" ? "#ffd866" : tone === "good" ? "#3fb950" : null;
+
 export type SteamGameView = {
-  status: { text: string; tone: "neutral" | "warning" | "good" };
+  status: { text: string; tone: StatusTone };
   versionLine: string | null;
   fsr4Line: string | null;
   patch: { label: string; enabled: boolean };
@@ -158,3 +164,8 @@ export const gamePickerView = (
 
 /** A game page's title: the game's name once its status has said it. */
 export const gamePageTitle = (status: GameStatus | null): string => status?.name ?? "Loading…";
+
+/** The game the panel shows once the games are listed: the one picked last while it is still installed,
+ *  else the first; "" when there are none. */
+export const gameToShow = (games: { appid: string }[], lastPicked: string): string =>
+  games.some((g) => g.appid === lastPicked) ? lastPicked : games[0]?.appid ?? "";

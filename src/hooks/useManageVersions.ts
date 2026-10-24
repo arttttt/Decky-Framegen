@@ -5,7 +5,16 @@ import {
   libraryReinstall,
   libraryRemove,
 } from "../api";
-import { ManageAction, ManageState, actionOutcome, manageDone, manageView, removeConfirmation } from "../presentation/library";
+import {
+  ManageAction,
+  ManageMenuItem,
+  ManageState,
+  RemoveConfirmation,
+  actionOutcome,
+  manageDone,
+  manageView,
+  removeConfirmation,
+} from "../presentation/library";
 import { safeAsyncOperation } from "../utils";
 import { useLibraryDownloadEvents } from "./useLibraryDownloadEvents";
 
@@ -17,6 +26,7 @@ const CALLS: Record<ManageAction, (id: string) => Promise<{ status: string; mess
 /** State and calls behind the dialog that manages downloaded versions; `onChanged` runs after any change. */
 export const useManageVersions = (onChanged: () => void) => {
   const [state, setState] = useState<ManageState>({ library: null, busy: null, download: null, message: null });
+  const [pending, setPending] = useState<{ id: string; confirmation: RemoveConfirmation } | null>(null);
 
   useLibraryDownloadEvents((id, received, total) =>
     setState((s) => (s.busy?.id === id && s.busy.action === "reinstall" ? { ...s, download: { received, total } } : s)),
@@ -48,9 +58,23 @@ export const useManageVersions = (onChanged: () => void) => {
     return removeConfirmation(version, removal ?? null);
   };
 
+  /** A menu item picked for a version: runs, or first asks what the view model says to ask. */
+  const onSelect = async (id: string, item: ManageMenuItem) => {
+    if (!item.confirms) return void run(id, item.action);
+    const confirmation = await removalOf(id);
+    if (confirmation) setPending({ id, confirmation });
+  };
+
+  const onConfirm = () => {
+    if (pending?.confirmation.removes) void run(pending.id, "remove");
+    setPending(null);
+  };
+
   return {
     view: manageView(state),
-    run: (id: string, action: ManageAction) => void run(id, action),
-    removalOf,
+    onSelect: (id: string, item: ManageMenuItem) => void onSelect(id, item),
+    confirmation: pending?.confirmation ?? null,
+    onConfirm,
+    onCancel: () => setPending(null),
   };
 };

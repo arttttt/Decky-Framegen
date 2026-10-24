@@ -137,7 +137,7 @@ describe("a change", () => {
 
 describe("a settings page", () => {
   it("is loading, then an error with the backend's words", () => {
-    expect(settingsPageView(GLOBAL_SCOPE, null)).toEqual({ kind: "loading", title: "Global settings" });
+    expect(settingsPageView(GLOBAL_SCOPE, null)).toEqual({ kind: "loading", title: "Global settings", message: "Loading…" });
     expect(settingsPageView("1", { status: "error", message: "No OptiScaler version." })).toEqual({
       kind: "error",
       title: "Game settings",
