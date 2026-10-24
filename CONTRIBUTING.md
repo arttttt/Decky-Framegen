@@ -66,9 +66,10 @@ Switching back to `main` works the same way.
 ### What to know
 
 - Installing replaces the plugin directory only. `~/fgmod`, patched games and their markers are untouched; the plugin must never define an `_uninstall` hook, because Decky runs it on every update (a test enforces this).
-- Development builds contain no OptiScaler. Until OptiScaler versions can be downloaded from the plugin, an existing `~/fgmod` keeps working for patching.
+- Development builds contain no OptiScaler: download a version under **OptiScaler versions** before patching.
 - After each install Decky puts the plugin back at the end of the Quick Access menu.
 - Installing from a URL makes Decky send an install-count request to its store; it does nothing for a plugin that is not in the store.
+- The launch wrapper can't link the FSR 4 driver DLL: it doesn't know the game's Proton prefix. A game the wrapper starts keeps the link the panel's patch placed. But if the wrapper has to patch again (a placed file went missing, another version or proxy), the link goes until the next patch from the panel.
 - Logs: Decky's plugin log at `~/homebrew/logs/Decky-Framegen/`, the launch wrappers at `/tmp/fgmod-install.log` and `/tmp/fgmod-uninstaller.log`.
 
 ### Device checklist for a pull request
