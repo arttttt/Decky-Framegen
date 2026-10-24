@@ -66,8 +66,11 @@ class Plugin:
     ) -> dict:
         return self._patcher().patch_user_directory(directory, dll_name, fsr4_variant, version_id or None)
 
-    async def manual_unpatch_directory(self, directory: str) -> dict:
-        return self._patcher().unpatch_user_directory(directory)
+    async def preview_unpatch_directory(self, directory: str) -> dict:
+        return self._patcher().preview_unpatch_directory(directory)
+
+    async def manual_unpatch_directory(self, directory: str, confirmed_reset: bool = False) -> dict:
+        return self._patcher().unpatch_user_directory(directory, confirmed_reset)
 
     async def get_game_status(self, appid: str) -> dict:
         return self._patcher().game_status(appid)
@@ -82,8 +85,11 @@ class Plugin:
     ) -> dict:
         return self._patcher().patch_game(appid, dll_name, current_launch_options, fsr4_variant, version_id or None)
 
-    async def unpatch_game(self, appid: str) -> dict:
-        return self._patcher().unpatch_game(appid)
+    async def preview_unpatch_game(self, appid: str, current_launch_options: str = "") -> dict:
+        return self._patcher().preview_unpatch_game(appid, current_launch_options)
+
+    async def unpatch_game(self, appid: str, current_launch_options: str = "", confirmed_reset: bool = False) -> dict:
+        return self._patcher().unpatch_game(appid, current_launch_options, confirmed_reset)
 
     # ── OptiScaler library ────────────────────────────────────────────────────
 
@@ -117,20 +123,6 @@ class Plugin:
 
     async def library_set_default(self, version_id: str) -> dict:
         return self._library().set_default(version_id)
-
-    # ── Reset to stock (one game, on the user's request) ─────────────────────
-
-    async def preview_reset_game(self, appid: str, current_launch_options: str = "") -> dict:
-        return self._patcher().preview_reset_game(appid, current_launch_options)
-
-    async def reset_game(self, appid: str, current_launch_options: str = "") -> dict:
-        return self._patcher().reset_game(appid, current_launch_options)
-
-    async def preview_reset_directory(self, directory: str) -> dict:
-        return self._patcher().preview_reset_directory(directory)
-
-    async def reset_directory(self, directory: str) -> dict:
-        return self._patcher().reset_directory(directory)
 
     # ── Development builds ────────────────────────────────────────────────────
 

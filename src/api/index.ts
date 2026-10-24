@@ -24,10 +24,9 @@ export const runManualPatch = callable<
   }
 >("manual_patch_directory");
 
-export const runManualUnpatch = callable<
-  [string],
-  { status: string; message?: string; output?: string }
->("manual_unpatch_directory");
+export const runManualUnpatch = callable<[directory: string, confirmed_reset: boolean], UnpatchResult>(
+  "manual_unpatch_directory"
+);
 
 export const getGameStatus = callable<
   [appid: string],
@@ -67,14 +66,8 @@ export const patchGame = callable<
 >("patch_game");
 
 export const unpatchGame = callable<
-  [appid: string],
-  {
-    status: string;
-    message?: string;
-    appid?: string;
-    name?: string;
-    launch_options?: string;
-  }
+  [appid: string, current_launch_options: string, confirmed_reset: boolean],
+  UnpatchResult
 >("unpatch_game");
 
 // ── OptiScaler library ───────────────────────────────────────────────────────
@@ -153,11 +146,15 @@ export const devInstallRequest = callable<
   { status: "success"; install_request: DeckyInstallRequest } | { status: "error"; message: string }
 >("dev_install_request");
 
-// ── Reset to stock ───────────────────────────────────────────────────────────
+// ── Unpatching ───────────────────────────────────────────────────────────────
 
-export type ResetPreview =
+/** What Unpatch will do: undo the patch record (nothing to confirm), or, for an older plugin
+ *  version's patch, a reset the user confirms after seeing what it changes. */
+export type UnpatchPreview =
+  | { status: "success"; mode: "record"; target_dir: string; name?: string }
   | {
       status: "success";
+      mode: "reset";
       target_dir: string;
       evidence: "marker" | "backups" | "leftovers";
       remove: string[];
@@ -166,13 +163,14 @@ export type ResetPreview =
       /** The launch options to set afterwards; null leaves them as they are. */
       launch_options: string | null;
       name?: string;
-      message?: string;
     }
   | { status: "error"; message: string };
 
-export const previewResetGame = callable<[appid: string, current_launch_options: string], ResetPreview>(
-  "preview_reset_game"
+export type UnpatchResult =
+  | { status: "success"; message?: string; launch_options?: string | null }
+  | { status: "error"; message: string };
+
+export const previewUnpatchGame = callable<[appid: string, current_launch_options: string], UnpatchPreview>(
+  "preview_unpatch_game"
 );
-export const resetGame = callable<[appid: string, current_launch_options: string], ResetPreview>("reset_game");
-export const previewResetDirectory = callable<[directory: string], ResetPreview>("preview_reset_directory");
-export const resetDirectory = callable<[directory: string], ResetPreview>("reset_directory");
+export const previewUnpatchDirectory = callable<[directory: string], UnpatchPreview>("preview_unpatch_directory");

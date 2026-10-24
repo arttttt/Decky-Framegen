@@ -23,8 +23,12 @@ log = logging.getLogger(__name__)
 NO_VERSION = "No OptiScaler version is installed. Download one in the OptiScaler section first."
 BUNDLE_IS_NOT_A_GAME = "The target directory is the OptiScaler bundle itself. Aborting to prevent accidental deletion."
 PATCHED_BY_AN_OLDER_VERSION = (
-    "This game was patched by an older version of the plugin. Use Reset to stock to remove that patch first."
+    "This game was patched by an older version of the plugin. Unpatch it first: the plugin shows what that removes."
 )
+RECORD = "record"
+"""How a directory is unpatched: by its patch record, exactly as the patch recorded it."""
+RESET = "reset"
+"""How a directory an older plugin version patched is unpatched: by what those versions placed, after the user confirms."""
 
 
 def _error(message: str) -> dict:
@@ -192,13 +196,37 @@ class Patcher:
             return _error(str(exc))
         return self.patch_directory(target, dll_name, fsr4_variant, version_id=version_id)
 
-    def unpatch_user_directory(self, directory: str) -> dict:
+    def unpatch_user_directory(self, directory: str, confirmed_reset: bool = False) -> dict:
+        """Unpatch a directory the user picked: by its record, or — for an older plugin version's
+        patch, once the user confirmed what the preview showed — by resetting it."""
         try:
             target = self.resolve_directory(directory)
         except (FileNotFoundError, NotADirectoryError, PermissionError) as exc:
             log.error(f"Manual unpatch validation failed: {exc}")
             return _error(str(exc))
+        if confirmed_reset and self._unpatch_mode(target / bundle.MARKER_FILENAME) == RESET:
+            return self._reset_directory(target)
+        # An older plugin's marker is refused there: its patch needs the confirmed reset.
         return self.unpatch_directory(target)
+
+    def preview_unpatch_directory(self, directory: str) -> dict:
+        try:
+            target = self.resolve_directory(directory)
+            if self._unpatch_mode(target / bundle.MARKER_FILENAME) == RECORD:
+                return {"status": "success", "mode": RECORD, "target_dir": str(target)}
+            preview, _ = self._reset_plan(target, None, None)
+            return {**preview, "mode": RESET} if preview["status"] == "success" else preview
+        except Exception as exc:
+            log.error(f"[Framegen] preview_unpatch_directory failed for {directory}: {exc}")
+            return _error(str(exc))
+
+    @staticmethod
+    def _unpatch_mode(marker_path: Path | None) -> str:
+        """RECORD when the marker holds a patch record; RESET for anything else (an older plugin's
+        marker, or no marker — then only the reset's own evidence rules decide whether anything is ours)."""
+        if marker_path is not None and marker_path.is_file() and patch_record.parse(files.read_json(marker_path)):
+            return RECORD
+        return RESET
 
     def path_defaults(self) -> dict:
         """Starting points for the manual directory picker."""
@@ -357,14 +385,16 @@ class Patcher:
             f"{result.get('fsr4_variant_label')}.",
         }
 
-    def unpatch_game(self, appid: str) -> dict:
+    def unpatch_game(self, appid: str, current_launch_options: str = "", confirmed_reset: bool = False) -> dict:
+        """Unpatch a Steam game: by its record, or — for an older plugin version's patch, once the
+        user confirmed what the preview showed — by resetting it."""
         try:
-            return self._unpatch_game(appid)
+            return self._unpatch_game(appid, current_launch_options, confirmed_reset)
         except Exception as exc:
             log.error(f"[Framegen] unpatch_game failed for {appid}: {exc}")
             return _error(str(exc))
 
-    def _unpatch_game(self, appid: str) -> dict:
+    def _unpatch_game(self, appid: str, current_launch_options: str, confirmed_reset: bool) -> dict:
         game = steam_library.find_game(self.home, str(appid))
         if game is None:
             return _error("Game not found in Steam library.")
@@ -374,8 +404,12 @@ class Patcher:
         if self._is_running(game):
             return _error("Close the game before unpatching.")
         marker_path = self._find_marker(game.install_path)
-        if marker_path is None:
-            return {**not_patched, "message": "No Framegen patch found for this game."}
+        if self._unpatch_mode(marker_path) == RESET:
+            if confirmed_reset:
+                return self._reset_game(appid, current_launch_options)
+            if marker_path is None:
+                return {**not_patched, "message": "No Framegen patch found for this game."}
+            return _error(PATCHED_BY_AN_OLDER_VERSION)
 
         metadata = files.read_json(marker_path)
         target_dir = marker_path.parent
@@ -391,9 +425,9 @@ class Patcher:
             "message": f"Unpatched {game.name}.",
         }
 
-    # ── reset to stock ───────────────────────────────────────────────────────
-    # For games an earlier plugin version patched: one game the user picked, shown
-    # first (preview), carried out only when the user confirms (reset).
+    # ── unpatching what an older plugin version patched ──────────────────────
+    # Such a patch has no record, so Unpatch resets the directory instead: for one game the
+    # user picked, shown first (preview), carried out only once the user confirms.
 
     def _reset_target(self, appid: str) -> tuple[steam_library.InstalledGame, Path, Path | None]:
         game = steam_library.find_game(self.home, str(appid))
@@ -436,16 +470,20 @@ class Patcher:
         }
         return preview, reset.operations
 
-    def preview_reset_game(self, appid: str, current_launch_options: str) -> dict:
+    def preview_unpatch_game(self, appid: str, current_launch_options: str) -> dict:
+        """How unpatching a game goes: by its record (nothing to confirm), or a reset whose preview
+        the user confirms first."""
         try:
             game, target, marker_path = self._reset_target(appid)
+            if self._unpatch_mode(marker_path) == RECORD:
+                return {"status": "success", "mode": RECORD, "name": game.name, "target_dir": str(target)}
             preview, _ = self._reset_plan(target, marker_path, current_launch_options)
-            return {**preview, "name": game.name}
+            return {**preview, "mode": RESET, "name": game.name} if preview["status"] == "success" else preview
         except Exception as exc:
-            log.error(f"[Framegen] preview_reset_game failed for {appid}: {exc}")
+            log.error(f"[Framegen] preview_unpatch_game failed for {appid}: {exc}")
             return _error(str(exc))
 
-    def reset_game(self, appid: str, current_launch_options: str) -> dict:
+    def _reset_game(self, appid: str, current_launch_options: str) -> dict:
         try:
             game, target, marker_path = self._reset_target(appid)
             if self._is_running(game):
@@ -463,17 +501,8 @@ class Patcher:
             log.error(f"[Framegen] reset_game failed for {appid}: {exc}")
             return _error(str(exc))
 
-    def preview_reset_directory(self, directory: str) -> dict:
+    def _reset_directory(self, target: Path) -> dict:
         try:
-            preview, _ = self._reset_plan(self.resolve_directory(directory), None, None)
-            return preview
-        except Exception as exc:
-            log.error(f"[Framegen] preview_reset_directory failed for {directory}: {exc}")
-            return _error(str(exc))
-
-    def reset_directory(self, directory: str) -> dict:
-        try:
-            target = self.resolve_directory(directory)
             preview, operations = self._reset_plan(target, None, None)
             if preview["status"] != "success":
                 return preview
