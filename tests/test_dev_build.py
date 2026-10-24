@@ -45,15 +45,15 @@ def test_only_owner_slash_name_is_a_repository(repository):
 def test_a_build_carries_its_title_but_is_identified_without_it():
     titled = dev_build.build_info(REPOSITORY, "pr-12", COMMIT, "Add a\nsection")
 
-    assert titled.title == "PR #12: Add a section"
-    assert dev_build.parse(dev_build.to_json(titled)).title == "PR #12: Add a section"
+    assert titled.title == "Dev build · PR #12: Add a section"
+    assert dev_build.parse(dev_build.to_json(titled)).title == "Dev build · PR #12: Add a section"
     assert titled == dev_build.build_info(REPOSITORY, "pr-12", COMMIT)
 
 
 def test_a_file_without_a_title_gets_the_channels_default():
     text = '{"repository": "%s", "channel": "pr-12", "commit": "%s"}' % (REPOSITORY, COMMIT)
 
-    assert dev_build.parse(text).title == "PR #12"
+    assert dev_build.parse(text).title == "Dev build · PR #12"
 
 
 def test_build_info_round_trips_through_its_file():
@@ -80,16 +80,16 @@ def test_a_file_that_is_not_a_build_identity_is_rejected(text):
 def test_version_and_asset_name_carry_channel_and_short_commit():
     info = dev_build.build_info(REPOSITORY, "pr-12", COMMIT)
 
-    assert dev_build.version("0.17", info) == "0.17-pr-12.1a2b3c4"
+    assert dev_build.version("2026.10.04", info) == "2026.10.04-pr-12.1a2b3c4"
     assert dev_build.asset_name("Decky-Framegen", info) == "Decky-Framegen-1a2b3c4.zip"
 
 
 def test_a_release_is_titled_after_main_or_its_pull_request():
-    assert dev_build.release_title(dev_build.build_info(REPOSITORY, "dev", COMMIT)) == "main @ 1a2b3c4"
+    assert dev_build.release_title(dev_build.build_info(REPOSITORY, "dev", COMMIT)) == "Dev build · main @ 1a2b3c4"
     pr = dev_build.build_info(REPOSITORY, "pr-12", COMMIT)
-    assert dev_build.release_title(pr, "Add a Developer section") == "PR #12: Add a Developer section"
-    assert dev_build.release_title(pr, "  Two\nlines\r\n ") == "PR #12: Two lines"
-    assert dev_build.release_title(pr, " ") == "PR #12"
+    assert dev_build.release_title(pr, "Add a Developer section") == "Dev build · PR #12: Add a Developer section"
+    assert dev_build.release_title(pr, "  Two\nlines\r\n ") == "Dev build · PR #12: Two lines"
+    assert dev_build.release_title(pr, " ") == "Dev build · PR #12"
 
 
 # ── integration: the stamping script CI runs ─────────────────────────────────
@@ -114,21 +114,23 @@ def stamp(root, *args):
 
 
 def test_stamping_writes_the_identity_and_the_version_and_reports_both(checkout):
-    base = json.loads((checkout / "package.json").read_text())["version"]
+    base = "2026.10.04"  # the build day, as releases are named
 
-    result = stamp(checkout, "--pull-request", "12", "--pull-request-title", "Add\na section", "--commit", COMMIT)
+    result = stamp(
+        checkout, "--pull-request", "12", "--pull-request-title", "Add\na section", "--commit", COMMIT, "--date", "2026-10-04"
+    )
 
     assert result.returncode == 0, result.stderr
     info = dev_build.parse((checkout / "defaults" / dev_build.BUILD_INFO_FILENAME).read_text())
     assert info == dev_build.build_info(REPOSITORY, "pr-12", COMMIT)
-    assert info.title == "PR #12: Add a section"
+    assert info.title == "Dev build · PR #12: Add a section"
     package = json.loads((checkout / "package.json").read_text())
     assert package["version"] == f"{base}-pr-12.1a2b3c4"
     assert result.stdout.splitlines() == [
         "channel=pr-12",
         f"version={base}-pr-12.1a2b3c4",
         "asset=Decky-Framegen-1a2b3c4.zip",
-        "title=PR #12: Add a section",
+        "title=Dev build · PR #12: Add a section",
     ]
 
 

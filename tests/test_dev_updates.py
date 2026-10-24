@@ -210,7 +210,7 @@ def test_a_development_build_lists_its_repositorys_builds(plugin_dir, github):
         "channel": "dev",
         "commit": DEV_COMMIT,
         "short_commit": "9f2c1a6",
-        "title": "main @ 9f2c1a6",
+        "title": "Dev build · main @ 9f2c1a6",
     }
     assert github.requests == [f"/repos/{REPOSITORY}/releases?per_page=100"]
     assert builds["status"] == "success"

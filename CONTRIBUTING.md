@@ -80,3 +80,14 @@ Run on the device before merging anything that changes what the device sees:
 3. `~/fgmod`, patched games and their `FRAMEGEN_PATCH` markers are unchanged by the install.
 4. Switch back to `main` from the Developer section.
 5. Gamepad only: every row of the changed sections can be reached and used.
+
+## Releasing
+
+Run **Actions → Release → Run workflow** on `main`. Nothing to type: the release is named after the
+day, as a calendar version (`2026.10.24`; a second release that day is `2026.10.24.1`). The workflow
+stamps that version into the build (`scripts/stamp_release.py`, `framegen.domain.release_version`),
+builds a release build (no Developer section), checks the package, and publishes `Decky-Framegen.zip`
+as the GitHub Release tagged with the bare version (`2026.10.24`) on main's current commit, with generated notes.
+
+`package.json`'s `version` stays `0.0.0`: every published build gets its version stamped. Development
+builds carry the build day too, then their channel and commit (`2026.10.24-dev.1a2b3c4`). Their prereleases are tagged `dev` (main's latest commit) and `pr-N`, and titled `Dev build · main @ 1a2b3c4` or `Dev build · PR #N: <title>`, so they can't pass for a release.

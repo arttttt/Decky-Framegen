@@ -1,0 +1,55 @@
+name: Release
+
+# Run by hand (Actions → Release → Run workflow): releases main's current commit under a calendar
+# version (2026.10.24, or 2026.10.24.1 for the day's second), with nothing to type.
+on:
+  workflow_dispatch:
+
+# Two runs at once would both take the same day's version.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish the release
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write  # creates the tag and the release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0  # the tags, to count the day's releases
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Stamp the release
+        id: stamp
+        shell: bash
+        run: |
+          mapfile -t tags < <(git tag --list '[0-9]*')
+          args=()
+          for tag in "${tags[@]}"; do args+=(--existing-tag "$tag"); done
+          python scripts/stamp_release.py "${args[@]}" | tee -a "$GITHUB_OUTPUT"
+
+      # A release build: no development identity, so the Developer section stays hidden.
+      - uses: ./.github/actions/build-plugin
+        with:
+          commit: ${{ github.sha }}
+          version: ${{ steps.stamp.outputs.version }}
+
+      # The tag is made here, on the commit that was built. The asset keeps the plain name people expect.
+      - name: Publish the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.stamp.outputs.tag }}
+          VERSION: ${{ steps.stamp.outputs.version }}
+        run: |
+          cp "$(ls out/*.zip)" "$RUNNER_TEMP/Decky-Framegen.zip"
+          gh release create "$TAG" "$RUNNER_TEMP/Decky-Framegen.zip" --target "$GITHUB_SHA" \
+            --title "Decky Framegen $VERSION" --generate-notes

@@ -2,7 +2,7 @@
 """Turn a checkout into a development build before `decky plugin build`.
 
 Writes `defaults/build-info.json` (Decky CLI ships defaults/ at the plugin root)
-and the matching version into package.json, then prints `channel=`, `version=`,
+and the matching version (the day, the channel and the commit) into package.json, then prints `channel=`, `version=`,
 `asset=` and `title=` lines for $GITHUB_OUTPUT, which the release that publishes
 the build uses. Release builds skip this script and carry no identity.
 
@@ -15,12 +15,13 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "py_modules"))
 
-from framegen.domain import dev_build  # noqa: E402
+from framegen.domain import dev_build, release_version  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -30,6 +31,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--pull-request", type=int, help="number of the pull request being built; none for main")
     parser.add_argument("--pull-request-title", default="", help="title of that pull request")
     parser.add_argument("--root", type=Path, default=REPO_ROOT, help="plugin checkout to stamp")
+    parser.add_argument("--date", type=date.fromisoformat, help="the build day (default: today, UTC)")
     args = parser.parse_args(argv)
 
     try:
@@ -41,7 +43,8 @@ def main(argv: list[str] | None = None) -> int:
 
     package_path = args.root / "package.json"
     package = json.loads(package_path.read_text(encoding="utf-8"))
-    package["version"] = dev_build.version(package["version"], info)
+    # Named after the day like releases, then the channel and commit: 2026.10.24-dev.1a2b3c4.
+    package["version"] = dev_build.version(release_version.day(args.date or datetime.now(timezone.utc).date()), info)
     package_path.write_text(json.dumps(package, indent=2) + "\n", encoding="utf-8")
     (args.root / "defaults" / dev_build.BUILD_INFO_FILENAME).write_text(dev_build.to_json(info), encoding="utf-8")
 
