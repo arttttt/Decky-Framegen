@@ -61,8 +61,10 @@ function GamePageButton({ appid }: { appid: string }) {
     return () => observer.disconnect();
   }, []);
 
+  // On the row ProtonDB Badges uses by default (top-left, 40px): level with it, the gamepad moves
+  // between the two with left and right.
   return (
-    <div ref={ref} style={{ position: "absolute", top: "60px", right: "20px", zIndex: 7 }}>
+    <div ref={ref} style={{ position: "absolute", top: "40px", right: "20px", zIndex: 7 }}>
       <style>{CHIP_CSS}</style>
       {shown && (
         <FocusableButton className="decky-framegen-chip" onClick={() => openGamePage(appid)}>
