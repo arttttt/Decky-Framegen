@@ -54,8 +54,11 @@ class Plugin:
 
     # ── Game patching ─────────────────────────────────────────────────────────
 
+    # Each of these reads game directories or the library, which takes a while on handheld storage:
+    # they run in a worker thread so Decky's event loop, and every other RPC, keeps going.
+
     async def list_installed_games(self) -> dict:
-        return self._patcher().list_games()
+        return await asyncio.to_thread(self._patcher().list_games)
 
     async def manual_patch_directory(
         self,
@@ -63,19 +66,18 @@ class Plugin:
         dll_name: str = bundle.DEFAULT_PROXY_DLL,
         version_id: str = "",
     ) -> dict:
-        return self._patcher().patch_user_directory(directory, dll_name, version_id or None)
+        return await asyncio.to_thread(self._patcher().patch_user_directory, directory, dll_name, version_id or None)
 
     async def preview_unpatch_directory(self, directory: str) -> dict:
-        return self._patcher().preview_unpatch_directory(directory)
+        return await asyncio.to_thread(self._patcher().preview_unpatch_directory, directory)
 
     async def manual_unpatch_directory(self, directory: str, confirmed_reset: bool = False) -> dict:
-        return self._patcher().unpatch_user_directory(directory, confirmed_reset)
+        return await asyncio.to_thread(self._patcher().unpatch_user_directory, directory, confirmed_reset)
 
     async def launch_setup(self) -> dict:
         return launch_options.setup_json()
 
     async def get_game_status(self, appid: str) -> dict:
-        # Reading the game's Proton setup can take a moment on handheld storage; keep it off Decky's event loop.
         return await asyncio.to_thread(self._patcher().game_status, appid)
 
     async def patch_game(
@@ -91,10 +93,10 @@ class Plugin:
         )
 
     async def preview_unpatch_game(self, appid: str, current_launch_options: str = "") -> dict:
-        return self._patcher().preview_unpatch_game(appid, current_launch_options)
+        return await asyncio.to_thread(self._patcher().preview_unpatch_game, appid, current_launch_options)
 
     async def unpatch_game(self, appid: str, current_launch_options: str = "", confirmed_reset: bool = False) -> dict:
-        return self._patcher().unpatch_game(appid, current_launch_options, confirmed_reset)
+        return await asyncio.to_thread(self._patcher().unpatch_game, appid, current_launch_options, confirmed_reset)
 
     # ── OptiScaler library ────────────────────────────────────────────────────
 
@@ -112,7 +114,8 @@ class Plugin:
         )
 
     async def library_installed(self) -> dict:
-        return self._library().installed()
+        # Sizing every version walks its files.
+        return await asyncio.to_thread(self._library().installed)
 
     async def library_removal(self, version_id: str) -> dict:
         return await asyncio.to_thread(self._library().removal, version_id)

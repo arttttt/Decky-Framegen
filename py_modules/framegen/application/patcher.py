@@ -290,10 +290,15 @@ class Patcher:
         running = self._running_executable(candidates)
         return exe_target.patch_target(game.install_path, game.name, candidates, running)
 
-    @staticmethod
-    def _find_marker(install_root: Path) -> Path | None:
+    def _find_marker(self, install_root: Path) -> Path | None:
+        """The game's patch marker: where the patch index says the plugin patched it, else by searching
+        the whole install (a patch by an older plugin version, or a game the plugin never patched)."""
         if not install_root.exists():
             return None
+        for directory in self.patches.directories():
+            marker_path = Path(directory) / bundle.MARKER_FILENAME
+            if marker_path.parent.is_relative_to(install_root) and marker_path.is_file():
+                return marker_path
         try:
             return next((path for path in install_root.rglob(bundle.MARKER_FILENAME) if path.is_file()), None)
         except OSError:
@@ -375,7 +380,8 @@ class Patcher:
             return _error("Game not found in Steam library.")
         if not game.install_path.exists():
             return _error("Game install directory does not exist.")
-        if self._is_running(game):
+        candidates = steam_library.executables(game.install_path)
+        if self._running_executable(candidates) is not None:
             return _error("Close the game before patching.")
         existing_marker = self._find_marker(game.install_path)
         existing = files.read_json(existing_marker) if existing_marker else {}
@@ -384,7 +390,7 @@ class Patcher:
         if original_options is None:
             return _error(LAUNCH_OPTIONS_UNKNOWN)
 
-        target_dir, target_exe = self._patch_target(game)
+        target_dir, target_exe = exe_target.patch_target(game.install_path, game.name, candidates, None)
         if existing_marker and existing_marker.parent != target_dir:
             # The game's executable moved since its last patch; that directory is undone first.
             moved = self.unpatch_directory(existing_marker.parent)
