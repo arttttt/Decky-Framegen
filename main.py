@@ -61,10 +61,9 @@ class Plugin:
         self,
         directory: str,
         dll_name: str = bundle.DEFAULT_PROXY_DLL,
-        fsr4_variant: str = "",
         version_id: str = "",
     ) -> dict:
-        return self._patcher().patch_user_directory(directory, dll_name, fsr4_variant, version_id or None)
+        return self._patcher().patch_user_directory(directory, dll_name, version_id or None)
 
     async def preview_unpatch_directory(self, directory: str) -> dict:
         return self._patcher().preview_unpatch_directory(directory)
@@ -80,10 +79,9 @@ class Plugin:
         appid: str,
         dll_name: str = bundle.DEFAULT_PROXY_DLL,
         current_launch_options: str = "",
-        fsr4_variant: str = "",
         version_id: str = "",
     ) -> dict:
-        return self._patcher().patch_game(appid, dll_name, current_launch_options, fsr4_variant, version_id or None)
+        return self._patcher().patch_game(appid, dll_name, current_launch_options, version_id or None)
 
     async def preview_unpatch_game(self, appid: str, current_launch_options: str = "") -> dict:
         return self._patcher().preview_unpatch_game(appid, current_launch_options)

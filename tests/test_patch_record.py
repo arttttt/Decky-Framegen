@@ -203,10 +203,10 @@ def test_a_repatch_keeps_the_users_ini_settings_unless_asked_to_reset_them(plugi
 
     game = make_game_dir(tmp_path / "games" / "Game")
     patcher = Patcher(tmp_path / "home")
-    patcher.patch_directory(game, "dxgi.dll", "")
+    patcher.patch_directory(game, "dxgi.dll")
     write(game / "OptiScaler.ini", (game / "OptiScaler.ini").read_bytes() + b"\n[Mine]\nKeep=1\n")
 
-    assert patcher.patch_directory(game, "dxgi.dll", "", reset_ini=reset_ini)["status"] == "success"
+    assert patcher.patch_directory(game, "dxgi.dll", reset_ini=reset_ini)["status"] == "success"
 
     assert (b"Keep=1" in (game / "OptiScaler.ini").read_bytes()) is not reset_ini
     # Either way the ini is the patch's, and unpatching removes it.

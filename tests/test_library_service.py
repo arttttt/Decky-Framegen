@@ -65,22 +65,15 @@ def test_an_entry_that_is_not_one_is_not_in_the_library():
 # ── unit: what patching offers ──────────────────────────────────────────────
 
 
-def test_patching_offers_installed_versions_newest_first_with_their_familys_variants():
+def test_patching_offers_installed_versions_newest_first():
     stable = library.Installed("stable-0.9.4", library.STABLE, "0.9.4", "20260718", "0.9", "u", "0" * 64, "t")
     nightly = installed_entry()
 
     offered = [library.choice_json(entry) for entry in library.newest_first([stable, nightly])]
 
     assert offered == [
-        {"id": NEWEST, "version": "10.0.0-pre1", "channel": "nightly", "date": "20261023", "variants": [
-            {"id": "auto", "label": "Automatic (the best model the GPU supports)"},
-            {"id": "int8", "label": "INT8 (RDNA 3, also integrated)"},
-            {"id": "int8-lite", "label": "INT8 Lite (any GPU)"},
-        ]},
-        {"id": "stable-0.9.4", "version": "0.9.4", "channel": "stable", "date": "20260718", "variants": [
-            {"id": "sdk", "label": "FSR 4.1.1 SDK"},
-            {"id": "sdk-int8", "label": "FSR 4.1.1 SDK, INT8 forced"},
-        ]},
+        {"id": NEWEST, "version": "10.0.0-pre1", "channel": "nightly", "date": "20261023"},
+        {"id": "stable-0.9.4", "version": "0.9.4", "channel": "stable", "date": "20260718"},
     ]
 
 
@@ -316,7 +309,7 @@ def test_a_game_status_names_a_newer_version_of_its_channel(plugin, fgmod, steam
     from conftest import NIGHTLY, NIGHTLY_FILES, NIGHTLY_INI, install_version
 
     steam_library.add_game("1234", "Test Game")
-    run(plugin.patch_game("1234", "dxgi.dll", "", "", NIGHTLY))
+    run(plugin.patch_game("1234", "dxgi.dll", "", NIGHTLY))
     assert run(plugin.get_game_status("1234"))["newer_version"] is None
 
     install_version(fgmod, "nightly-20261101", "10", NIGHTLY_FILES, NIGHTLY_INI)

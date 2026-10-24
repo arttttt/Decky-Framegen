@@ -16,7 +16,7 @@ def test_games_using_a_version_follow_patching_repatching_and_unpatching(plugin,
     run(plugin.manual_patch_directory(str(manual), "dxgi.dll", ""))
     assert run(plugin.library_games_using(STABLE)) == {"status": "success", "games": [str(manual), "Test Game"]}
 
-    run(plugin.patch_game("1234", "dxgi.dll", "", "", NIGHTLY))
+    run(plugin.patch_game("1234", "dxgi.dll", "", NIGHTLY))
     assert run(plugin.library_games_using(STABLE))["games"] == [str(manual)]
     assert run(plugin.library_games_using(NIGHTLY))["games"] == ["Test Game"]
 

@@ -23,7 +23,6 @@ INJECTOR = "OptiScaler.dll"
 @dataclass(frozen=True)
 class Request:
     dll_name: str
-    variant: str
     reset_ini: bool = False
     """Replace the game's OptiScaler.ini with the version's instead of keeping it."""
 
@@ -41,8 +40,6 @@ def plan_patch(entries: frozenset[str], files: frozenset[str], family: Family, r
     """The operations that patch a directory holding `entries` with a version whose archive holds `files`."""
     if request.dll_name not in VALID_DLL_NAMES:
         raise PlanError(f"Invalid proxy DLL name: {request.dll_name}")
-    if request.variant not in family.variants:
-        raise PlanError(f"OptiScaler {family.id} has no FSR 4 variant {request.variant}")
     missing = family.required - files
     if missing:
         raise PlanError(f"The OptiScaler version lacks {', '.join(sorted(missing))}. Install it again.")
@@ -58,14 +55,6 @@ def plan_patch(entries: frozenset[str], files: frozenset[str], family: Family, r
     if fresh_ini:
         operations.append(Copy(INI_FILENAME, INI_FILENAME))
         operations.append(EditIni("apply the plugin's defaults", lambda text: ini.apply_overrides(text, family.ini_defaults)))
-    others = family.other_variant_keys(request.variant)
-    chosen = family.variants[request.variant].ini
-    operations.append(
-        EditIni(
-            f"apply FSR 4 variant {request.variant}",
-            lambda text: ini.apply_overrides(ini.reset_to_auto(text, others), chosen),
-        )
-    )
 
     for path in sorted(files):
         if path not in (INJECTOR, INI_FILENAME) and is_for_the_game(path):

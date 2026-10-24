@@ -23,8 +23,6 @@
         "dll_name": "dxgi.dll",
         "family": "0.9",
         "format": 2,
-        "fsr4_variant": "sdk",
-        "fsr4_variant_label": "FSR 4.1.1 SDK",
         "game_name": "",
         "optiscaler_version": "stable-0.9.4",
         "original_launch_options": "",

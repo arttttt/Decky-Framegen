@@ -24,8 +24,6 @@ def build(
     backed_up_files: list[str],
     optiscaler_version: str,
     family: str,
-    fsr4_variant: str,
-    fsr4_variant_label: str,
     patched_at: str,
     steam_game: SteamGame | None = None,
 ) -> dict:
@@ -42,8 +40,6 @@ def build(
         "backed_up_files": backed_up_files,
         "optiscaler_version": optiscaler_version,
         "family": family,
-        "fsr4_variant": fsr4_variant,
-        "fsr4_variant_label": fsr4_variant_label,
         "patched_at": patched_at,
     }
 

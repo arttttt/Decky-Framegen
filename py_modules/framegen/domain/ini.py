@@ -10,21 +10,6 @@ import re
 
 _SECTION = re.compile(r"^\s*\[(?P<section>[^\]]+)\]\s*$")
 
-def reset_to_auto(content: str, keys: set[str]) -> str:
-    """Set each `Section.Key` that is present back to auto; keys that are absent are not added."""
-    lines = content.splitlines(keepends=True)
-    section = None
-    for index, line in enumerate(lines):
-        header = _SECTION.match(line.strip())
-        if header:
-            section = header.group("section")
-            continue
-        match = re.match(r"^(\s*)([^=;#\s][^=]*?)(\s*)=.*?(\r?\n)?$", line)
-        if match and f"{section}.{match.group(2)}" in keys:
-            lines[index] = f"{match.group(1)}{match.group(2)}{match.group(3)}=auto{match.group(4) or ''}"
-    return "".join(lines)
-
-
 def split_override_key(raw_key: str) -> tuple[str | None, str]:
     """`Section.Key` → (section, key); a key without a section → (None, key)."""
     key = str(raw_key).strip()

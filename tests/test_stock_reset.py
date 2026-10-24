@@ -144,7 +144,7 @@ def test_a_game_patched_with_a_record_is_unpatched_by_it_even_when_a_reset_is_co
         "libxess.dll": game_file("libxess.dll"), "amd_fidelityfx_dx12.dll": game_file("amd_fidelityfx_dx12.dll"),
     })
     before = snapshot(root)
-    assert run(plugin.patch_game("720", "dxgi.dll", "", "", NIGHTLY))["status"] == "success"
+    assert run(plugin.patch_game("720", "dxgi.dll", "", NIGHTLY))["status"] == "success"
 
     preview = run(plugin.preview_unpatch_game("720", OURS))
     result = run(plugin.unpatch_game("720", OURS, True))

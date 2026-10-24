@@ -36,7 +36,7 @@ def test_steam_patch_then_unpatch_restores_game_and_launch_options(plugin, fgmod
 
     status = asyncio.run(plugin.get_game_status("1234"))
     assert status["patched"] is True
-    assert (status["optiscaler_version"], status["fsr4_variant"]) == ("stable-0.9.4", "sdk")
+    assert status["optiscaler_version"] == "stable-0.9.4"
 
     unpatched = asyncio.run(plugin.unpatch_game("1234"))
     assert unpatched["status"] == "success", unpatched
