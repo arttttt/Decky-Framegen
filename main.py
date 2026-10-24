@@ -94,6 +94,7 @@ class Plugin:
     # ── OptiScaler library ────────────────────────────────────────────────────
 
     def _library(self, report=_ignore) -> Library:
+        patcher = self._patcher()
         return Library(
             self._home_path() / "fgmod",
             Path(decky.DECKY_PLUGIN_DIR) / archive.SEVEN_ZIP,
@@ -101,14 +102,15 @@ class Plugin:
             github_releases.download,
             report,
             lambda: fgmod_home.refresh_core(self._home_path() / "fgmod", Path(decky.DECKY_PLUGIN_DIR) / "assets"),
-            self._patcher().games_linked_to,
+            patcher.games_using,
+            patcher.games_linked_to,
         )
 
     async def library_installed(self) -> dict:
         return self._library().installed()
 
-    async def library_games_using(self, version_id: str) -> dict:
-        return await asyncio.to_thread(self._patcher().games_using, version_id)
+    async def library_removal(self, version_id: str) -> dict:
+        return await asyncio.to_thread(self._library().removal, version_id)
 
     async def library_versions(self, channel: str) -> dict:
         return await asyncio.to_thread(self._library().versions, channel)

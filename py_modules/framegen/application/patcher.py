@@ -180,9 +180,9 @@ class Patcher:
         ]
         return sorted((name, details) for name, details in markers if details.get("optiscaler_version") == version_id)
 
-    def games_using(self, version_id: str) -> dict:
+    def games_using(self, version_id: str) -> list[str]:
         """The patched games and directories whose marker names this library version."""
-        return {"status": "success", "games": [name for name, _ in self._patched_with(version_id)]}
+        return [name for name, _ in self._patched_with(version_id)]
 
     def games_linked_to(self, version_id: str) -> list[str]:
         """The games whose files are symlinks into this library version: removing it would break them."""

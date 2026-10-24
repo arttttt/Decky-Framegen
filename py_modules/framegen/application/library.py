@@ -34,6 +34,7 @@ class Library:
         download: Download,
         report: Report,
         refresh_core: Callable[[], None],
+        games_using: Callable[[str], list[str]] = lambda _version_id: [],
         linked_games: Callable[[str], list[str]] = lambda _version_id: [],
     ):
         self.store = LibraryStore(fgmod_path / "library")
@@ -42,9 +43,11 @@ class Library:
         self.download = download
         self.report = report
         self.refresh_core = refresh_core
+        """Puts the plugin's core and launch scripts into ~/fgmod; every install does it until the patching mechanism settles."""
+        self.games_using = games_using
+        """The games patched with a version."""
         self.linked_games = linked_games
         """The games whose files are symlinks into a version; that version can't be removed while there are any."""
-        """Puts the plugin's core and launch scripts into ~/fgmod; every install does it until the patching mechanism settles."""
 
     def _published(self, channel: str) -> list[library.Available]:
         return library.available(channel, self.list_releases(library.CHANNELS[channel].repository))
@@ -149,14 +152,20 @@ class Library:
             message += f" Updating the launch scripts in ~/fgmod failed: {exc}"
         return {"status": "success", "id": version_id, "message": message}
 
+    def _removal_refused(self, version_id: str) -> str | None:
+        installed = {entry.id for entry in self.store.installed()}
+        return library.removal_refused(version_id, installed, self.store.default_version(), self.linked_games(version_id))
+
+    def removal(self, version_id: str) -> dict:
+        """What removing a version would come to, asked before the user confirms it: why it can't be
+        removed, or None, and the games patched with it."""
+        return {"status": "success", "refused": self._removal_refused(version_id), "games": self.games_using(version_id)}
+
     def remove(self, version_id: str) -> dict:
-        default = self.store.default_version()
-        refused = library.removal_refused(version_id, {entry.id for entry in self.store.installed()}, default)
+        refused = self._removal_refused(version_id)
         if refused:
             return _error(refused)
-        linked = self.linked_games(version_id)
-        if linked:
-            return _error(f"{', '.join(linked)} use {version_id} through links. Unpatch them first.")
+        default = self.store.default_version()
         try:
             self.store.remove(version_id)
         except OSError as exc:

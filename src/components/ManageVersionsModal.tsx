@@ -21,7 +21,8 @@ export function ManageVersionsModal({ closeModal, onChanged }: { closeModal?: ()
           </>
         }
         strOKButtonText={confirmation.okLabel}
-        onOK={() => run(id, "remove")}
+        bAlertDialog={!confirmation.removes}
+        onOK={() => confirmation.removes && run(id, "remove")}
       />
     );
   };

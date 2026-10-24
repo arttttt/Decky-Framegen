@@ -108,9 +108,9 @@ export const libraryInstall = callable<[channel: LibraryChannel, version_id: str
 export const libraryReinstall = callable<[version_id: string], LibraryResult>("library_reinstall");
 export const libraryRemove = callable<[version_id: string], LibraryResult>("library_remove");
 export const librarySetDefault = callable<[version_id: string], LibraryResult>("library_set_default");
-export const libraryGamesUsing = callable<[version_id: string], { status: "success"; games: string[] }>(
-  "library_games_using"
-);
+/** What removing a version would come to: why it can't be removed (or null) and the games patched with it. */
+export type LibraryRemoval = { status: "success"; refused: string | null; games: string[] };
+export const libraryRemoval = callable<[version_id: string], LibraryRemoval>("library_removal");
 
 // ── Development builds ───────────────────────────────────────────────────────
 

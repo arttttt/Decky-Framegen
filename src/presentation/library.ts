@@ -1,4 +1,11 @@
-import type { InstalledLibrary, InstalledVersion, LibraryChannel, LibraryListing, LibraryVersion } from "../api";
+import type {
+  InstalledLibrary,
+  InstalledVersion,
+  LibraryChannel,
+  LibraryListing,
+  LibraryRemoval,
+  LibraryVersion,
+} from "../api";
 
 /** Bytes of the version being downloaded received so far, and the total when GitHub said it. */
 export type LibraryDownload = { received: number; total: number | null };
@@ -166,14 +173,26 @@ export const manageMenu = (isDefault: boolean): ManageMenuItem[] => [
   { action: "remove" as const, label: "Remove", destructive: true },
 ];
 
-/** Asked before removing a version; games patched with it keep working, they just can't be patched with it again. */
-export const removeConfirmation = (
-  version: InstalledVersion,
-  games: string[],
-): { title: string; lines: string[]; okLabel: string } => ({
-  title: `Remove OptiScaler ${versionLabel(version)}?`,
-  lines: games.length
-    ? ["These stay patched with it and keep working; patching them again needs another version:", ...games]
-    : ["No game is patched with it."],
-  okLabel: "Remove",
+/** What the dialog shows when Remove is picked: the question, or — told before asking — why it can't be removed. */
+export type RemoveConfirmation = { title: string; lines: string[]; okLabel: string; removes: boolean };
+
+const cantRemove = (version: InstalledVersion, reason: string): RemoveConfirmation => ({
+  title: `Can't remove OptiScaler ${versionLabel(version)}`,
+  lines: [reason],
+  okLabel: "OK",
+  removes: false,
 });
+
+/** Games patched with a version by copies keep working once it is removed; they just can't be patched with it again. */
+export const removeConfirmation = (version: InstalledVersion, removal: LibraryRemoval | null): RemoveConfirmation => {
+  if (removal === null) return cantRemove(version, "The plugin backend did not answer.");
+  if (removal.refused !== null) return cantRemove(version, removal.refused);
+  return {
+    title: `Remove OptiScaler ${versionLabel(version)}?`,
+    lines: removal.games.length
+      ? ["These stay patched with it and keep working; patching them again needs another version:", ...removal.games]
+      : ["No game is patched with it."],
+    okLabel: "Remove",
+    removes: true,
+  };
+};

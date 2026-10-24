@@ -40,16 +40,17 @@ def test_installed_versions_stay_listed_even_when_upstream_no_longer_publishes_t
 
 
 @pytest.mark.parametrize(
-    ("version_id", "installed", "default", "refusal"),
+    ("version_id", "installed", "default", "linked", "refusal"),
     [
-        ("a", {"a", "b"}, "b", None),
-        ("a", {"a", "b"}, "a", "This is the default version. Choose another default before removing it."),
-        ("a", {"a"}, "a", None),  # the last version goes, default or not
-        ("c", {"a"}, "a", "c is not in the library."),
+        ("a", {"a", "b"}, "b", [], None),
+        ("a", {"a", "b"}, "a", [], "New patches use this version. Choose another one for new patches before removing it."),
+        ("a", {"a"}, "a", [], None),  # the last version goes, default or not
+        ("c", {"a"}, "a", [], "c is not in the library."),
+        ("a", {"a", "b"}, "b", ["Game", "Other"], "Game, Other use a through links. Unpatch them first."),
     ],
 )
-def test_the_default_version_is_removed_only_when_it_is_the_last_one(version_id, installed, default, refusal):
-    assert library.removal_refused(version_id, installed, default) == refusal
+def test_a_version_is_removed_unless_new_patches_or_linked_games_need_it(version_id, installed, default, linked, refusal):
+    assert library.removal_refused(version_id, installed, default, linked) == refusal
 
 
 def test_an_entry_that_is_not_one_is_not_in_the_library():

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { InstalledLibrary, LibraryVersion } from "../api";
+import type { InstalledLibrary, LibraryRemoval, LibraryVersion } from "../api";
 import {
   DownloadState,
   ManageState,
@@ -24,6 +24,8 @@ const unsupported: LibraryVersion = {
   id: "nightly-20261001", version: "9.9.0", date: "20261001", family: null,
   state: "unsupported", reason: "a version this plugin does not support yet", size: 70_000_000, default: false,
 };
+
+const removal = (refused: string | null, games: string[]): LibraryRemoval => ({ status: "success", refused, games });
 
 const LIBRARY: InstalledLibrary = {
   default: "stable-0.9.4",
@@ -156,7 +158,7 @@ describe("manage dialog", () => {
   });
 
   it("names the games patched with a version before removing it", () => {
-    expect(removeConfirmation(LIBRARY.versions[0], ["Cyberpunk 2077", "/games/Manual"])).toEqual({
+    expect(removeConfirmation(LIBRARY.versions[0], removal(null, ["Cyberpunk 2077", "/games/Manual"]))).toEqual({
       title: "Remove OptiScaler 10.0.0-pre1 · 2026-10-23?",
       lines: [
         "These stay patched with it and keep working; patching them again needs another version:",
@@ -164,8 +166,22 @@ describe("manage dialog", () => {
         "/games/Manual",
       ],
       okLabel: "Remove",
+      removes: true,
     });
-    expect(removeConfirmation(LIBRARY.versions[0], []).lines).toEqual(["No game is patched with it."]);
+    expect(removeConfirmation(LIBRARY.versions[0], removal(null, [])).lines).toEqual(["No game is patched with it."]);
+  });
+
+  it("says why a version can't be removed before asking, instead of the question", () => {
+    expect(removeConfirmation(LIBRARY.versions[0], removal("Game use it through links. Unpatch them first.", ["Game"]))).toEqual({
+      title: "Can't remove OptiScaler 10.0.0-pre1 · 2026-10-23",
+      lines: ["Game use it through links. Unpatch them first."],
+      okLabel: "OK",
+      removes: false,
+    });
+    expect(removeConfirmation(LIBRARY.versions[0], null)).toMatchObject({
+      lines: ["The plugin backend did not answer."],
+      removes: false,
+    });
   });
 
   it("reports the backend's words, or what the action did", () => {

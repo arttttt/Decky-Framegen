@@ -314,10 +314,15 @@ def catalog(
     return sorted(rows, key=lambda row: row.date, reverse=True)
 
 
-def removal_refused(version_id: str, installed_ids: set[str], default: str | None) -> str | None:
-    """Why a version can't be removed, or None. The default goes only when it is the last version left."""
+def removal_refused(
+    version_id: str, installed_ids: set[str], default: str | None, linked_games: list[str]
+) -> str | None:
+    """Why a version can't be removed, or None. The default goes only when it is the last version left;
+    a version games are linked to stays while they are: removing it would break them."""
     if version_id not in installed_ids:
         return f"{version_id} is not in the library."
     if version_id == default and len(installed_ids) > 1:
-        return "This is the default version. Choose another default before removing it."
+        return "New patches use this version. Choose another one for new patches before removing it."
+    if linked_games:
+        return f"{', '.join(linked_games)} use {version_id} through links. Unpatch them first."
     return None

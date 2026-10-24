@@ -53,10 +53,13 @@ def test_a_version_games_are_linked_to_is_not_removed(plugin, fgmod, steam_libra
     run(plugin.patch_game("1234", "dxgi.dll", "", NIGHTLY, True))
     run(plugin.manual_patch_directory(str(copied), "dxgi.dll", NIGHTLY))
 
+    removal = run(plugin.library_removal(NIGHTLY))
     refused = run(plugin.library_remove(NIGHTLY))
     status = run(plugin.get_game_status("1234"))
 
-    assert refused == {"status": "error", "message": f"Linked Game use {NIGHTLY} through links. Unpatch them first."}
+    reason = f"Linked Game use {NIGHTLY} through links. Unpatch them first."
+    assert removal == {"status": "success", "refused": reason, "games": [str(copied), "Linked Game"]}  # told before confirming
+    assert refused == {"status": "error", "message": reason}
     assert status["linked"] is True
     run(plugin.unpatch_game("1234"))
     assert run(plugin.library_remove(NIGHTLY))["status"] == "success"  # a copy-patched game doesn't hold it

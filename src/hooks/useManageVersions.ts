@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  libraryGamesUsing,
   libraryInstalled,
+  libraryRemoval,
   libraryReinstall,
   libraryRemove,
   librarySetDefault,
@@ -42,12 +42,12 @@ export const useManageVersions = (onChanged: () => void) => {
 
   const versionOf = (id: string) => state.library?.versions.find((v) => v.id === id);
 
-  /** The confirmation to show before removing, naming the games patched with the version. */
+  /** What to show before removing: the games patched with the version, or why it can't be removed. */
   const removalOf = async (id: string) => {
     const version = versionOf(id);
     if (!version) return null;
-    const using = await safeAsyncOperation(() => libraryGamesUsing(id), "ManageVersions -> libraryGamesUsing");
-    return removeConfirmation(version, using?.games ?? []);
+    const removal = await safeAsyncOperation(() => libraryRemoval(id), "ManageVersions -> libraryRemoval");
+    return removeConfirmation(version, removal ?? null);
   };
 
   return {
