@@ -25,3 +25,12 @@ export const proxyDllView = (setup: LaunchSetup | null, picked: string | null): 
 
 /** Patching needs a library version and a proxy DLL, which arrives with the backend's launch setup. */
 export const patchReady = (versionReady: boolean, launch: ProxyDllView): boolean => versionReady && launch.selected !== null;
+
+/** Asked before the wrapper's patch command is copied: the wrapper keeps patching until it's taken out. */
+export type CopyConfirmation = { title: string; description: string; okLabel: string };
+export const WRAPPER_PATCH_CONFIRMATION: CopyConfirmation = {
+  title: "Patch Game with OptiScaler?",
+  description:
+    "WARNING: Decky Framegen does not unpatch games when uninstalled. Be sure to unpatch the game or run the OptiScaler uninstall script inside the game files if you choose to uninstall the plugin or the game has issues.",
+  okLabel: "Copy Patch Command",
+};

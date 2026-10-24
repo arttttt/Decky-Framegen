@@ -1,5 +1,5 @@
 import { SmartClipboardButton } from "./SmartClipboardButton";
-import type { ProxyDllView } from "../presentation/launch";
+import { ProxyDllView, WRAPPER_PATCH_CONFIRMATION } from "../presentation/launch";
 
 interface ClipboardCommandsProps {
   pathExists: boolean | null;
@@ -23,7 +23,11 @@ export function ClipboardCommands({
       ) : null}
       {manualModeEnabled && launch.wrapper ? (
         <>
-          <SmartClipboardButton command={launch.wrapper.patch} buttonText="Copy Patch Command" />
+          <SmartClipboardButton
+            command={launch.wrapper.patch}
+            buttonText="Copy Patch Command"
+            confirmation={WRAPPER_PATCH_CONFIRMATION}
+          />
           <SmartClipboardButton command={launch.wrapper.unpatch} buttonText="Copy Unpatch Command" />
         </>
       ) : null}
