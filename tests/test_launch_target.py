@@ -169,3 +169,17 @@ def test_cli_reset_ini_replaces_the_games_ini(fgmod, home, tmp_path):
     # The game's own ini is backed up, and the version's, with the plugin's defaults, takes its place.
     assert (game / "OptiScaler.ini.b").read_text() == "[Mine]\nKeep=1\n"
     assert "FGInput=nukems" in (game / "OptiScaler.ini").read_text()
+
+
+
+def test_the_wrapper_applies_settings_from_environment_variables_on_every_patch(fgmod, home, tmp_path):
+    from framegen.application.launch_wrapper import LaunchWrapper
+
+    game = make_game_dir(tmp_path / "games" / "Env Game", {"OptiScaler.ini": b"[Upscalers]\r\nDx12Upscaler=auto\r\n"})
+
+    LaunchWrapper(home, {"Dx12Upscaler": r"C:\Games\x", "PATH": "/usr/bin"}).patch([str(game / "Game.exe")], "dxgi.dll", STABLE)
+    first = (game / "OptiScaler.ini").read_bytes()
+    LaunchWrapper(home, {"Dx12Upscaler": "fsr31"}).patch([str(game / "Game.exe")], "dxgi.dll")
+
+    assert first == b"[Upscalers]\r\nDx12Upscaler=C:\\Games\\x\r\n"  # verbatim, line endings kept
+    assert (game / "OptiScaler.ini").read_bytes() == b"[Upscalers]\r\nDx12Upscaler=fsr31\r\n"

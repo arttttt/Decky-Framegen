@@ -57,7 +57,6 @@ def wrapper_fgmod(fgmod) -> Path:
     for installed, source in (
         ("fgmod", "fgmod.sh"),
         ("fgmod-uninstaller.sh", "fgmod-uninstaller.sh"),
-        ("update-optiscaler-config.py", "update-optiscaler-config.py"),
     ):
         shutil.copy2(REPO_ROOT / "defaults" / "assets" / source, fgmod / installed)
         (fgmod / installed).chmod(0o755)

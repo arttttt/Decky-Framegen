@@ -8,8 +8,9 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from framegen.application.patcher import Patcher
-from framegen.domain import launch_target
-from framegen.infrastructure import game_locator
+from framegen.domain import ini, launch_target
+from framegen.domain.patch_plan import INI_FILENAME
+from framegen.infrastructure import game_directory, game_locator
 
 log = logging.getLogger(__name__)
 
@@ -53,6 +54,13 @@ class LaunchWrapper:
         )
         if result["status"] != "success":
             raise WrapperError(result["message"])
+        # OptiScaler settings given as environment variables override the game's ini on every launch.
+        environ = dict(self.environ)
+        game_directory.edit_ini(
+            directory / INI_FILENAME,
+            lambda text: ini.set_values(text, ini.env_overrides(text, environ)),
+            "settings from environment variables",
+        )
         return directory
 
     def unpatch(self, command: list[str]) -> Path:
