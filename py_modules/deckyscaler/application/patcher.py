@@ -296,9 +296,6 @@ class Patcher:
         """The patched games and directories whose marker names this library version."""
         return [name for name, _ in self._patched_with(version_id)]
 
-    def games_linked_to(self, version_id: str) -> list[str]:
-        """The games whose files are symlinks into this library version: removing it would break them."""
-        return [name for name, details in self._patched_with(version_id) if details.get("placement") == marker.LINK]
 
     def patch_user_directory(
         self, directory: str, dll_name: str, version_id: str | None = None

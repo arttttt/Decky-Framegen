@@ -131,7 +131,6 @@ class Plugin:
             report,
             lambda: core_install.refresh_core(self._home_path() / bundle.HOME_DIRNAME, Path(decky.DECKY_PLUGIN_DIR) / "assets"),
             patcher.games_using,
-            patcher.games_linked_to,
         )
 
     async def library_installed(self) -> dict:

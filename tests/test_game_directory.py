@@ -1,6 +1,6 @@
 """Integration: executing plans on disk."""
 
-from conftest import game_file, write
+from conftest import write
 from deckyscaler.domain import patch_plan as plan
 from deckyscaler.domain import patch_record
 from deckyscaler.infrastructure import game_directory

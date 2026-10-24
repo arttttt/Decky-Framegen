@@ -184,15 +184,13 @@ const cantRemove = (version: InstalledVersion, reason: string): RemoveConfirmati
   alert: true,
 });
 
-/** Games patched with a version by copies keep working once it is removed; they just can't be patched with it again. */
+/** Removing a version asks first, or says why it can't: games are patched with it. */
 export const removeConfirmation = (version: InstalledVersion, removal: LibraryRemoval | null): RemoveConfirmation => {
   if (removal === null) return cantRemove(version, "The plugin backend did not answer.");
   if (removal.refused !== null) return cantRemove(version, removal.refused);
   return {
     title: `Remove OptiScaler ${versionLabel(version)}?`,
-    lines: removal.games.length
-      ? ["These stay patched with it and keep working; patching them again needs another version:", ...removal.games]
-      : ["No game is patched with it."],
+    lines: ["No game is patched with it."],
     okLabel: "Remove",
     removes: true,
     alert: false,

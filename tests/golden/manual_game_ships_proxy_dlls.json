@@ -85,7 +85,6 @@
             "sha256": "link:<library>/stable-0.9.4/files/libxess_dx11.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",

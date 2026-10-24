@@ -35,7 +35,6 @@ class Library:
         report: Report,
         refresh_core: Callable[[], None],
         games_using: Callable[[str], list[str]] = lambda _version_id: [],
-        linked_games: Callable[[str], list[str]] = lambda _version_id: [],
     ):
         self.store = LibraryStore(plugin_home / "library")
         self.seven_zip = seven_zip
@@ -45,9 +44,7 @@ class Library:
         self.refresh_core = refresh_core
         """Puts the plugin's core and launch scripts into ~/deckyscaler; every install does it until the patching mechanism settles."""
         self.games_using = games_using
-        """The games patched with a version."""
-        self.linked_games = linked_games
-        """The games whose files are symlinks into a version; that version can't be removed while there are any."""
+        """The games patched with a version; it can't be removed while there are any."""
 
     def _published(self, channel: str) -> list[library.Available]:
         return library.available(channel, self.list_releases(library.CHANNELS[channel].repository))
@@ -147,12 +144,11 @@ class Library:
 
     def _removal_refused(self, version_id: str) -> str | None:
         installed = {entry.id for entry in self.store.installed()}
-        return library.removal_refused(version_id, installed, self.linked_games(version_id))
+        return library.removal_refused(version_id, installed, self.games_using(version_id))
 
     def removal(self, version_id: str) -> dict:
-        """What removing a version would come to, asked before the user confirms it: why it can't be
-        removed, or None, and the games patched with it."""
-        return {"status": "success", "refused": self._removal_refused(version_id), "games": self.games_using(version_id)}
+        """Why a version can't be removed (None when it can), asked before the user confirms removing it."""
+        return {"status": "success", "refused": self._removal_refused(version_id)}
 
     def remove(self, version_id: str) -> dict:
         refused = self._removal_refused(version_id)

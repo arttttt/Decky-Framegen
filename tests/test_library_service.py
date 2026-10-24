@@ -40,16 +40,17 @@ def test_installed_versions_stay_listed_even_when_upstream_no_longer_publishes_t
 
 
 @pytest.mark.parametrize(
-    ("version_id", "installed", "linked", "refusal"),
+    ("version_id", "installed", "games", "refusal"),
     [
         ("a", {"a", "b"}, [], None),
         ("a", {"a"}, [], None),  # the last version goes too
         ("c", {"a"}, [], "c is not in the library."),
-        ("a", {"a", "b"}, ["Game", "Other"], "Game, Other use a through links. Unpatch them first."),
+        ("a", {"a", "b"}, ["Game"], "Game is patched with a. Unpatch them first."),
+        ("a", {"a", "b"}, ["Game", "Other"], "Game, Other are patched with a. Unpatch them first."),
     ],
 )
-def test_a_version_is_removed_unless_games_are_linked_to_it(version_id, installed, linked, refusal):
-    assert library.removal_refused(version_id, installed, linked) == refusal
+def test_a_version_is_removed_unless_games_are_patched_with_it(version_id, installed, games, refusal):
+    assert library.removal_refused(version_id, installed, games) == refusal
 
 
 def test_a_patch_naming_no_version_keeps_the_games_else_takes_the_newest():

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -167,7 +168,7 @@ def test_a_tool_updated_in_place_is_read_again(plugin, plugin_home, steam_librar
     assert run(plugin.get_game_status("730"))["fsr4"]["state"] == "will-fetch"
 
 
-def ge_game(steam_library) -> "Path":
+def ge_game(steam_library) -> Path:
     root = steam_library.add_game("730", "Fsr Game")
     steam_library.add_tool("GE-Proton11-11", reads_fsr4_variable=True)
     steam_library.set_compat_tools({"730": "GE-Proton11-11"})

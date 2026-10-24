@@ -17,8 +17,6 @@ class SteamGame:
     original_launch_options: str
 
 
-LINK = "link"
-"""The placement every patch now writes: the version's files are symlinks into the library."""
 
 
 def build(
@@ -33,8 +31,7 @@ def build(
 ) -> dict:
     """The marker's details; every patch writes one, a Steam patch also records the game.
 
-    `optiscaler_version` is the library version's id (stable-0.9.4, nightly-20261023). `placement` says
-    the version's files are symlinks into the library; an earlier plugin version copied them ("copy").
+    `optiscaler_version` is the library version's id (stable-0.9.4, nightly-20261023).
     """
     return {
         "appid": steam_game.appid if steam_game else "",
@@ -45,19 +42,17 @@ def build(
         "backed_up_files": backed_up_files,
         "optiscaler_version": optiscaler_version,
         "family": family,
-        "placement": LINK,
         "patched_at": patched_at,
     }
 
 
 def describes(details: dict, version_id: str, dll_name: str) -> bool:
-    """Whether a marker records a finished patch with this version under this proxy name, placed the way
-    patches are placed now: patching again would place the same."""
+    """Whether a marker records a finished patch with this version under this proxy name: patching again
+    would place the same."""
     return (
         details.get("complete") is True
         and details.get("optiscaler_version") == version_id
         and details.get("dll_name") == dll_name
-        and details.get("placement") == LINK
     )
 
 

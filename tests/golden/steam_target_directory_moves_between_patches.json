@@ -71,7 +71,6 @@
             "sha256": "link:<library>/stable-0.9.4/files/libxess_dx11.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
@@ -150,7 +149,6 @@
             "sha256": "link:<library>/stable-0.9.4/files/libxess_dx11.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>"
       },
       "Game.exe": "game:Game.exe",
@@ -239,7 +237,6 @@
             "sha256": "link:<library>/stable-0.9.4/files/libxess_dx11.dll"
           }
         ],
-        "placement": "link",
         "target_dir": "<root>/Binaries/Win64"
       },
       "Binaries/Win64/MovingGame-Win64-Shipping.exe": "game:MovingGame-Win64-Shipping.exe",

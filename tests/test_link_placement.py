@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import shutil
 
@@ -45,20 +44,18 @@ def test_a_link_the_game_replaced_with_its_own_file_stays(plugin, plugin_home, t
     assert not (game / "dxgi.dll").exists()
 
 
-def test_a_version_games_are_linked_to_is_not_removed(plugin, plugin_home, steam_library, tmp_path):
+def test_a_version_games_are_patched_with_is_not_removed(plugin, plugin_home, steam_library, tmp_path):
     steam_library.add_game("1234", "Linked Game")
-    copied = make_game_dir(tmp_path / "games" / "Copied")
+    manual = make_game_dir(tmp_path / "games" / "Manual")
     run(plugin.patch_game("1234", "dxgi.dll", "", NIGHTLY))
-    run(plugin.manual_patch_directory(str(copied), "dxgi.dll", NIGHTLY))
-    # What an earlier plugin version left: the same patch, but with copies. It doesn't hold the version.
-    marker_path = copied / "DECKYSCALER_PATCH"
-    marker_path.write_text(json.dumps({**json.loads(marker_path.read_text()), "placement": "copy"}))
+    run(plugin.manual_patch_directory(str(manual), "dxgi.dll", NIGHTLY))
 
     removal = run(plugin.library_removal(NIGHTLY))
     refused = run(plugin.library_remove(NIGHTLY))
 
-    reason = f"Linked Game use {NIGHTLY} through links. Unpatch them first."
-    assert removal == {"status": "success", "refused": reason, "games": [str(copied), "Linked Game"]}  # told before confirming
+    reason = f"{manual}, Linked Game are patched with {NIGHTLY}. Unpatch them first."
+    assert removal == {"status": "success", "refused": reason}  # told before confirming
     assert refused == {"status": "error", "message": reason}
     run(plugin.unpatch_game("1234"))
+    run(plugin.manual_unpatch_directory(str(manual)))
     assert run(plugin.library_remove(NIGHTLY))["status"] == "success"

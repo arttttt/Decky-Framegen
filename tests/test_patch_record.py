@@ -252,13 +252,12 @@ def test_a_patch_is_intact_while_everything_it_placed_is_there_as_placed():
 def test_a_marker_describes_a_finished_patch_of_this_version_under_this_name():
     from deckyscaler.domain import marker
 
-    details = {"complete": True, "optiscaler_version": "nightly-1", "dll_name": "dxgi.dll", "placement": "link"}
+    details = {"complete": True, "optiscaler_version": "nightly-1", "dll_name": "dxgi.dll"}
 
     assert marker.describes(details, "nightly-1", "dxgi.dll")
     assert not marker.describes({**details, "complete": False}, "nightly-1", "dxgi.dll")
     assert not marker.describes(details, "nightly-2", "dxgi.dll")
     assert not marker.describes(details, "nightly-1", "winmm.dll")
-    assert not marker.describes({**details, "placement": "copy"}, "nightly-1", "dxgi.dll")
 
 
 def test_a_patch_placed_only_what_its_record_lists():

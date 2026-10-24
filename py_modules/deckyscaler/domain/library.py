@@ -315,11 +315,11 @@ def catalog(installed: list[Installed], published: list[Available], sizes: dict[
     return sorted(rows, key=lambda row: row.date, reverse=True)
 
 
-def removal_refused(version_id: str, installed_ids: set[str], linked_games: list[str]) -> str | None:
-    """Why a version can't be removed, or None. A version games are linked to stays while they are:
-    removing it would break them. Games patched by copies don't hold it."""
+def removal_refused(version_id: str, installed_ids: set[str], games: list[str]) -> str | None:
+    """Why a version can't be removed, or None. A version stays while games are patched with it: their files
+    are symlinks into it, so removing it would break them."""
     if version_id not in installed_ids:
         return f"{version_id} is not in the library."
-    if linked_games:
-        return f"{', '.join(linked_games)} use {version_id} through links. Unpatch them first."
+    if games:
+        return f"{', '.join(games)} {'is' if len(games) == 1 else 'are'} patched with {version_id}. Unpatch them first."
     return None
