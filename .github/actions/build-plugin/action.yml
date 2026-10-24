@@ -4,13 +4,13 @@ description: >
   the package. The zip lands in out/.
 inputs:
   channel:
-    description: A development build's channel (dev, pr-N); empty for a release build.
+    description: The stamped build's channel (stable, dev, pr-N); empty for an unstamped build (a fork's pull request).
     default: ""
   commit:
     description: The commit the build is made from.
     required: true
   version:
-    description: A development build's stamped version; empty for a release build.
+    description: The stamped build's version; empty for an unstamped build.
     default: ""
 runs:
   using: composite

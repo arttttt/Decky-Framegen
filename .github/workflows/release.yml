@@ -33,11 +33,13 @@ jobs:
           mapfile -t tags < <(git tag --list '[0-9]*')
           args=()
           for tag in "${tags[@]}"; do args+=(--existing-tag "$tag"); done
-          python scripts/stamp_release.py "${args[@]}" | tee -a "$GITHUB_OUTPUT"
+          python scripts/stamp_release.py --repository "$GITHUB_REPOSITORY" --commit "$GITHUB_SHA" "${args[@]}" \
+            | tee -a "$GITHUB_OUTPUT"
 
-      # A release build: no development identity, so the Developer section stays hidden.
+      # A release build: its identity is on the stable channel, so it updates from the repository's releases.
       - uses: ./.github/actions/build-plugin
         with:
+          channel: ${{ steps.stamp.outputs.channel }}
           commit: ${{ github.sha }}
           version: ${{ steps.stamp.outputs.version }}
 

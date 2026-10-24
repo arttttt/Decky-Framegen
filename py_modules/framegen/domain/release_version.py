@@ -25,3 +25,22 @@ def next_release(today: date, existing_tags: list[str]) -> str:
 def tag(version: str) -> str:
     """A release's tag: the bare version, 2026.10.24."""
     return version
+
+
+_VERSION = re.compile(r"^(\d{4})\.(\d{2})\.(\d{2})(?:\.(\d+))?")
+
+
+def key(version: str) -> tuple[int, int, int, int] | None:
+    """A version as something to compare: its day and that day's count. A development build's version
+    (2026.10.24-dev.1a2b3c4) compares as its day; None for anything that isn't a calendar version."""
+    match = _VERSION.match(version.strip())
+    if not match:
+        return None
+    year, month, day_, count = match.groups()
+    return int(year), int(month), int(day_), int(count or 0)
+
+
+def is_release(version: str) -> bool:
+    """Whether a tag or version is exactly a release's: 2026.10.24 or 2026.10.24.1, nothing after."""
+    match = _VERSION.match(version)
+    return match is not None and match.end() == len(version)

@@ -34,6 +34,7 @@ _decky = types.ModuleType("decky")
 _decky.HOME = ""
 _decky.DECKY_PLUGIN_DIR = ""
 _decky.DECKY_PLUGIN_RUNTIME_DIR = ""
+_decky.DECKY_PLUGIN_SETTINGS_DIR = ""
 _decky.logger = logging.getLogger("decky")
 sys.modules["decky"] = _decky
 # Decky puts the plugin's py_modules on sys.path; the repo root holds main.py.
@@ -109,6 +110,7 @@ def home(tmp_path, monkeypatch) -> Path:
     monkeypatch.setattr(_decky, "HOME", str(home_dir))
     monkeypatch.setattr(_decky, "DECKY_PLUGIN_DIR", str(tmp_path / "plugin"))
     monkeypatch.setattr(_decky, "DECKY_PLUGIN_RUNTIME_DIR", str(tmp_path / "runtime"))
+    monkeypatch.setattr(_decky, "DECKY_PLUGIN_SETTINGS_DIR", str(tmp_path / "settings"))
     # The machine running the tests has its own GPU and Proton tools; the fake world has none unless a test adds them.
     monkeypatch.setattr(proton, "SYSFS", tmp_path / "sys")
     monkeypatch.setattr(proton, "SYSTEM_TOOLS", tmp_path / "system-compatibilitytools.d")

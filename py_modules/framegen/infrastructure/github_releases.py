@@ -29,24 +29,39 @@ def _ssl_context() -> ssl.SSLContext:
         return ssl.create_default_context()
 
 
-def list_releases(repository: str) -> list:
-    """The latest releases of `owner/name`, newest first, as the API returns them (one unauthenticated request)."""
-    request = urllib.request.Request(
-        f"{API_ROOT}/repos/{repository}/releases?per_page=100",
-        headers={"Accept": "application/vnd.github+json", "User-Agent": "Decky-Framegen"},
-    )
+def _get_json(url: str, subject: str, kind: str) -> object:
+    request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "Decky-Framegen"})
     try:
         with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS, context=_ssl_context()) as response:
-            listing = json.loads(response.read().decode("utf-8"))
+            return json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        raise ReleasesUnavailable(f"GitHub answered {exc.code} for {repository} releases") from exc
+        raise ReleasesUnavailable(f"GitHub answered {exc.code} for {subject}") from exc
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise ReleasesUnavailable(f"Could not reach GitHub: {getattr(exc, 'reason', exc)}") from exc
     except ValueError as exc:
-        raise ReleasesUnavailable(f"GitHub sent a release list that is not JSON: {exc}") from exc
+        raise ReleasesUnavailable(f"GitHub sent {kind} that is not JSON: {exc}") from exc
+
+
+def list_releases(repository: str) -> list:
+    """The latest releases of `owner/name`, newest first, as the API returns them (one unauthenticated request)."""
+    listing = _get_json(f"{API_ROOT}/repos/{repository}/releases?per_page=100", f"{repository} releases", "a release list")
     if not isinstance(listing, list):
         raise ReleasesUnavailable("GitHub sent something other than a release list")
     return listing
+
+
+def latest_release(repository: str) -> dict | None:
+    """The release GitHub marks latest for `owner/name` (never a prerelease or draft), or None when there is
+    none yet (one unauthenticated request)."""
+    try:
+        release = _get_json(f"{API_ROOT}/repos/{repository}/releases/latest", f"{repository}'s latest release", "a release")
+    except ReleasesUnavailable as exc:
+        if isinstance(exc.__cause__, urllib.error.HTTPError) and exc.__cause__.code == 404:
+            return None
+        raise
+    if not isinstance(release, dict):
+        raise ReleasesUnavailable("GitHub sent something other than a release")
+    return release
 
 
 CHUNK_BYTES = 64 * 1024

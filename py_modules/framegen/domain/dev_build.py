@@ -1,8 +1,10 @@
-"""Development builds: which repository, channel and commit a package was built from.
+"""Builds of the plugin: which repository, channel and commit a package was built from, and the other
+builds a device can switch to.
 
-CI writes this identity into every development package (`build-info.json` at the
-plugin root); release packages carry none. The same identity names the package's
-version and its release asset, so a device can tell which build it runs.
+CI writes this identity into every package it publishes (`build-info.json` at the plugin root): a
+release on the stable channel, a development build on main's channel or its pull request's. A package
+without one (built by hand, or a fork's pull request) can't update itself. The identity names the
+package's version and its release asset, so a device can tell which build it runs.
 """
 
 from __future__ import annotations
@@ -11,13 +13,15 @@ import json
 import re
 from dataclasses import dataclass, field, replace
 
-from . import release_assets
+from . import release_assets, release_version
 
 BUILD_INFO_FILENAME = "build-info.json"
+STABLE_CHANNEL = "stable"
+"""Releases."""
 MAIN_CHANNEL = "dev"
-"""The channel built from the main branch; every pull request has its own `pr-<N>`."""
+"""The development channel built from the main branch; every pull request has its own `pr-<N>`."""
 
-_CHANNEL = re.compile(r"^(dev|pr-[1-9][0-9]*)$")
+_CHANNEL = re.compile(r"^(stable|dev|pr-[1-9][0-9]*)$")
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
 _REPOSITORY = re.compile(r"^[A-Za-z0-9-]+/[A-Za-z0-9._-]+$")
 _SHORT_COMMIT = 7
@@ -30,8 +34,8 @@ class BuildInfo:
     channel: str
     commit: str
     title: str = field(default="", compare=False)
-    """How the build is named on the device (`Dev build · main @ 1a2b3c4`, `Dev build · PR #12: <title>`);
-    not part of its identity."""
+    """How the build is named on the device (`Decky Framegen 2026.10.24`, `Dev build · main @ 1a2b3c4`,
+    `Dev build · PR #12: <title>`); not part of its identity."""
 
     @property
     def short_commit(self) -> str:
@@ -43,16 +47,24 @@ def channel(pull_request: int | None) -> str:
     return MAIN_CHANNEL if pull_request is None else f"pr-{pull_request}"
 
 
-def build_info(repository: str, channel: str, commit: str, pull_request_title: str = "") -> BuildInfo:
-    """A validated identity, titled after main or its pull request; raises ValueError for anything CI never produces."""
+def is_development(info: BuildInfo) -> bool:
+    """Whether a build is a development one (main's or a pull request's), not a release."""
+    return info.channel != STABLE_CHANNEL
+
+
+def build_info(
+    repository: str, channel: str, commit: str, pull_request_title: str = "", version: str = ""
+) -> BuildInfo:
+    """A validated identity, titled after its release version, main or its pull request; raises ValueError
+    for anything CI never produces."""
     if not _REPOSITORY.match(repository):
         raise ValueError(f"Not a GitHub repository: {repository!r}")
     if not _CHANNEL.match(channel):
-        raise ValueError(f"Not a development channel: {channel!r}")
+        raise ValueError(f"Not a build channel: {channel!r}")
     if not _COMMIT.match(commit):
         raise ValueError(f"Not a full commit sha: {commit!r}")
     info = BuildInfo(repository, channel, commit)
-    return replace(info, title=release_title(info, pull_request_title))
+    return replace(info, title=release_title(info, pull_request_title, version))
 
 
 def to_json(info: BuildInfo) -> str:
@@ -82,8 +94,13 @@ DEV_TITLE_PREFIX = "Dev build · "
 """Sets a development build apart from a release (`Decky Framegen 2026.10.24`) on the releases page."""
 
 
-def release_title(info: BuildInfo, pull_request_title: str = "") -> str:
+RELEASE_TITLE_PREFIX = "Decky Framegen "
+
+
+def release_title(info: BuildInfo, pull_request_title: str = "", version: str = "") -> str:
     """The name of the release that publishes a build, shown on the device next to each build."""
+    if info.channel == STABLE_CHANNEL:
+        return f"{RELEASE_TITLE_PREFIX}{version}".strip()
     if info.channel == MAIN_CHANNEL:
         return f"{DEV_TITLE_PREFIX}main @ {info.short_commit}"
     number = info.channel.removeprefix("pr-")
@@ -137,6 +154,8 @@ def _release(entry: object, current: BuildInfo, plugin_name: str) -> DevRelease 
         info = build_info(current.repository, str(entry.get("tag_name", "")), str(entry.get("target_commitish", "")))
     except ValueError:
         return None
+    if not is_development(info):
+        return None
     name = asset_name(plugin_name, info)
     asset = next((a for a in entry.get("assets") or [] if isinstance(a, dict) and a.get("name") == name), None)
     if asset is None or asset.get("state") != "uploaded":
@@ -169,13 +188,92 @@ def state(current: BuildInfo, release: DevRelease) -> str:
     return INSTALLED if same else AVAILABLE
 
 
-def install_request(plugin_name: str, release: DevRelease, downloaded: str) -> list:
+def dev_label(release: DevRelease) -> str:
+    """The version Decky's confirm dialog names a development build by."""
+    return f"{release.info.channel}-{release.info.short_commit}"
+
+
+def install_request(plugin_name: str, label: str, sha256: str, downloaded: str, install_type: int) -> list:
     """The arguments of decky-loader's `utilities/install_plugin(artifact, name, version, hash, install_type)`
-    (backend/decky_loader/utilities.py, v3.3.0) that install `release` over the running plugin.
+    (backend/decky_loader/utilities.py, v3.3.0) that install a downloaded build over the running plugin.
 
     The plugin downloads the zip itself and hands Decky the file (`file://`, browser.py:194, v3.3.0):
     Decky's own download from a URL never reached GitHub on a Bazzite device, while the plugin's does.
     Decky still checks the file against the sha256.
     """
-    label = f"{release.info.channel}-{release.info.short_commit}"
-    return [f"file://{downloaded}", plugin_name, label, release.sha256, DECKY_INSTALL_UPDATE]
+    return [f"file://{downloaded}", plugin_name, label, sha256, install_type]
+
+
+# ── Releases, and switching to one ───────────────────────────────────────────
+
+RELEASE_ASSET = "Decky-Framegen.zip"
+"""A release's one asset; the name people download by hand (release.yml)."""
+
+DECKY_INSTALL_DOWNGRADE = 3
+DECKY_INSTALL_OVERWRITE = 4
+"""decky-loader's other install types (InstallType, v3.3.0); like UPDATE, they only word the confirm dialog."""
+
+UPDATE = "update"
+SWITCH = "switch"
+NONE = "none"
+
+
+@dataclass(frozen=True)
+class StableRelease:
+    """The newest release, installable on the device."""
+
+    version: str
+    title: str
+    published_at: str
+    url: str
+    sha256: str
+
+
+def stable_release(entry: object, repository: str) -> StableRelease | None:
+    """The release in GitHub's latest-release answer, when it is one a device can install: published, not a
+    prerelease, tagged with a release version, holding the release asset uploaded with a sha256 digest and
+    served from the repository's own release downloads."""
+    if not isinstance(entry, dict) or entry.get("draft") or entry.get("prerelease"):
+        return None
+    tag = str(entry.get("tag_name", ""))
+    if not release_version.is_release(tag):
+        return None
+    asset = next((a for a in entry.get("assets") or [] if isinstance(a, dict) and a.get("name") == RELEASE_ASSET), None)
+    if asset is None or asset.get("state") != "uploaded":
+        return None
+    digest = release_assets.sha256(asset)
+    url = str(asset.get("browser_download_url", ""))
+    if digest is None or url != f"https://github.com/{repository}/releases/download/{tag}/{RELEASE_ASSET}":
+        return None
+    return StableRelease(
+        version=tag,
+        title=str(entry.get("name") or f"{RELEASE_TITLE_PREFIX}{tag}"),
+        published_at=str(entry.get("published_at") or ""),
+        url=url,
+        sha256=digest,
+    )
+
+
+def stable_offer(current: BuildInfo, running_version: str, release: StableRelease | None) -> str:
+    """What the device offers for the newest release: UPDATE when a release build is older than it, SWITCH
+    from a development build (whatever their versions), else NONE."""
+    if release is None:
+        return NONE
+    if is_development(current):
+        return SWITCH
+    running, latest = release_version.key(running_version), release_version.key(release.version)
+    return UPDATE if running is not None and latest is not None and latest > running else NONE
+
+
+def install_type(running_version: str, version: str) -> int:
+    """How Decky's confirm dialog words installing `version` over the running one: an update, a downgrade,
+    or an overwrite of the same day's build."""
+    running, target = release_version.key(running_version), release_version.key(version)
+    if running is None or target is None or target > running:
+        return DECKY_INSTALL_UPDATE
+    return DECKY_INSTALL_OVERWRITE if target == running else DECKY_INSTALL_DOWNGRADE
+
+
+def developer_mode(current: BuildInfo, turned_on: bool) -> bool:
+    """Whether the device offers development builds: the user turned it on, or one is running already."""
+    return turned_on or is_development(current)
