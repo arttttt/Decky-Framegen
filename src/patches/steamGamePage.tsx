@@ -1,17 +1,75 @@
-import { Button, afterPatch, appDetailsClasses, createReactTreePatcher, findInReactTree } from "@decky/ui";
+import {
+  DialogButton,
+  DialogButtonProps,
+  afterPatch,
+  appDetailsClasses,
+  appDetailsHeaderClasses,
+  createReactTreePatcher,
+  findInReactTree,
+} from "@decky/ui";
+import { FC, useEffect, useRef, useState } from "react";
+import { MdOutlineAutoAwesomeMotion } from "react-icons/md";
 import { routerHook } from "@decky/api";
 import { openGamePage } from "../api/framegenPage";
 import { GAME_PAGE_BUTTON_LABEL, appIdFromLibraryPath } from "../presentation/steamGamePage";
 
 const STEAM_GAME_ROUTE = "/library/app/:appid";
 
-/** A button on Steam's game page that opens the game's page in the plugin; it carries no other logic. */
+// DialogButton's own button, without the wrapper that keeps it out of the game page's gamepad
+// navigation: the way ProtonDB Badges gets its badge focused there.
+const FocusableButton = (DialogButton as any).render({}).type as FC<DialogButtonProps & { className?: string }>;
+
+const CHIP_CSS = `
+.decky-framegen-chip {
+  display: flex; align-items: center; gap: 6px;
+  min-width: 0; width: auto; padding: 4px 10px;
+  font-size: 14px; font-weight: 600; line-height: 20px;
+  color: #fff; background: rgba(14, 20, 27, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.decky-framegen-chip.gpfocus, .decky-framegen-chip:hover {
+  background: rgba(255, 255, 255, 0.9); color: #0e141b;
+}
+`;
+
+/** The header holding the chip, whose class says when Steam blows it up to fullscreen. */
+function topCapsule(chip: HTMLElement | null): Element | null {
+  const header = Array.from(chip?.parentElement?.children ?? []).find((child) =>
+    child.className.includes(appDetailsClasses.Header),
+  );
+  return Array.from(header?.children ?? []).find((child) => child.className.includes(appDetailsHeaderClasses.TopCapsule)) ?? null;
+}
+
+const FULLSCREEN_CLASSES = ["FullscreenEnterStart", "FullscreenEnterActive", "FullscreenEnterDone", "FullscreenExitStart", "FullscreenExitActive"] as const;
+
+/** A chip on Steam's game page, beside other plugins' badges, that opens the game's page in the plugin.
+ *  It carries no other logic, and hides while Steam shows the header fullscreen. */
 function GamePageButton({ appid }: { appid: string }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [shown, setShown] = useState(true);
+
+  useEffect(() => {
+    const capsule = topCapsule(ref.current);
+    if (!capsule) return;
+    const observer = new MutationObserver(() => {
+      const className = capsule.className;
+      const fullscreen = FULLSCREEN_CLASSES.some((name) => className.includes(appDetailsHeaderClasses[name]));
+      setShown(!fullscreen || className.includes(appDetailsHeaderClasses.FullscreenExitDone));
+    });
+    observer.observe(capsule, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div style={{ position: "absolute", top: "110px", right: "20px", zIndex: 7 }}>
-      <Button onClick={() => openGamePage(appid)} style={{ padding: "6px 12px", minWidth: 0 }}>
-        {GAME_PAGE_BUTTON_LABEL}
-      </Button>
+    <div ref={ref} style={{ position: "absolute", top: "60px", right: "20px", zIndex: 7 }}>
+      <style>{CHIP_CSS}</style>
+      {shown && (
+        <FocusableButton className="decky-framegen-chip" onClick={() => openGamePage(appid)}>
+          <MdOutlineAutoAwesomeMotion />
+          <span>{GAME_PAGE_BUTTON_LABEL}</span>
+        </FocusableButton>
+      )}
     </div>
   );
 }
