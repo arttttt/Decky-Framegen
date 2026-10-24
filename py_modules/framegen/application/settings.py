@@ -6,9 +6,9 @@ import logging
 from pathlib import Path
 
 from framegen.application.patcher import NO_VERSION, Patcher
-from framegen.domain import bundle, exe_target, ini_schema, library, patch_record, settings_layers
+from framegen.domain import exe_target, ini_schema, library, patch_record, settings_layers
 from framegen.domain import patch_plan as plan
-from framegen.domain.settings_layers import Key, Layer
+from framegen.domain.settings_layers import Key
 from framegen.infrastructure import files, processes
 from framegen.infrastructure import steam as steam_library
 
@@ -148,11 +148,7 @@ class Settings:
     def _apply_everywhere(self) -> list[str]:
         """The settings into every patched game; the names of the running ones, which are left alone."""
         skipped = []
-        for directory, name in self.patcher.patches.directories().items():
-            path = Path(directory)
-            details = files.read_json(path / bundle.MARKER_FILENAME)
-            if not details:
-                continue
+        for path, name, details in self.patcher.patched_markers():
             if self._running(path):
                 skipped.append(name)
                 continue

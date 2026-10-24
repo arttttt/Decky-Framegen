@@ -113,6 +113,20 @@ def parse(marker: dict) -> PatchRecord | None:
         return None
 
 
+OK = "ok"
+INCOMPLETE = "incomplete"
+OLDER_PLUGIN = "older-plugin"
+
+
+def state(marker: dict) -> str:
+    """What a marker says of its patch: OK; INCOMPLETE when the patch stopped before its last file (its
+    record still undoes what landed); OLDER_PLUGIN when an earlier plugin version wrote it (undone by a
+    reset)."""
+    if parse(marker) is None:
+        return OLDER_PLUGIN
+    return OK if marker.get("complete", True) else INCOMPLETE
+
+
 def placed_by(patch: PatchRecord | None, path: str) -> bool:
     """Whether a recorded patch placed `path` (a file the directory had before is someone else's)."""
     return patch is not None and any(item.path == path for item in patch.placed)

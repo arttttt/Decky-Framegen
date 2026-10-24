@@ -240,13 +240,47 @@ class Patcher:
         except OSError as exc:
             log.warning(f"Updating the index of patched directories failed: {exc}")
 
+    def patched_markers(self) -> list[tuple[Path, str, dict]]:
+        """Every indexed directory with its name and marker. A directory whose marker is gone (the game
+        was removed, or the marker by hand) is dropped from the index."""
+        found = []
+        for directory, name in self.patches.directories().items():
+            path = Path(directory)
+            marker_path = path / bundle.MARKER_FILENAME
+            if not marker_path.is_file():
+                self._forget(path)
+                continue
+            found.append((path, name, files.read_json(marker_path)))
+        return found
+
     def _patched_with(self, version_id: str) -> list[tuple[str, dict]]:
         """The name and marker of every indexed directory whose marker names this library version."""
-        markers = [
-            (name, files.read_json(Path(directory) / bundle.MARKER_FILENAME))
-            for directory, name in self.patches.directories().items()
-        ]
-        return sorted((name, details) for name, details in markers if details.get("optiscaler_version") == version_id)
+        return sorted(
+            (name, details) for _, name, details in self.patched_markers() if details.get("optiscaler_version") == version_id
+        )
+
+    def patched_games(self) -> dict:
+        """Every game and directory the plugin patched, by name: what it was patched with, and whether it
+        has settings of its own. A Steam game has its appid; a directory patched by path has none."""
+        installed = self.library.installed()
+        games = []
+        for directory, name, details in self.patched_markers():
+            appid = str(details.get("appid") or "")
+            dll_name = details.get("dll_name") or bundle.DEFAULT_PROXY_DLL
+            version = details.get("optiscaler_version")
+            games.append({
+                "directory": str(directory),
+                "name": name,
+                "appid": appid,
+                "dll_name": dll_name,
+                "dll_present": (directory / dll_name).exists(),
+                "version_id": version,
+                "newer_version": library.newer_in_channel(installed, version),
+                "patched_at": details.get("patched_at"),
+                "record": patch_record.state(details),
+                "own_settings": bool(appid) and bool(self.settings.game_layer(appid)),
+            })
+        return {"status": "success", "games": sorted(games, key=lambda game: game["name"].lower())}
 
     def games_using(self, version_id: str) -> list[str]:
         """The patched games and directories whose marker names this library version."""
