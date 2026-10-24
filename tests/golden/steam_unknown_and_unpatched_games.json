@@ -14,6 +14,7 @@
     "fsr4_variant_label": null,
     "install_found": false,
     "message": "Game not found in Steam library.",
+    "newer_version": null,
     "patched": false,
     "status": "success",
     "target_dir": null

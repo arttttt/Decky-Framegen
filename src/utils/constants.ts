@@ -60,12 +60,6 @@ export type ProxyDllValue = typeof PROXY_DLL_OPTIONS[number]["value"];
 export const DEFAULT_PROXY_DLL: ProxyDllValue = "dxgi.dll";
 
 
-// Common timeout values
-export const TIMEOUTS = {
-  resultDisplay: 5000,  // 5 seconds
-  pathCheck: 3000       // 3 seconds
-};
-
 // Message strings
 export const MESSAGES = {
   instructionTitle: "How to Use:",

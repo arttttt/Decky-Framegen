@@ -15,6 +15,7 @@ from framegen.domain import bundle, exe_target, launch_options, library, marker,
 from framegen.domain import patch_plan as plan
 from framegen.infrastructure import files, game_directory, processes
 from framegen.infrastructure.library_store import LibraryStore
+from framegen.infrastructure.patch_index import PatchIndex
 from framegen.infrastructure import steam as steam_library
 
 log = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class Patcher:
         self.home = home
         self.fgmod_path = home / "fgmod"
         self.library = LibraryStore(self.fgmod_path / "library")
+        self.patches = PatchIndex(self.fgmod_path / "patched.json")
 
     # ── directories ──────────────────────────────────────────────────────────
 
@@ -107,6 +109,7 @@ class Patcher:
             )
             # The record lands before the first file does, so even an interrupted patch can be undone.
             files.write_json(marker_path, {**details, **patch_record.to_json(recorded, complete=False)})
+            self._remember(directory, steam_game.name if steam_game else str(directory))
             game_directory.execute(operations, directory, source)
             files.write_json(marker_path, {**details, **patch_record.to_json(recorded, complete=True)})
         except plan.PlanError as exc:
@@ -138,6 +141,7 @@ class Patcher:
             return _error(BUNDLE_IS_NOT_A_GAME)
         marker_path = directory / bundle.MARKER_FILENAME
         if not marker_path.exists():
+            self._forget(directory)
             return {"status": "success", "message": f"No Framegen patch found in {directory}"}
         recorded = patch_record.parse(files.read_json(marker_path))
         if recorded is None:
@@ -151,7 +155,32 @@ class Patcher:
         except Exception as exc:
             log.error(f"Unpatch failed: {exc}")
             return _error(f"Unpatch failed: {exc}")
+        self._forget(directory)
         return {"status": "success", "message": f"OptiScaler files removed from {directory}"}
+
+    # The index of patched directories follows the markers: an entry is added once a marker is
+    # written and dropped once it is gone. Failing to update it never fails a patch.
+
+    def _remember(self, directory: Path, name: str) -> None:
+        try:
+            self.patches.add(directory, name)
+        except OSError as exc:
+            log.warning(f"Updating the index of patched directories failed: {exc}")
+
+    def _forget(self, directory: Path) -> None:
+        try:
+            self.patches.remove(directory)
+        except OSError as exc:
+            log.warning(f"Updating the index of patched directories failed: {exc}")
+
+    def games_using(self, version_id: str) -> dict:
+        """The patched games and directories whose marker names this library version."""
+        names = [
+            name
+            for directory, name in self.patches.directories().items()
+            if files.read_json(Path(directory) / bundle.MARKER_FILENAME).get("optiscaler_version") == version_id
+        ]
+        return {"status": "success", "games": sorted(names)}
 
     def patch_user_directory(
         self, directory: str, dll_name: str, fsr4_variant: str, version_id: str | None = None
@@ -228,6 +257,7 @@ class Patcher:
             "target_dir": None,
             "fsr4_variant": None,
             "fsr4_variant_label": None,
+            "newer_version": None,
         }
         if game is None:
             return {**unpatched, "install_found": False, "message": "Game not found in Steam library."}
@@ -264,6 +294,7 @@ class Patcher:
             "optiscaler_version": version,
             "fsr4_variant": metadata.get("fsr4_variant"),
             "fsr4_variant_label": label,
+            "newer_version": library.newer_in_channel(self.library.installed(), version),
             "message": message,
         }
 
@@ -425,6 +456,7 @@ class Patcher:
             game_directory.execute(operations, target, self.fgmod_path)
             if marker_path is not None and marker_path.exists():
                 marker_path.unlink()
+            self._forget(target)
             log.info(f"[Framegen] reset_game: appid={appid} target={target}")
             return {**preview, "name": game.name, "message": f"{game.name} is back to how it shipped."}
         except Exception as exc:
@@ -446,6 +478,7 @@ class Patcher:
             if preview["status"] != "success":
                 return preview
             game_directory.execute(operations, target, self.fgmod_path)
+            self._forget(target)
             log.info(f"[Framegen] reset_directory: {target}")
             return {**preview, "message": f"{target} is back to how it shipped."}
         except Exception as exc:

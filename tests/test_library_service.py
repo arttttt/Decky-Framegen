@@ -62,6 +62,39 @@ def test_an_entry_that_is_not_one_is_not_in_the_library():
     assert library.parse_entry([]) is None
 
 
+# ── unit: what patching offers ──────────────────────────────────────────────
+
+
+def test_patching_offers_installed_versions_newest_first_with_their_familys_variants():
+    stable = library.Installed("stable-0.9.4", library.STABLE, "0.9.4", "20260718", "0.9", "u", "0" * 64, "t")
+    nightly = installed_entry()
+
+    offered = [library.choice_json(entry) for entry in library.newest_first([stable, nightly])]
+
+    assert offered == [
+        {"id": NEWEST, "version": "10.0.0-pre1", "channel": "nightly", "date": "20261023", "variants": [
+            {"id": "auto", "label": "Automatic (the best model the GPU supports)"},
+            {"id": "int8", "label": "INT8 (RDNA 3, also integrated)"},
+            {"id": "int8-lite", "label": "INT8 Lite (any GPU)"},
+        ]},
+        {"id": "stable-0.9.4", "version": "0.9.4", "channel": "stable", "date": "20260718", "variants": [
+            {"id": "sdk", "label": "FSR 4.1.1 SDK"},
+            {"id": "sdk-int8", "label": "FSR 4.1.1 SDK, INT8 forced"},
+        ]},
+    ]
+
+
+def test_a_newer_version_is_the_newest_later_build_of_the_same_channel():
+    old, mid, new = (installed_entry(f"nightly-2026100{n}", date=f"2026100{n}") for n in (1, 2, 3))
+    stable = library.Installed("stable-0.9.5", library.STABLE, "0.9.5", "20261231", "0.9", "u", "0" * 64, "t")
+    installed = [mid, stable, new, old]
+
+    assert library.newer_in_channel(installed, old.id) == new.id
+    assert library.newer_in_channel(installed, new.id) is None  # a later stable is another channel
+    assert library.newer_in_channel(installed, "nightly-20250101") is None  # not in the library any more
+    assert library.newer_in_channel(installed, None) is None
+
+
 # ── integration: the service ────────────────────────────────────────────────
 
 V10_FILES = {
@@ -266,3 +299,26 @@ def test_a_failed_core_refresh_does_not_turn_an_install_into_a_failure(world):
     assert result["message"].endswith("Updating the launch scripts in ~/fgmod failed: No space left on device")
     assert (world.fgmod / "library" / "versions" / NEWEST / "entry.json").exists()
     assert not (world.fgmod / "library" / "settings.json.new").exists()
+
+
+def test_the_plugin_lists_what_games_can_be_patched_with(plugin, fgmod):
+    from conftest import NIGHTLY, STABLE
+
+    installed = run(plugin.library_installed())
+
+    assert installed["default"] == STABLE
+    assert [version["id"] for version in installed["versions"]] == [NIGHTLY, STABLE]
+    write(fgmod / "library" / "settings.json", json.dumps({"default_version": "stable-0.9.1"}).encode())
+    assert run(plugin.library_installed())["default"] is None  # a default no longer installed is none
+
+
+def test_a_game_status_names_a_newer_version_of_its_channel(plugin, fgmod, steam_library):
+    from conftest import NIGHTLY, NIGHTLY_FILES, NIGHTLY_INI, install_version
+
+    steam_library.add_game("1234", "Test Game")
+    run(plugin.patch_game("1234", "dxgi.dll", "", "", NIGHTLY))
+    assert run(plugin.get_game_status("1234"))["newer_version"] is None
+
+    install_version(fgmod, "nightly-20261101", "10", NIGHTLY_FILES, NIGHTLY_INI)
+
+    assert run(plugin.get_game_status("1234"))["newer_version"] == "nightly-20261101"

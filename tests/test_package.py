@@ -112,7 +112,7 @@ sys.modules["decky"] = decky
 sys.path[:0] = [root + "/py_modules", root]
 import main
 assert main.__file__.startswith(root), main.__file__
-print(asyncio.run(main.Plugin().check_fgmod_path()))
+print(asyncio.run(main.Plugin().library_installed()))
 """
 
 
@@ -122,4 +122,4 @@ def test_the_backend_loads_from_the_package_alone_and_answers(plugin_root):
     )
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == "{'exists': False, 'version': None}"
+    assert result.stdout.strip() == "{'default': None, 'versions': []}"

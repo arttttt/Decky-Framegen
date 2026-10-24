@@ -4,23 +4,14 @@ import { toaster } from "@decky/api";
 import { listInstalledGames, getGameStatus, patchGame, unpatchGame } from "../api";
 import { getAppLaunchOptions, setAppLaunchOptions } from "../api/steamClient";
 import { ResetToStock } from "./ResetToStock";
-import { patchButton } from "../presentation/patching";
-
-// ─── Types ───────────────────────────────────────────────────────────────────
+import { GameStatus, PatchWith, SteamGameView, steamGameView } from "../presentation/patching";
 
 type GameEntry = { appid: string; name: string; install_found?: boolean };
 
-type GameStatus = {
-  status: "success" | "error";
-  message?: string;
-  install_found?: boolean;
-  patched?: boolean;
-  dll_name?: string | null;
-  target_dir?: string | null;
-  patched_at?: string | null;
-  optiscaler_version?: string | null;
-  fsr4_variant?: string | null;
-  fsr4_variant_label?: string | null;
+const TONE_COLORS: Record<SteamGameView["status"]["tone"], string | undefined> = {
+  neutral: undefined,
+  warning: "#ffd866",
+  good: "#3fb950",
 };
 
 // ─── Module-level state persistence ──────────────────────────────────────────
@@ -31,10 +22,11 @@ let lastSelectedAppId = "";
 
 interface SteamGamePatcherProps {
   dllName: string;
-  bundleInstalled: boolean;
+  patchWith: PatchWith;
+  ready: boolean;
 }
 
-export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherProps) {
+export function SteamGamePatcher({ dllName, patchWith, ready }: SteamGamePatcherProps) {
   const [games, setGames] = useState<GameEntry[]>([]);
   const [gamesLoading, setGamesLoading] = useState(true);
   const [selectedAppId, setSelectedAppId] = useState<string>(() => lastSelectedAppId);
@@ -110,21 +102,14 @@ export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherP
   );
 
 
-  const isPatchedWithDifferentDll =
-    gameStatus?.patched && gameStatus?.dll_name && gameStatus.dll_name !== dllName;
-
-  const canPatch = Boolean(selectedGame && gameStatus?.install_found && !busyAction);
-  const canUnpatch = Boolean(selectedGame && gameStatus?.patched && !busyAction);
-
-  const patchButtonLabel = useMemo(() => {
-    if (busyAction === "patch") return "Patching...";
-    if (!selectedGame) return "Patch this game";
-    if (!gameStatus?.install_found) return "Install not found";
-    if (isPatchedWithDifferentDll) return `Switch to ${dllName}`;
-    if (gameStatus?.patched) return `Reinstall (${dllName})`;
-    return `Patch with ${dllName}`;
-  }, [busyAction, dllName, gameStatus, isPatchedWithDifferentDll, selectedGame]);
-  const patchAction = patchButton(bundleInstalled, patchButtonLabel);
+  const view = steamGameView({
+    gameSelected: selectedGame !== null,
+    status: gameStatus,
+    statusLoading,
+    busy: busyAction,
+    dllName,
+    ready,
+  });
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -139,8 +124,7 @@ export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherP
       } catch {
         // non-fatal: proceed without current launch options
       }
-      // The library's default version and its default FSR 4 variant, until the library section offers a choice.
-      const result = await patchGame(selectedAppId, dllName, currentLaunchOptions, "");
+      const result = await patchGame(selectedAppId, dllName, currentLaunchOptions, patchWith.variant, patchWith.versionId);
       if (result.status !== "success") throw new Error(result.message || "Patch failed.");
       setAppLaunchOptions(Number(selectedAppId), result.launch_options || "");
       const msg = result.message || `Patched ${selectedGame.name}.`;
@@ -154,7 +138,7 @@ export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherP
     } finally {
       setBusyAction(null);
     }
-  }, [busyAction, dllName, loadStatus, selectedAppId, selectedGame]);
+  }, [busyAction, dllName, loadStatus, patchWith, selectedAppId, selectedGame]);
 
   const handleUnpatch = useCallback(async () => {
     if (!selectedGame || !selectedAppId || busyAction) return;
@@ -176,21 +160,6 @@ export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherP
       setBusyAction(null);
     }
   }, [busyAction, loadStatus, selectedAppId, selectedGame]);
-
-  // ── Status display ─────────────────────────────────────────────────────────
-
-  const statusDisplay = useMemo(() => {
-    if (!selectedGame) return { text: "—", color: undefined as string | undefined };
-    if (statusLoading) return { text: "Loading...", color: undefined };
-    if (!gameStatus || gameStatus.status === "error")
-      return { text: gameStatus?.message || "—", color: undefined };
-    if (!gameStatus.install_found) return { text: "Install not found", color: "#ffd866" };
-    if (!gameStatus.patched) return { text: "Not patched", color: undefined };
-    const dllLabel = gameStatus.dll_name || "unknown";
-    if (isPatchedWithDifferentDll)
-      return { text: `Patched (${dllLabel}) — switch available`, color: "#ffd866" };
-    return { text: `Patched (${dllLabel})`, color: "#3fb950" };
-  }, [gameStatus, isPatchedWithDifferentDll, selectedGame, statusLoading]);
 
   const focusableFieldProps = { focusable: true, highlightOnFocus: true } as const;
 
@@ -223,38 +192,30 @@ export function SteamGamePatcher({ dllName, bundleInstalled }: SteamGamePatcherP
         <>
           <PanelSectionRow>
             <Field {...focusableFieldProps} label="Patch status">
-              {statusDisplay.color ? (
-                <span style={{ color: statusDisplay.color, fontWeight: 600 }}>
-                  {statusDisplay.text}
-                </span>
+              {TONE_COLORS[view.status.tone] ? (
+                <span style={{ color: TONE_COLORS[view.status.tone], fontWeight: 600 }}>{view.status.text}</span>
               ) : (
-                statusDisplay.text
+                view.status.text
               )}
             </Field>
           </PanelSectionRow>
 
-          <PanelSectionRow>
-            <Field {...focusableFieldProps} label="OptiScaler">
-              {gameStatus?.patched
-                ? `${gameStatus?.optiscaler_version ?? "?"}: ${gameStatus?.fsr4_variant_label || "Unknown"}`
-                : "Will patch with the default version"}
-            </Field>
-          </PanelSectionRow>
+          {view.versionLine && (
+            <PanelSectionRow>
+              <Field {...focusableFieldProps} label="OptiScaler" description={view.versionLine} />
+            </PanelSectionRow>
+          )}
 
           <PanelSectionRow>
-            <ButtonItem layout="below" disabled={!canPatch || !patchAction.enabled} onClick={handlePatch}>
-              {patchAction.label}
+            <ButtonItem layout="below" disabled={!view.patch.enabled} onClick={handlePatch}>
+              {view.patch.label}
             </ButtonItem>
           </PanelSectionRow>
 
-          {canUnpatch && (
+          {view.unpatchVisible && (
             <PanelSectionRow>
-              <ButtonItem
-                layout="below"
-                disabled={busyAction !== null}
-                onClick={handleUnpatch}
-              >
-                {busyAction === "unpatch" ? "Unpatching..." : "Unpatch this game"}
+              <ButtonItem layout="below" disabled={!view.unpatch.enabled} onClick={handleUnpatch}>
+                {view.unpatch.label}
               </ButtonItem>
             </PanelSectionRow>
           )}

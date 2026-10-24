@@ -7,7 +7,7 @@ from conftest import snapshot
 
 def test_the_fixture_has_a_default_optiscaler_version(plugin, fgmod):
     # Guards the harness itself: every other test patches with this library.
-    assert asyncio.run(plugin.check_fgmod_path()) == {"exists": True, "version": "stable-0.9.4"}
+    assert asyncio.run(plugin.library_installed())["default"] == "stable-0.9.4"
 
 
 def test_manual_patch_then_unpatch_restores_clean_game_dir(plugin, fgmod, game_dir):

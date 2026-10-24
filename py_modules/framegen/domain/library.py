@@ -283,6 +283,31 @@ def parse_entry(data: object) -> Installed | None:
     return installed if installed.family in FAMILIES and installed.channel in CHANNELS else None
 
 
+def newest_first(installed: list[Installed]) -> list[Installed]:
+    return sorted(installed, key=lambda entry: (entry.date, entry.id), reverse=True)
+
+
+def choice_json(installed: Installed) -> dict:
+    """An installed version as patching offers it: with its family's FSR 4 variants, the default first."""
+    return {
+        "id": installed.id,
+        "version": installed.version,
+        "channel": installed.channel,
+        "date": installed.date,
+        "variants": [{"id": key, "label": variant.label} for key, variant in FAMILIES[installed.family].variants.items()],
+    }
+
+
+def newer_in_channel(installed: list[Installed], version_id: str | None) -> str | None:
+    """The newest installed version of the same channel built after `version_id`, if any: a game
+    patched with `version_id` could be patched again with it."""
+    current = next((entry for entry in installed if entry.id == version_id), None)
+    if current is None:
+        return None
+    newer = [entry for entry in installed if entry.channel == current.channel and entry.date > current.date]
+    return newest_first(newer)[0].id if newer else None
+
+
 INSTALLED = "installed"
 AVAILABLE = "available"
 UNSUPPORTED = "unsupported"
