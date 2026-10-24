@@ -15,13 +15,18 @@ export const patchButton = (
 export const libraryReady = (library: InstalledLibrary | null): boolean | null =>
   library === null ? null : library.versions.length > 0;
 
-/** What the patch calls send: a version id; empty lets the backend use the library's default. */
-export type PatchWith = { versionId: string };
+/** What the patch calls send: a version id (empty lets the backend use the library's default), and
+ *  whether to place it by symlinks into the library instead of copies. */
+export type PatchWith = { versionId: string; link: boolean };
+
+/** Placing by symlinks is an experiment: offered in development builds only. */
+export type LinkChoice = { offered: boolean; on: boolean };
 
 export type PatchChoiceView = {
   versionOptions: { data: string; label: string }[];
   versionId: string | null;
   versionHint: string | null;
+  linkToggleVisible: boolean;
   ready: boolean;
   patchWith: PatchWith;
 };
@@ -30,7 +35,11 @@ export type PatchChoiceView = {
  * What a patch will use: the picked version while it is installed, else the library's default,
  * else the newest. FSR 4's model is left to OptiScaler, which picks it for the GPU.
  */
-export const patchChoice = (library: InstalledLibrary | null, picked: string | null): PatchChoiceView => {
+export const patchChoice = (
+  library: InstalledLibrary | null,
+  picked: string | null,
+  link: LinkChoice = { offered: false, on: false },
+): PatchChoiceView => {
   const versions = library?.versions ?? [];
   const byId = (id: string | null): InstalledVersion | undefined => versions.find((v) => v.id === id);
   const version = byId(picked) ?? byId(library?.default ?? null) ?? versions[0];
@@ -42,7 +51,8 @@ export const patchChoice = (library: InstalledLibrary | null, picked: string | n
     versionId: version?.id ?? null,
     versionHint: version ? null : "No OptiScaler version is downloaded. Use Download versions… under OptiScaler versions.",
     ready: version !== undefined,
-    patchWith: { versionId: version?.id ?? "" },
+    linkToggleVisible: link.offered,
+    patchWith: { versionId: version?.id ?? "", link: link.offered && link.on },
   };
 };
 
@@ -51,9 +61,10 @@ export const gameVersionLine = (status: {
   patched?: boolean;
   optiscaler_version?: string | null;
   newer_version?: string | null;
+  linked?: boolean;
 } | null): string | null => {
   if (!status?.patched) return null;
-  const line = status.optiscaler_version ?? "Unknown version";
+  const line = `${status.optiscaler_version ?? "Unknown version"}${status.linked ? " (linked)" : ""}`;
   return status.newer_version ? `${line}. ${status.newer_version} is in the library; choose it and patch again to update.` : line;
 };
 
@@ -66,6 +77,7 @@ export type GameStatus = {
   dll_name?: string | null;
   optiscaler_version?: string | null;
   newer_version?: string | null;
+  linked?: boolean;
 };
 
 export type SteamGameView = {
