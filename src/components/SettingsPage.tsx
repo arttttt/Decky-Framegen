@@ -117,9 +117,10 @@ export function SettingsPage() {
       showTitle
       pages={[
         { title: "Search", identifier: "search", content: <SearchPage page={page} /> },
-        ...view.sections.map((section) => ({
+        ...view.sections.map((section, index) => ({
           title: section.name,
-          identifier: section.name,
+          // By position: an ini may repeat a section header.
+          identifier: `section-${index}`,
           content: (
             <PanelSection>
               <Rows rows={section.rows} page={page} locked={view.locked} />
