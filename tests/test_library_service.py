@@ -382,3 +382,14 @@ def test_a_finished_replace_leaves_no_old_copy_behind(world):
     world.library().reinstall(NEWEST)
 
     assert not list((world.fgmod / "library" / "versions").glob(".*"))
+
+
+def test_an_old_copy_left_after_the_new_one_landed_is_cleared_by_the_next_install(world):
+    world.library().install(library.NIGHTLY, NEWEST)
+    versions = world.fgmod / "library" / "versions"
+    write(versions / f".{NEWEST}.old" / "files" / "OptiScaler.dll", b"the old copy")  # slept before deleting it
+
+    world.library(FakeDownload(b"not the published archive")).install(library.NIGHTLY, "nightly-20261020")
+
+    assert not (versions / f".{NEWEST}.old").exists()
+    assert (versions / NEWEST / "files" / "OptiScaler.dll").read_bytes() == b"opti"
