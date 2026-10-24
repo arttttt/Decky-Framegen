@@ -253,6 +253,16 @@ def newest_first(installed: list[Installed]) -> list[Installed]:
     return sorted(installed, key=lambda entry: (entry.date, entry.id), reverse=True)
 
 
+def version_to_patch_with(installed: list[Installed], patched_with: str | None) -> Installed | None:
+    """The version a patch that names none uses: the one the game is already patched with, so a newer
+    download never switches it silently, else the newest downloaded. None when nothing is downloaded."""
+    current = next((entry for entry in installed if entry.id == patched_with), None)
+    if current is not None:
+        return current
+    newest = newest_first(installed)
+    return newest[0] if newest else None
+
+
 def choice_json(installed: Installed, size: int) -> dict:
     """An installed version as patching offers it and the library lists it; `size` is its bytes on disk."""
     return {
@@ -290,23 +300,20 @@ class Row:
     state: str
     reason: str | None
     size: int
-    default: bool
 
 
-def catalog(
-    installed: list[Installed], published: list[Available], default: str | None, sizes: dict[str, int]
-) -> list[Row]:
+def catalog(installed: list[Installed], published: list[Available], sizes: dict[str, int]) -> list[Row]:
     """A channel's versions, newest first: every installed one (also those upstream no longer lists)
     as installed, then what upstream publishes, downloadable or not. `sizes` holds installed sizes."""
     installed_ids = {entry.id for entry in installed}
     rows = [
-        Row(entry.id, entry.version, entry.date, entry.family, INSTALLED, None, sizes.get(entry.id, 0), entry.id == default)
+        Row(entry.id, entry.version, entry.date, entry.family, INSTALLED, None, sizes.get(entry.id, 0))
         for entry in installed
     ]
     rows += [
         Row(
             version.id, version.version, version.date, version.family,
-            UNSUPPORTED if version.unsupported else AVAILABLE, version.unsupported, version.size, False,
+            UNSUPPORTED if version.unsupported else AVAILABLE, version.unsupported, version.size,
         )
         for version in published
         if version.id not in installed_ids
@@ -314,15 +321,11 @@ def catalog(
     return sorted(rows, key=lambda row: row.date, reverse=True)
 
 
-def removal_refused(
-    version_id: str, installed_ids: set[str], default: str | None, linked_games: list[str]
-) -> str | None:
-    """Why a version can't be removed, or None. The default goes only when it is the last version left;
-    a version games are linked to stays while they are: removing it would break them."""
+def removal_refused(version_id: str, installed_ids: set[str], linked_games: list[str]) -> str | None:
+    """Why a version can't be removed, or None. A version games are linked to stays while they are:
+    removing it would break them. Games patched by copies don't hold it."""
     if version_id not in installed_ids:
         return f"{version_id} is not in the library."
-    if version_id == default and len(installed_ids) > 1:
-        return "New patches use this version. Choose another one for new patches before removing it."
     if linked_games:
         return f"{', '.join(linked_games)} use {version_id} through links. Unpatch them first."
     return None

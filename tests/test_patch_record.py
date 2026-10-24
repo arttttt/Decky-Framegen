@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from conftest import game_file, make_game_dir, run, snapshot, write
+from conftest import STABLE, game_file, make_game_dir, run, snapshot, write
 from framegen.domain import patch_record
 from framegen.domain.patch_plan import Copy, DeleteFile, EditIni, Move
 from framegen.domain.patch_record import Backup, PatchRecord, Placed, RemoveDirIfEmpty
@@ -110,7 +110,7 @@ def test_patching_writes_the_record_and_unpatching_restores_the_game_exactly(plu
     game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
     before = snapshot(game)
 
-    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))["status"] == "success"
+    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))["status"] == "success"
     marker = json.loads((game / "FRAMEGEN_PATCH").read_text())
     assert marker["format"] == 2 and marker["complete"] is True
     assert {"path": "dxgi.dll", "sha256": marker["placed"][0]["sha256"]} in marker["placed"]
@@ -130,7 +130,7 @@ def test_an_interrupted_patch_can_still_be_undone(plugin, fgmod, tmp_path, monke
         raise OSError("device went to sleep")
 
     monkeypatch.setattr(game_directory, "execute", crash_halfway)
-    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))["status"] == "error"
+    assert run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))["status"] == "error"
     assert json.loads((game / "FRAMEGEN_PATCH").read_text())["complete"] is False
     monkeypatch.setattr(game_directory, "execute", real_execute)
 
@@ -140,7 +140,7 @@ def test_an_interrupted_patch_can_still_be_undone(plugin, fgmod, tmp_path, monke
 
 def test_a_game_updated_while_patched_keeps_its_new_file(plugin, fgmod, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game", {"libxess.dll": game_file("libxess.dll")})
-    run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))
+    run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
     write(game / "libxess.dll", b"the game's updated libxess")
 
     assert run(plugin.manual_unpatch_directory(str(game)))["status"] == "success"
@@ -151,7 +151,7 @@ def test_a_game_updated_while_patched_keeps_its_new_file(plugin, fgmod, tmp_path
 
 def test_a_failed_unpatch_keeps_the_marker_and_says_so(plugin, fgmod, tmp_path, monkeypatch):
     game = make_game_dir(tmp_path / "games" / "Game")
-    run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))
+    run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
     real_execute = game_directory.execute
 
     def fail_before_the_end(operations, directory, fgmod_path):
@@ -177,7 +177,7 @@ def test_a_game_patched_by_an_older_version_is_left_alone(plugin, fgmod, tmp_pat
     if action == "unpatch":
         result = run(plugin.manual_unpatch_directory(str(game)))
     else:
-        result = run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))
+        result = run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
 
     assert result == {"status": "error", "message": "This game was patched by an older version of the plugin. "
                                                      "Unpatch it first: the plugin shows what that removes."}
@@ -216,6 +216,6 @@ def test_a_repatch_keeps_the_users_ini_settings_unless_asked_to_reset_them(plugi
 
 def test_unpatching_a_directory_with_a_record_needs_no_confirmation(plugin, fgmod, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Game")
-    run(plugin.manual_patch_directory(str(game), "dxgi.dll", ""))
+    run(plugin.manual_patch_directory(str(game), "dxgi.dll", STABLE))
 
     assert run(plugin.preview_unpatch_directory(str(game))) == {"status": "success", "mode": "record", "target_dir": str(game)}

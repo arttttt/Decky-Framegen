@@ -4,14 +4,12 @@ import {
   libraryRemoval,
   libraryReinstall,
   libraryRemove,
-  librarySetDefault,
 } from "../api";
 import { ManageAction, ManageState, actionOutcome, manageDone, manageView, removeConfirmation } from "../presentation/library";
 import { safeAsyncOperation } from "../utils";
 import { useLibraryDownloadEvents } from "./useLibraryDownloadEvents";
 
 const CALLS: Record<ManageAction, (id: string) => Promise<{ status: string; message?: string }>> = {
-  default: librarySetDefault,
   reinstall: libraryReinstall,
   remove: libraryRemove,
 };
@@ -52,7 +50,6 @@ export const useManageVersions = (onChanged: () => void) => {
 
   return {
     view: manageView(state),
-    isDefault: (id: string) => state.library?.default === id,
     run: (id: string, action: ManageAction) => void run(id, action),
     removalOf,
   };

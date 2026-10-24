@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import REPO_ROOT, game_file, make_game_dir, put_tools_on_path, write
+from conftest import REPO_ROOT, STABLE, game_file, make_game_dir, put_tools_on_path, write
 from framegen.application.launch_wrapper import LaunchWrapper, WrapperError
 from framegen.domain import launch_target
 from framegen.infrastructure import game_locator
@@ -161,9 +161,9 @@ def test_cli_reports_failures_for_the_user_with_exit_code_1(fgmod, home, tmp_pat
 def test_cli_reset_ini_replaces_the_games_ini(fgmod, home, tmp_path):
     game = make_game_dir(tmp_path / "games" / "Cli Game", {"OptiScaler.ini": b"[Mine]\nKeep=1\n"})
 
-    run_cli(home, "patch", "--", str(game / "Game.exe"))
+    run_cli(home, "patch", "--version", STABLE, "--", str(game / "Game.exe"))
     kept = (game / "OptiScaler.ini").read_text()
-    run_cli(home, "patch", "--reset-ini", "--", str(game / "Game.exe"))
+    run_cli(home, "patch", "--reset-ini", "--", str(game / "Game.exe"))  # keeps the version the game is patched with
 
     assert "Keep=1" in kept
     # The game's own ini is backed up, and the version's, with the plugin's defaults, takes its place.

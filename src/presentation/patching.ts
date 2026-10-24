@@ -15,8 +15,8 @@ export const patchButton = (
 export const libraryReady = (library: InstalledLibrary | null): boolean | null =>
   library === null ? null : library.versions.length > 0;
 
-/** What the patch calls send: a version id (empty lets the backend use the library's default), and
- *  whether to place it by symlinks into the library instead of copies. */
+/** What the patch calls send: the version id, and whether to place it by symlinks into the library
+ *  instead of copies. */
 export type PatchWith = { versionId: string; link: boolean };
 
 /** Placing by symlinks is an experiment: offered in development builds only. */
@@ -32,8 +32,8 @@ export type PatchChoiceView = {
 };
 
 /**
- * What a patch will use: the picked version while it is installed, else the library's default,
- * else the newest. FSR 4's model is left to OptiScaler, which picks it for the GPU.
+ * What a patch will use: the picked version while it is installed, else the newest (the library
+ * lists newest first). FSR 4's model is left to OptiScaler, which picks it for the GPU.
  */
 export const patchChoice = (
   library: InstalledLibrary | null,
@@ -42,12 +42,9 @@ export const patchChoice = (
 ): PatchChoiceView => {
   const versions = library?.versions ?? [];
   const byId = (id: string | null): InstalledVersion | undefined => versions.find((v) => v.id === id);
-  const version = byId(picked) ?? byId(library?.default ?? null) ?? versions[0];
+  const version = byId(picked) ?? versions[0];
   return {
-    versionOptions: versions.map((v) => ({
-      data: v.id,
-      label: `${versionLabel(v)} (${v.channel})${v.id === library?.default ? ", default" : ""}`,
-    })),
+    versionOptions: versions.map((v) => ({ data: v.id, label: `${versionLabel(v)} (${v.channel})` })),
     versionId: version?.id ?? null,
     versionHint: version ? null : "No OptiScaler version is downloaded. Use Download versions… under OptiScaler versions.",
     ready: version !== undefined,

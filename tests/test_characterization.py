@@ -35,16 +35,16 @@ class Recorder:
 
 # ── Manual directory patching ────────────────────────────────────────────────
 
-# Patches are (proxy DLL, library version or None for the default).
+# Patches are (proxy DLL, library version).
 MANUAL_SCENARIOS = {
     "manual_clean_game": {
         "files": {},
-        "patches": [("dxgi.dll", None)],
+        "patches": [("dxgi.dll", STABLE)],
     },
     # The game ships its own proxy-named DLLs; both get backed up, whichever proxy is used.
     "manual_game_ships_proxy_dlls": {
         "files": {"version.dll": game_file("version.dll"), "dxgi.dll": game_file("dxgi.dll")},
-        "patches": [("version.dll", None)],
+        "patches": [("version.dll", STABLE)],
     },
     # Game-shipped FidelityFX/XeSS/compiler DLLs; those the version also provides are backed up.
     "manual_game_ships_support_dlls": {
@@ -57,22 +57,22 @@ MANUAL_SCENARIOS = {
                 "d3dcompiler_47.dll",
             )
         },
-        "patches": [("dxgi.dll", None)],
+        "patches": [("dxgi.dll", STABLE)],
     },
     # User- or game-placed AMD driver DLLs: no version provides them, so they stay.
     "manual_game_ships_driver_dlls": {
         "files": {"amdxcffx64.dll": game_file("amdxcffx64.dll"), "amdxc64.dll": game_file("amdxc64.dll")},
-        "patches": [("dxgi.dll", None)],
+        "patches": [("dxgi.dll", STABLE)],
     },
     # A pre-existing plugins/ folder with someone else's ASI mod.
     "manual_game_has_plugins_dir": {
         "files": {"plugins/OtherMod.asi": game_file("OtherMod.asi")},
-        "patches": [("dxgi.dll", None)],
+        "patches": [("dxgi.dll", STABLE)],
     },
     # Patching twice before unpatching, the second time with a v10 nightly (another family).
     "manual_repatch": {
         "files": {},
-        "patches": [("dxgi.dll", None), ("winmm.dll", NIGHTLY)],
+        "patches": [("dxgi.dll", STABLE), ("winmm.dll", NIGHTLY)],
     },
     "manual_nightly": {
         "files": {},
@@ -80,7 +80,7 @@ MANUAL_SCENARIOS = {
     },
     "manual_asi_proxy": {
         "files": {},
-        "patches": [("OptiScaler.asi", None)],
+        "patches": [("OptiScaler.asi", STABLE)],
     },
     # An existing per-game INI next to a game-shipped dxgi.dll: both are the game's and stay.
     "manual_existing_old_ini": {
@@ -88,7 +88,7 @@ MANUAL_SCENARIOS = {
             "OptiScaler.ini": b"[FrameGen]\nFGType=nukems\n\n[Menu]\nUseHQFont=auto\n",
             "dxgi.dll": game_file("dxgi.dll"),
         },
-        "patches": [("dxgi.dll", None)],
+        "patches": [("dxgi.dll", STABLE)],
     },
 }
 
@@ -101,8 +101,8 @@ def test_manual_patch_scenarios(name, plugin, fgmod, tmp_path):
     recorder.record("initial")
 
     for dll_name, version in scenario["patches"]:
-        result = run(plugin.manual_patch_directory(str(game), dll_name, version or ""))
-        recorder.record(f"patch {dll_name} {version or 'default'}", result)
+        result = run(plugin.manual_patch_directory(str(game), dll_name, version))
+        recorder.record(f"patch {dll_name} {version}", result)
 
     result = run(plugin.manual_unpatch_directory(str(game)))
     recorder.record("unpatch", result)
@@ -111,7 +111,7 @@ def test_manual_patch_scenarios(name, plugin, fgmod, tmp_path):
 
 
 def test_manual_patch_rejects_unknown_proxy_name(plugin, fgmod, game_dir):
-    result = run(plugin.manual_patch_directory(str(game_dir), "d3d11.dll", ""))
+    result = run(plugin.manual_patch_directory(str(game_dir), "d3d11.dll", STABLE))
 
     assert result == {"status": "error", "message": "Invalid proxy DLL name: d3d11.dll"}
 
@@ -120,6 +120,14 @@ def test_manual_patch_needs_an_optiscaler_version_in_the_library(plugin, home, g
     result = run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", ""))
 
     assert result == {"status": "error", "message": "No OptiScaler version is downloaded. Download one under OptiScaler versions first."}
+
+
+def test_a_patch_naming_no_version_keeps_the_games_else_takes_the_newest(plugin, fgmod, game_dir):
+    assert run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", ""))["optiscaler_version"] == NIGHTLY
+    run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", STABLE))
+
+    # The launch wrapper repatches without a version: the game stays on the one the user chose.
+    assert run(plugin.manual_patch_directory(str(game_dir), "dxgi.dll", ""))["optiscaler_version"] == STABLE
 
 
 def test_manual_patch_with_a_version_not_in_the_library_is_refused(plugin, fgmod, game_dir):
@@ -152,11 +160,11 @@ def test_steam_launch_options_survive_repatch(plugin, fgmod, steam_library, tmp_
     root = steam_library.add_game("200", "Options Game")
     recorder = Recorder(tmp_path, root)
 
-    recorder.record("patch", run(plugin.patch_game("200", "dxgi.dll", "gamemoderun %command% -dx12", "")))
+    recorder.record("patch", run(plugin.patch_game("200", "dxgi.dll", "gamemoderun %command% -dx12", STABLE)))
     # Steam now holds our managed options; a re-patch passes those back in.
     recorder.record(
         "repatch with winmm",
-        run(plugin.patch_game("200", "winmm.dll", "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%", "")),
+        run(plugin.patch_game("200", "winmm.dll", "WINEDLLOVERRIDES=dxgi=n,b SteamDeck=0 %command%", STABLE)),
     )
     recorder.record("unpatch", run(plugin.unpatch_game("200")))
 
@@ -167,11 +175,11 @@ def test_steam_target_directory_moves_between_patches(plugin, fgmod, steam_libra
     root = steam_library.add_game("300", "Moving Game")
     recorder = Recorder(tmp_path, root)
 
-    recorder.record("patch at root", run(plugin.patch_game("300", "dxgi.dll", "", "")))
+    recorder.record("patch at root", run(plugin.patch_game("300", "dxgi.dll", "", STABLE)))
     # A game update adds the real Unreal executable deeper in the tree.
     write(root / "Binaries" / "Win64" / "MovingGame-Win64-Shipping.exe", game_file("MovingGame-Win64-Shipping.exe"))
     recorder.record("game update")
-    recorder.record("repatch", run(plugin.patch_game("300", "dxgi.dll", "", "")))
+    recorder.record("repatch", run(plugin.patch_game("300", "dxgi.dll", "", STABLE)))
     recorder.record("unpatch", run(plugin.unpatch_game("300")))
 
     assert_golden("steam_target_directory_moves_between_patches", recorder.steps)
@@ -180,7 +188,7 @@ def test_steam_target_directory_moves_between_patches(plugin, fgmod, steam_libra
 def test_steam_marker_records_the_backed_up_game_files(plugin, fgmod, steam_library):
     root = steam_library.add_game("600", "Xess Game", {"libxess.dll": game_file("libxess.dll")})
 
-    run(plugin.patch_game("600", "dxgi.dll", "", ""))
+    run(plugin.patch_game("600", "dxgi.dll", "", STABLE))
 
     marker = json.loads((root / "FRAMEGEN_PATCH").read_text())
     assert marker["backed_up_files"] == ["libxess.dll"]
@@ -191,10 +199,10 @@ def test_steam_unknown_and_unpatched_games(plugin, fgmod, steam_library, tmp_pat
     steam_library.add_game("400", "Untouched Game")
     observed = {
         "status unknown": run(plugin.get_game_status("999")),
-        "patch unknown": run(plugin.patch_game("999", "dxgi.dll", "", "")),
+        "patch unknown": run(plugin.patch_game("999", "dxgi.dll", "", STABLE)),
         "unpatch unknown": run(plugin.unpatch_game("999")),
         "unpatch never patched": run(plugin.unpatch_game("400")),
-        "patch invalid dll": run(plugin.patch_game("400", "d3d11.dll", "", "")),
+        "patch invalid dll": run(plugin.patch_game("400", "d3d11.dll", "", STABLE)),
     }
 
     assert_golden("steam_unknown_and_unpatched_games", normalize_result(observed, tmp_path))

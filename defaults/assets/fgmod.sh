@@ -32,7 +32,7 @@ core() {
 
 dll_args=()
 [[ -n "${DLL:-}" ]] && dll_args=(--dll "$DLL")
-# FGMOD_VERSION picks a library version (e.g. nightly-20261023); unset means the default one.
+# FGMOD_VERSION picks a library version (e.g. nightly-20261023); unset keeps the one the game is patched with, else the newest.
 patch_args=(patch "${dll_args[@]}" --version "${FGMOD_VERSION:-}")
 [[ "${PRESERVE_INI:-true}" == "true" ]] || patch_args+=(--reset-ini)
 if ! exe_folder_path="$(core "${patch_args[@]}" -- "$@")"; then

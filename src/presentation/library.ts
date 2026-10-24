@@ -40,14 +40,13 @@ export const actionOutcome = (answer: { status: string; message?: string } | nul
 
 // ── The panel ────────────────────────────────────────────────────────────────
 
-/** One line in the panel: how many versions are on the device and which one new patches use. */
+/** One line in the panel: how many versions are on the device and the newest of them. */
 export const librarySummary = (library: InstalledLibrary | null): string => {
   if (library === null) return "Loading…";
+  const [newest] = library.versions;
+  if (!newest) return "No version is downloaded yet.";
   const count = library.versions.length;
-  if (count === 0) return "No version is downloaded yet.";
-  const chosen = library.versions.find((v) => v.id === library.default);
-  const downloaded = `${count} ${count === 1 ? "version" : "versions"} downloaded`;
-  return chosen ? `${downloaded}. New patches use ${versionLabel(chosen)}.` : `${downloaded}.`;
+  return `${count} ${count === 1 ? "version" : "versions"} downloaded. Newest: ${versionLabel(newest)}.`;
 };
 
 // ── Download dialog ──────────────────────────────────────────────────────────
@@ -116,7 +115,7 @@ export const downloadView = (state: DownloadState): DownloadView => {
 
 // ── Manage dialog ────────────────────────────────────────────────────────────
 
-export type ManageAction = "default" | "reinstall" | "remove";
+export type ManageAction = "reinstall" | "remove";
 
 export type ManageState = {
   library: InstalledLibrary | null;
@@ -134,15 +133,11 @@ export type ManageView = {
 
 export type ManageMenuItem = { action: ManageAction; label: string; destructive: boolean };
 
-const describeInstalled = (version: InstalledVersion, isDefault: boolean): string =>
-  `${version.channel === "nightly" ? "Nightly" : "Stable"} · ${megabytes(version.size)}${
-    isDefault ? " · used for new patches" : ""
-  }`;
+const describeInstalled = (version: InstalledVersion): string =>
+  `${version.channel === "nightly" ? "Nightly" : "Stable"} · ${megabytes(version.size)}`;
 
-const busyDescription = (action: ManageAction, download: LibraryDownload | null): string => {
-  if (action === "reinstall") return downloadProgress(download);
-  return action === "remove" ? "Removing…" : "Making it the version for new patches…";
-};
+const busyDescription = (action: ManageAction, download: LibraryDownload | null): string =>
+  action === "reinstall" ? downloadProgress(download) : "Removing…";
 
 export const manageView = (state: ManageState): ManageView => {
   const { library, busy } = state;
@@ -154,7 +149,7 @@ export const manageView = (state: ManageState): ManageView => {
       description:
         busy?.id === version.id
           ? busyDescription(busy.action, state.download)
-          : describeInstalled(version, version.id === library?.default),
+          : describeInstalled(version),
       action: { label: "Manage", enabled: busy === null },
     })),
     usage: library && library.installed_bytes > 0 ? `Downloaded versions take ${megabytes(library.installed_bytes)}.` : null,
@@ -164,13 +159,12 @@ export const manageView = (state: ManageState): ManageView => {
 
 /** What the dialog says when an action succeeded and the backend gave no words of its own. */
 export const manageDone = (action: ManageAction, id: string): string =>
-  action === "default" ? `New patches use ${id}.` : action === "reinstall" ? `${id} is downloaded again.` : `${id} is removed.`;
+  action === "reinstall" ? `${id} is downloaded again.` : `${id} is removed.`;
 
 /** What can be done with a downloaded version. */
-export const manageMenu = (isDefault: boolean): ManageMenuItem[] => [
-  ...(isDefault ? [] : [{ action: "default" as const, label: "Use for new patches", destructive: false }]),
-  { action: "reinstall" as const, label: "Download again", destructive: false },
-  { action: "remove" as const, label: "Remove", destructive: true },
+export const MANAGE_MENU: ManageMenuItem[] = [
+  { action: "reinstall", label: "Download again", destructive: false },
+  { action: "remove", label: "Remove", destructive: true },
 ];
 
 /** What the dialog shows when Remove is picked: the question, or — told before asking — why it can't be removed. */

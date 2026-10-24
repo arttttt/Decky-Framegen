@@ -3,7 +3,6 @@ import type { InstalledLibrary } from "../api";
 import { GameStatus, gameVersionLine, libraryReady, patchButton, patchChoice, steamGameView } from "./patching";
 
 const LIBRARY: InstalledLibrary = {
-  default: "stable-0.9.4",
   installed_bytes: 500_000_000,
   versions: [
     {
@@ -36,37 +35,36 @@ describe("patch button", () => {
 describe("library readiness", () => {
   it("is unknown until the library answers, then whether any version is installed", () => {
     expect(libraryReady(null)).toBeNull();
-    expect(libraryReady({ default: null, versions: [], installed_bytes: 0 })).toBe(false);
+    expect(libraryReady({ versions: [], installed_bytes: 0 })).toBe(false);
     expect(libraryReady(LIBRARY)).toBe(true);
   });
 });
 
 describe("patch choice", () => {
-  it("starts on the default version", () => {
+  it("starts on the newest version", () => {
     const view = patchChoice(LIBRARY, null);
 
-    expect(view.versionId).toBe("stable-0.9.4");
+    expect(view.versionId).toBe("nightly-20261023");
     expect(view.versionOptions).toEqual([
       { data: "nightly-20261023", label: "10.0.0-pre1 · 2026-10-23 (nightly)" },
-      { data: "stable-0.9.4", label: "0.9.4 · 2026-07-18 (stable), default" },
+      { data: "stable-0.9.4", label: "0.9.4 · 2026-07-18 (stable)" },
     ]);
     expect(view.ready).toBe(true);
     expect(view.versionHint).toBeNull();
-    expect(view.patchWith).toEqual({ versionId: "stable-0.9.4", link: false });
+    expect(view.patchWith).toEqual({ versionId: "nightly-20261023", link: false });
     expect(view.linkToggleVisible).toBe(false);
   });
 
   it("keeps a picked version while it is installed", () => {
-    expect(patchChoice(LIBRARY, "nightly-20261023").patchWith).toEqual({ versionId: "nightly-20261023", link: false });
+    expect(patchChoice(LIBRARY, "stable-0.9.4").patchWith).toEqual({ versionId: "stable-0.9.4", link: false });
   });
 
-  it("falls back to the default when the picked version is gone, and to the newest without a default", () => {
-    expect(patchChoice(LIBRARY, "nightly-20250101").versionId).toBe("stable-0.9.4");
-    expect(patchChoice({ ...LIBRARY, default: null }, null).versionId).toBe("nightly-20261023");
+  it("falls back to the newest when the picked version is gone", () => {
+    expect(patchChoice(LIBRARY, "nightly-20250101").versionId).toBe("nightly-20261023");
   });
 
   it("offers nothing and says where to get a version when the library is empty", () => {
-    for (const library of [null, { default: null, versions: [], installed_bytes: 0 }]) {
+    for (const library of [null, { versions: [], installed_bytes: 0 }]) {
       const view = patchChoice(library, "stable-0.9.4");
       expect(view).toMatchObject({ versionId: null, ready: false, versionOptions: [], patchWith: { versionId: "", link: false } });
       expect(view.versionHint).toMatch(/under OptiScaler versions/);

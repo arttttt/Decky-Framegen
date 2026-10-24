@@ -1,4 +1,4 @@
-"""The OptiScaler library on disk: ~/fgmod/library/{versions,.partial,settings.json}."""
+"""The OptiScaler library on disk: ~/fgmod/library/{versions,.partial}."""
 
 from __future__ import annotations
 
@@ -14,7 +14,6 @@ class LibraryStore:
         self.root = root
         self.versions_dir = root / "versions"
         self.partial_dir = root / ".partial"
-        self.settings_path = root / "settings.json"
 
     def installed(self) -> list[library.Installed]:
         """Every version on disk with a readable entry.json; nothing else counts as installed."""
@@ -87,18 +86,3 @@ class LibraryStore:
 
     def remove(self, version_id: str) -> None:
         shutil.rmtree(self.version_dir(version_id))
-
-    # ── settings ─────────────────────────────────────────────────────────────
-
-    def default_version(self) -> str | None:
-        value = read_json(self.settings_path).get("default_version")
-        return str(value) if value else None
-
-    def set_default_version(self, version_id: str | None) -> None:
-        settings = read_json(self.settings_path)
-        settings["default_version"] = version_id
-        self.root.mkdir(parents=True, exist_ok=True)
-        staged = self.settings_path.with_name(self.settings_path.name + ".new")
-        write_json(staged, settings)
-        staged.replace(self.settings_path)
-

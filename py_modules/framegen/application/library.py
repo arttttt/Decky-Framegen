@@ -53,13 +53,10 @@ class Library:
         return library.available(channel, self.list_releases(library.CHANNELS[channel].repository))
 
     def installed(self) -> dict:
-        """The versions games can be patched with, newest first, the default one new patches use,
-        and what they take on disk."""
+        """The versions games can be patched with, newest first, and what they take on disk."""
         entries = library.newest_first(self.store.installed())
         sizes = {entry.id: self.store.size(entry.id) for entry in entries}
-        default = self.store.default_version()
         return {
-            "default": default if any(entry.id == default for entry in entries) else None,
             "versions": [library.choice_json(entry, sizes[entry.id]) for entry in entries],
             "installed_bytes": sum(sizes.values()),
         }
@@ -76,9 +73,7 @@ class Library:
         except ReleasesUnavailable as exc:
             log.error(f"Listing OptiScaler {channel} releases failed: {exc}")
             published, listing_error = [], str(exc)
-        rows = library.catalog(
-            [entry for entry in installed if entry.channel == channel], published, self.store.default_version(), sizes
-        )
+        rows = library.catalog([entry for entry in installed if entry.channel == channel], published, sizes)
         return {
             "status": "success",
             "versions": [row.__dict__ for row in rows],
@@ -140,8 +135,6 @@ class Library:
             return _error(f"Installing {version_id} failed: {exc}")
         finally:
             self.store.clear_partial()
-        if self.store.default_version() is None:
-            self.store.set_default_version(version_id)
         log.info(f"{'Reinstalled' if replacing else 'Installed'} OptiScaler {version_id}")
         message = f"OptiScaler {version.version} is {'downloaded again' if replacing else 'installed'}."
         try:
@@ -154,7 +147,7 @@ class Library:
 
     def _removal_refused(self, version_id: str) -> str | None:
         installed = {entry.id for entry in self.store.installed()}
-        return library.removal_refused(version_id, installed, self.store.default_version(), self.linked_games(version_id))
+        return library.removal_refused(version_id, installed, self.linked_games(version_id))
 
     def removal(self, version_id: str) -> dict:
         """What removing a version would come to, asked before the user confirms it: why it can't be
@@ -165,17 +158,8 @@ class Library:
         refused = self._removal_refused(version_id)
         if refused:
             return _error(refused)
-        default = self.store.default_version()
         try:
             self.store.remove(version_id)
         except OSError as exc:
             return _error(f"Removing {version_id} failed: {exc}")
-        if default == version_id:
-            self.store.set_default_version(None)
         return {"status": "success", "message": f"{version_id} is removed."}
-
-    def set_default(self, version_id: str) -> dict:
-        if not any(entry.id == version_id for entry in self.store.installed()):
-            return _error(f"{version_id} is not in the library.")
-        self.store.set_default_version(version_id)
-        return {"status": "success", "default": version_id}
