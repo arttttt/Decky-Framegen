@@ -95,7 +95,6 @@ describe("game version line", () => {
       "nightly-20261023. nightly-20261101 is in the library; choose it and patch again to update.",
     );
     expect(gameVersionLine({ patched: true })).toBe("Unknown version");
-    expect(gameVersionLine({ ...patched, linked: true })).toBe("nightly-20261023, linked from the library");
     expect(gameVersionLine({ patched: false })).toBeNull();
     expect(gameVersionLine(null)).toBeNull();
   });
@@ -119,6 +118,10 @@ describe("steam game view", () => {
       status: { text: "Patched (dxgi.dll)", tone: "good" }, versionLine: "stable-0.9.4",
       patch: { label: "Reinstall (dxgi.dll)", enabled: true }, unpatchVisible: true,
       unpatch: { label: "Unpatch this game", enabled: true },
+    });
+
+    expect(steamGameView({ ...base, status: { ...patched, linked: true } }).status).toEqual({
+      text: "Patched with links to the library (dxgi.dll)", tone: "good",
     });
 
     expect(steamGameView({ ...base, dllName: "winmm.dll", status: patched })).toMatchObject({
