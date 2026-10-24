@@ -514,5 +514,5 @@ class Patcher:
             log.info(f"[Framegen] reset_directory: {target}")
             return {**preview, "message": f"{target} is back to how it shipped."}
         except Exception as exc:
-            log.error(f"[Framegen] reset_directory failed for {directory}: {exc}")
+            log.error(f"[Framegen] reset_directory failed for {target}: {exc}")
             return _error(str(exc))

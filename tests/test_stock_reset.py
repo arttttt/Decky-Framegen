@@ -225,3 +225,15 @@ def test_a_support_file_removed_without_a_backup_is_named_as_maybe_the_games():
 
     assert "libxess.dll" in reset.unrecoverable
 
+
+def test_a_reset_that_fails_midway_answers_with_the_error(plugin, tmp_path, monkeypatch):
+    from framegen.infrastructure import game_directory
+
+    game = make_game_dir(tmp_path / "games" / "Game", {"dxgi.dll": b"opti", "libxess.dll.b": game_file("libxess.dll")})
+
+    def crash(operations, directory, source):
+        raise OSError("device went to sleep")
+
+    monkeypatch.setattr(game_directory, "execute", crash)
+
+    assert run(plugin.manual_unpatch_directory(str(game), True)) == {"status": "error", "message": "device went to sleep"}
