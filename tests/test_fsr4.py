@@ -165,3 +165,52 @@ def test_a_tool_updated_in_place_is_read_again(plugin, fgmod, steam_library, amd
     os.utime(tool / "proton", ns=(1, 2_000_000_000_000_000_000))  # a later mtime than the cached read
 
     assert run(plugin.get_game_status("730"))["fsr4"]["state"] == "will-fetch"
+
+
+def ge_game(steam_library) -> "Path":
+    root = steam_library.add_game("730", "Fsr Game")
+    steam_library.add_tool("GE-Proton11-11", reads_fsr4_variable=True)
+    steam_library.set_compat_tools({"730": "GE-Proton11-11"})
+    return root
+
+
+def test_the_patch_links_the_driver_dll_from_the_prefix_where_optiscaler_looks(plugin, fgmod, steam_library, amd_gpu):
+    import os
+
+    from conftest import NIGHTLY, snapshot
+
+    root = ge_game(steam_library)
+    before = snapshot(root)
+    prefix_dll = steam_library.steamapps / "compatdata" / "730" / "pfx" / "drive_c" / "windows" / "system32" / "amdxcffx64.dll"
+
+    assert run(plugin.patch_game("730", "dxgi.dll", "", NIGHTLY))["status"] == "success"
+    # Proton fetches the DLL on the first launch; until then the link leads nowhere, which harms nothing.
+    assert os.readlink(root / "OptiScaler" / "amdxcffx64.dll") == str(prefix_dll)
+
+    assert run(plugin.unpatch_game("730"))["status"] == "success"
+    assert snapshot(root) == before
+
+
+def test_the_users_own_driver_dll_is_left_alone(plugin, fgmod, steam_library, amd_gpu):
+    from conftest import NIGHTLY, write
+
+    root = ge_game(steam_library)
+    write(root / "OptiScaler" / "amdxcffx64.dll", b"the user's FSR 4 build")
+
+    assert run(plugin.patch_game("730", "dxgi.dll", "", NIGHTLY))["status"] == "success"
+    assert (root / "OptiScaler" / "amdxcffx64.dll").read_bytes() == b"the user's FSR 4 build"
+    assert not (root / "OptiScaler" / "amdxcffx64.dll").is_symlink()
+    run(plugin.unpatch_game("730"))
+
+    assert (root / "OptiScaler" / "amdxcffx64.dll").read_bytes() == b"the user's FSR 4 build"
+
+
+def test_a_repatch_replaces_its_own_driver_link(plugin, fgmod, steam_library, amd_gpu):
+    from conftest import NIGHTLY
+
+    root = ge_game(steam_library)
+    run(plugin.patch_game("730", "dxgi.dll", "", NIGHTLY))
+    run(plugin.patch_game("730", "dxgi.dll", "WINEDLLOVERRIDES=dxgi=n,b PROTON_FSR4_UPGRADE=1 SteamDeck=0 %command%", NIGHTLY))
+
+    assert (root / "OptiScaler" / "amdxcffx64.dll").is_symlink()
+    assert not (root / "OptiScaler" / "amdxcffx64.dll.b").exists()

@@ -85,8 +85,13 @@ def compatdata(game_library: Path, appid: str) -> Path:
     return game_library / "steamapps" / "compatdata" / str(appid)
 
 
+def prefix_dll(game_compatdata: Path) -> Path:
+    """Where the game's Proton puts AMD's FSR 4 driver DLL."""
+    return game_compatdata / fsr4.PREFIX_DLL
+
+
 def dll_in_prefix(game_compatdata: Path) -> bool:
-    return (game_compatdata / fsr4.PREFIX_DLL).is_file()
+    return prefix_dll(game_compatdata).is_file()
 
 
 def tracked_version(game_compatdata: Path) -> str | None:

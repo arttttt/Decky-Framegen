@@ -67,6 +67,7 @@ class Patcher:
         version_id: str | None = None,
         reset_ini: bool = False,
         steam_game: marker.SteamGame | None = None,
+        fsr4_driver: Path | None = None,
     ) -> dict:
         """Patch a directory with a library version and record it in a marker. A patch that names no
         version (the launch wrapper's, unless FGMOD_VERSION is set) keeps the one the directory is
@@ -101,8 +102,12 @@ class Patcher:
                 return undone
         try:
             entries, _ = game_directory.listing(directory)
+            driver = version_placement.driver_path(family)
+            if os.path.lexists(directory / driver):
+                entries |= {driver}
+            request = version_placement.Request(dll_name, reset_ini, str(fsr4_driver) if fsr4_driver else None)
             operations = version_placement.plan_patch(
-                entries, self.library.files_in(source), family, version_placement.Request(dll_name, reset_ini)
+                entries, self.library.files_in(source), family, request
             )
             log.info(f"Patching {directory} with OptiScaler {entry.id}, {dll_name}")
             recorded = patch_record.record(
@@ -265,15 +270,16 @@ class Patcher:
     def _is_running(self, game: steam_library.InstalledGame) -> bool:
         return self._running_executable(steam_library.executables(game.install_path)) is not None
 
-    def _fsr4(self, game: steam_library.InstalledGame) -> tuple[fsr4.State | None, bool]:
-        """The game's FSR 4 under Proton, and whether its launch options should ask Proton to fetch it."""
+    def _fsr4(self, game: steam_library.InstalledGame) -> tuple[fsr4.State | None, Path | None]:
+        """The game's FSR 4 under Proton, and — when a patch should ask Proton to fetch it — where in the
+        game's prefix the DLL lands."""
         amd = proton.amd_gpu()
         tool = proton.compat_tool(self.home, game.appid)
         tool_dir = proton.tool_directory(self.home, tool) if tool else None
         reads_variable = tool_dir is not None and proton.reads_upgrade_variable(tool_dir)
         prefix = proton.compatdata(game.library_path, game.appid)
         state = fsr4.state(amd, tool, reads_variable, proton.dll_in_prefix(prefix), proton.tracked_version(prefix))
-        return state, fsr4.wants_upgrade_variable(amd, reads_variable)
+        return state, proton.prefix_dll(prefix) if fsr4.wants_upgrade_variable(amd, reads_variable) else None
 
     def _patch_target(self, game: steam_library.InstalledGame) -> tuple[Path, Path | None]:
         candidates = steam_library.executables(game.install_path)
@@ -379,16 +385,18 @@ class Patcher:
             if moved["status"] != "success":
                 return moved
         log.info(f"[Framegen] patch_game: appid={appid} dll={dll_name} target={target_dir} exe={target_exe}")
+        fsr4_driver = self._fsr4(game)[1]
         result = self.patch_directory(
             target_dir,
             dll_name,
             version_id=version_id,
             steam_game=marker.SteamGame(str(appid), game.name, original_options),
+            fsr4_driver=fsr4_driver,
         )
         if result["status"] != "success":
             return result
 
-        managed_options = launch_options.managed(dll_name, self._fsr4(game)[1])
+        managed_options = launch_options.managed(dll_name, fsr4_driver is not None)
         log.info(f"[Framegen] patch_game success: appid={appid} launch_options={managed_options}")
         return {
             "status": "success",
