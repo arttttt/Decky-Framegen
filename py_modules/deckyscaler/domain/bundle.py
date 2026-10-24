@@ -15,7 +15,7 @@ HOME_DIRNAME = "deckyscaler"
 FSR4_UPSCALER_FILENAME = "amd_fidelityfx_upscaler_dx12.dll"
 FSR4_DRIVER_OVERRIDE_FILENAME = "amdxcffx64.dll"
 VARIANT_EXTRA_FILENAMES = ["amdxc64.dll", FSR4_DRIVER_OVERRIDE_FILENAME]
-"""Driver DLLs earlier versions placed for some FSR 4 variants."""
+"""Driver DLLs the original Decky Framegen placed for some FSR 4 variants."""
 
 PROXY_DLLS = {
     "dxgi.dll": "Works for most DX12 games. Default.",

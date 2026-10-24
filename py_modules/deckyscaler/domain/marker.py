@@ -1,4 +1,4 @@
-"""The FRAMEGEN_PATCH marker the plugin leaves in a directory it patched through Steam."""
+"""The marker (DECKYSCALER_PATCH) the plugin leaves in a directory it patched."""
 
 from __future__ import annotations
 

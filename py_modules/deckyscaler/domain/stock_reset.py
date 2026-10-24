@@ -1,8 +1,8 @@
-"""Returning a game that an earlier plugin version patched to how it shipped.
+"""Returning a game the original Decky Framegen patched to how it shipped.
 
-A reset only ever runs for one game the user picked and confirmed. It acts only
-on evidence that the plugin was there — its marker, its `.b` backups, or files
-only the oldest versions left behind — and says beforehand what it will remove,
+Such a patch has no record to undo. A reset only ever runs for one game the user
+picked and confirmed. It acts only on evidence that a plugin was there — a marker,
+`.b` backups, or files only Decky Framegen's oldest versions left behind — and says beforehand what it will remove,
 what it will restore, and what it removes that the game may have shipped itself.
 """
 
