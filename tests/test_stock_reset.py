@@ -1,4 +1,4 @@
-"""Resetting a game an earlier plugin version patched: rules (unit) and the plugin (integration)."""
+"""Resetting a game the original Decky Framegen patched: rules (unit) and the plugin (integration)."""
 
 from __future__ import annotations
 
@@ -155,7 +155,7 @@ def test_a_game_patched_with_a_record_is_unpatched_by_it_even_when_a_reset_is_co
 
 
 def test_an_older_versions_marker_naming_a_path_that_is_gone_resets_the_directory_it_sits_in(plugin, steam_library):
-    # The device report: the marker an older version wrote named a /run/... path that no longer
+    # The device report: the marker Decky Framegen wrote named a /run/... path that no longer
     # exists, so Unpatch failed with "not found" and Patch was refused.
     stale = json.dumps({"dll_name": "dxgi.dll", "target_dir": "/run/media/gone/Old Game", "original_launch_options": ""})
     root = steam_library.add_game("730", "Old Game", {

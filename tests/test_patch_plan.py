@@ -1,4 +1,4 @@
-"""The rules every plan shares, the unpatch of earlier plugin versions' patches, and the launch options to restore."""
+"""The rules every plan shares, the unpatch of Decky Framegen's patches, and the launch options to restore."""
 
 from deckyscaler.domain import marker
 from deckyscaler.domain import patch_plan as plan
